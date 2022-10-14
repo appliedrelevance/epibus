@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include epibus *.css
+recursive-include epibus *.csv
+recursive-include epibus *.html
+recursive-include epibus *.ico
+recursive-include epibus *.js
+recursive-include epibus *.json
+recursive-include epibus *.md
+recursive-include epibus *.png
+recursive-include epibus *.py
+recursive-include epibus *.svg
+recursive-include epibus *.txt
+recursive-exclude epibus *.pyc
