@@ -1,0 +1,46 @@
+{
+ "actions": [],
+ "autoname": "autoincrement",
+ "creation": "2022-10-17 18:32:17.320067",
+ "description": "Modbus Location is a single Input, Output, or Register address on PLC Hardware.  It uses IEC 61131-3 nomenclature.\n",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "plc_address",
+  "modbus_address",
+  "location_type"
+ ],
+ "fields": [
+  {
+   "description": "OpenPLC Runtime uses the IEC 61131-3 nomenclature to address input, output, and memory locations. The addressing of I/O locations is done through the use of unique character sequences. These sequences are a concatenation of the percent sign \u201c%\u201d, a location prefix, a size prefix, and one or more natural numbers separated by blank spaces. The following location prefixes are supported:\n\nI for input\nO for output\nM for memory\nThe following size prefixes are supported:\n\nX for bit (1 bit)\nB for byte (8 bits)\nW for word (16 bits)\nD for double word (32 bits)\nL for long word (64 bits)\nFor example, if you want to read the state of the first digital input into a BOOL variable, you must declare your variable at: %IX0.0. If you're going to write the contents of a UINT variable into the second analog output, you should declare your UINT variable located at %QW2.",
+   "fieldname": "plc_address",
+   "fieldtype": "Data",
+   "label": "PLC Address"
+  },
+  {
+   "fieldname": "modbus_address",
+   "fieldtype": "Int",
+   "label": "Modbus Address"
+  },
+  {
+   "fieldname": "location_type",
+   "fieldtype": "Select",
+   "label": "Location Type",
+   "options": "Digital Output Coil\nDigital Output Slave Coil\nDigital Input Contact\nDigital Input Slave Contact\nAnalog Input Register\nMemory Register (16 bit)\nMemory Register (32 bit)\nMemory Register (64 bit)"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2022-10-18 11:45:42.140556",
+ "modified_by": "Administrator",
+ "module": "Epibus",
+ "name": "Modbus Location",
+ "naming_rule": "Autoincrement",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
