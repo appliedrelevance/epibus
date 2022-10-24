@@ -8,7 +8,10 @@
  "engine": "InnoDB",
  "field_order": [
   "host",
-  "port"
+  "port",
+  "device_name",
+  "unit",
+  "connections"
  ],
  "fields": [
   {
@@ -24,11 +27,27 @@
    "fieldname": "port",
    "fieldtype": "Int",
    "label": "Port"
+  },
+  {
+   "fieldname": "connections",
+   "fieldtype": "Table",
+   "label": "Locations",
+   "options": "Modbus Location"
+  },
+  {
+   "fieldname": "device_name",
+   "fieldtype": "Data",
+   "label": "Device Name"
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Int",
+   "label": "Unit"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2022-10-18 12:19:17.684489",
+ "modified": "2022-10-24 14:36:40.447132",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Connection",
