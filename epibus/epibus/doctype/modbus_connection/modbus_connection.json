@@ -11,7 +11,7 @@
   "port",
   "device_name",
   "unit",
-  "connections"
+  "locations"
  ],
  "fields": [
   {
@@ -29,12 +29,6 @@
    "label": "Port"
   },
   {
-   "fieldname": "connections",
-   "fieldtype": "Table",
-   "label": "Locations",
-   "options": "Modbus Location"
-  },
-  {
    "fieldname": "device_name",
    "fieldtype": "Data",
    "label": "Device Name"
@@ -43,11 +37,17 @@
    "fieldname": "unit",
    "fieldtype": "Int",
    "label": "Unit"
+  },
+  {
+   "fieldname": "locations",
+   "fieldtype": "Table",
+   "label": "Locations",
+   "options": "Modbus Location"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2022-10-24 14:36:40.447132",
+ "modified": "2022-10-24 20:50:09.943517",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Connection",

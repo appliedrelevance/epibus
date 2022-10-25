@@ -10,8 +10,7 @@
  "field_order": [
   "connection",
   "action",
-  "location",
-  "value"
+  "location"
  ],
  "fields": [
   {
@@ -27,11 +26,6 @@
    "options": "Read\nWrite"
   },
   {
-   "fieldname": "value",
-   "fieldtype": "Data",
-   "label": "Value"
-  },
-  {
    "fieldname": "location",
    "fieldtype": "Link",
    "label": "Location",
@@ -40,7 +34,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2022-10-24 16:27:40.131595",
+ "modified": "2022-10-24 21:46:58.153228",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Action",

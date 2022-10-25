@@ -11,5 +11,12 @@ class ModbusConnection(Document):
     @frappe.whitelist()
     def test_connection(self, host, port):
         client = ModbusTcpClient(host, port)
-
-        return "Connection successful" if client.connect() else "Connection failed"
+        res = client.connect()
+        locs = "Locations: "
+        for d in self.get("locations"):
+            state = "On" if client.read_coils(
+                d.modbus_address, 1).bits[0] else "Off"
+            locs += d.device_address + ": " + \
+                d.plc_address + " (" + state + "), "
+            d.value = state
+        return "Connection successful " + locs if res else "Connection failed"

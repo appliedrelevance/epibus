@@ -35,8 +35,8 @@ const portPrefixMap = {
 frappe.ui.form.on("Modbus Location", {
 	location_type: function (frm, cdt, cdn) {
 		if (!frappe.get_doc(cdt, cdn).location_type) return;
-		// frappe.msgprint("Form frm is " + JSON.stringify(frm));
-		frappe.msgprint("Location Type Changed to " + frappe.get_doc(cdt, cdn).location_type);
+		let locType = frappe.get_doc(cdt, cdn).location_type;
+		frappe.msgprint(`Location Type for ${frm.id} Changed to ${locType}`);
 		// frappe.call({
 		// 	method: "erpnext.projects.doctype.timesheet.timesheet.get_activity_cost",
 		// 	args: {
