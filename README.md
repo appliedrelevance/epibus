@@ -10,7 +10,7 @@ Note that the MODBUS protocol has been around since 1979, before the words "mast
 
 The name "Epibus" is a portmanteau of "Epi" (from "Epinomy") and "Bus" (from "MODBUS"). 
 
-Epibus is based on the excellent PyModbus library, which is a pure Python implementation of the MODBUS protocol.
+Epibus is based on the excellent [PyModbus library](https://pymodbus.readthedocs.io/en/latest/readme.html), which is a pure Python implementation of the MODBUS protocol.
 
 ## Installation
 
