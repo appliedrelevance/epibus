@@ -26,6 +26,7 @@
    "default": "502",
    "fieldname": "port",
    "fieldtype": "Int",
+   "in_list_view": 1,
    "label": "Port"
   },
   {
@@ -47,7 +48,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2022-10-24 20:50:09.943517",
+ "modified": "2022-10-26 19:45:13.457844",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Connection",
