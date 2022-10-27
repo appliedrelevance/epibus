@@ -87,10 +87,6 @@ A **Modbus Action** provides an interface between ERPNext and the MODBUS/TCP con
     - **Location Type**: The type of I/O pin on the PLC. (See information below)
 6. Click the **Save** button again.
 
-## Operating a Device with
-
-
-
 ## Input, Output, and Memory Addressing
 
 *The following is from the [PyModbus documentation](https://openplcproject.com/docs/2-3-input-output-and-memory-addressing/).* 
