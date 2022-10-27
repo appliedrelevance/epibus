@@ -68,20 +68,22 @@ A **Modbus Action** provides an interface between ERPNext and the MODBUS/TCP con
 
 1. In the Awesome Bar, search for "Modbus Connection List" and click on the result.
 2. Click the **+ Add Modbus Connection** button.
-3. Enter the following information:
+![Modbus Connection List](epibus/public/img/modbus_connection_list.png)
+1. Enter the following information:
     - **Name**: A unique name for this connection. You can connect to any number of PLCs with this app.
     - **Host**: The IP address or hostname of the PLC
     - **Port**: The port number of the PLC
     - **Device Name**: The brand and model name of the device (for reference only)
     - **Unit**: The MODBUS unit ID of the device (defaults to 1)
-4. Click the **Save** button.
-5. Click the **Add Row** button in the **Locations** table.
-6. For each I/O pin on the PLC, enter the following information:
+2. Click the **Save** button.
+![Modbus Connection Form](epibus/public/img/modbus_action_form.png?raw=true)
+3. Click the **Add Row** button in the **Locations** table.
+4. For each I/O pin on the PLC, enter the following information:
     - **Device Address**: The name of the I/O pin on the PLC. This is specific to the brand and model of the PLC. For reference only.
     - **PLC Address**: The standardized IEC 61131-3 address of the I/O pin on the PLC.
     - **Modbus Address**: The MODBUS address of the I/O pin on the PLC. (See information below)
     - **Location Type**: The type of I/O pin on the PLC. (See information below)
-7. Click the **Save** button again.
+5. Click the **Save** button again.
 
 ## Input, Output, and Memory Addressing
 
