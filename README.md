@@ -76,14 +76,20 @@ A **Modbus Action** provides an interface between ERPNext and the MODBUS/TCP con
     - **Device Name**: The brand and model name of the device (for reference only)
     - **Unit**: The MODBUS unit ID of the device (defaults to 1)
 2. Click the **Save** button.
-![Modbus Connection Form](epibus/public/img/modbus_action_form.png?raw=true)
-3. Click the **Add Row** button in the **Locations** table.
-4. For each I/O pin on the PLC, enter the following information:
-    - **Device Address**: The name of the I/O pin on the PLC. This is specific to the brand and model of the PLC. For reference only.
+![Modbus Connection Form](epibus/public/img/modbus_connection_form.png?raw=true)
+3. Test the connection by clicking the **Test Connection** button. If the connection is successful, you will see a message that says "Connection successful". If the connection is unsuccessful, you will see a message that says "Connection failed".
+![Modbus Connection Test](epibus/public/img/modbus_connection_test.png?raw=true)
+4. Click the **Add Row** button in the **Locations** table.
+5. For each I/O pin on the PLC, enter the following information:
+    - **Device Address**: The name of the I/O pin on the PLC. For reference only.
     - **PLC Address**: The standardized IEC 61131-3 address of the I/O pin on the PLC.
     - **Modbus Address**: The MODBUS address of the I/O pin on the PLC. (See information below)
     - **Location Type**: The type of I/O pin on the PLC. (See information below)
-5. Click the **Save** button again.
+6. Click the **Save** button again.
+
+## Operating a Device with
+
+
 
 ## Input, Output, and Memory Addressing
 
@@ -135,6 +141,8 @@ Analog In:   AI0, AI1, AI13, AI13                       (%IW0 - %IW3)
 Analog Out:  AO0, AO1                                   (%QW0 - %QW1)
 *********************************************************************/
 ```
+
+
 
 ## License
 
