@@ -6,7 +6,7 @@ A Programmable Logic Controller, or PLC, is a hardware device used to control ma
 
 MODBUS is a communication protocol that is used to communicate with PLCs. It is a master-slave protocol, where the master is the computer that is used to communicate with the PLC, and the slave is the PLC itself.  
 
-Note that the MODBUS protocol has been around since 1979, before the words "master" and "slave" in the context of machinery was considered offensive. The MODBUS protocol is still used today, and is the most common protocol used to communicate with PLCs.
+Note that the MODBUS protocol has been around since 1979 before the words "master" and "slave" in the context of machinery were considered offensive. The MODBUS protocol is still used today and is the most common protocol used to communicate with PLCs.
 
 The name "Epibus" is a portmanteau of "Epi" (from "Epinomy") and "Bus" (from "MODBUS"). 
 
