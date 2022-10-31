@@ -23,14 +23,14 @@ frappe.ui.form.on('Modbus Connection', {
 });
 
 const portPrefixMap = {
-	"Digital Output Coil": "% QX",
-	"Digital Output Slave Coil": "% QX",
-	"Digital Input Contact": "% IX",
-	"Digital Input Slave Contact": "% IX",
-	"Analog Input Register": "% IW",
-	"Memory Register(16 bit)": "% MW",
-	"Memory Register(32 bit)": "% MD",
-	"Memory Register(64 bit)": "% ML",
+	"Digital Output Coil": "%QX",
+	"Digital Output Slave Coil": "%QX",
+	"Digital Input Contact": "%IX",
+	"Digital Input Slave Contact": "%IX",
+	"Analog Input Register": "%IW",
+	"Memory Register(16 bit)": "%MW",
+	"Memory Register(32 bit)": "%MD",
+	"Memory Register(64 bit)": "%ML",
 }
 
 let plc_address_flag = false;
@@ -55,30 +55,36 @@ frappe.ui.form.on("Modbus Location", {
 		frappe.msgprint(`Location Type for ${frm.id} Changed to ${locType}`);
 	},
 	plc_address: function (frm, cdt, cdn) {
-		console.log("PLC Address Changed");
+		if (modbus_address_flag) {
+			modbus_address_flag = false;
+			return;
+		}
+		plc_address_flag = true;
 		if (!frappe.get_doc(cdt, cdn).plc_address) return;
 		let plc_address = frappe.get_doc(cdt, cdn).plc_address;
+		console.log(plc_address, modbus_address_flag)
 		let locType = frappe.get_doc(cdt, cdn).location_type;
 		const prefix = portPrefixMap[locType];
 		let plcValues = plc_address.substring(prefix.length).split('.');
-		console.log("PLC Values", plcValues);
-		let calculatedModbus = plcValues[0] * 8 + plcValues[1];
+		let calculatedModbus = (parseInt(plcValues[0]) * 8) + parseInt(plcValues[1]);
 		let location_type = calculatedModbus > 799 ? "Digital Output Slave Coil" : "Digital Output Coil";
-		// frappe.model.set_value(cdt, cdn, "modbus_address", calculatedModbus);
-		// frappe.model.set_value(cdt, cdn, "location_type", location_type);
-		doc.db_set(cdt, cdn, "modbus_address", calculatedModbus);
-		doc.db_set(cdt, cdn, "location_type", location_type);
-		console.log(`PLC address changed to ${plc_address} and the value for the Modbus address should be ${calculatedModbus} and location Type should be ${location_type}`);
+		frappe.model.set_value(cdt, cdn, "modbus_address", calculatedModbus);
+		frappe.model.set_value(cdt, cdn, "location_type", location_type);
+		modbus_address_flag = false;
 	},
 	modbus_address: function (frm, cdt, cdn) {
-		console.log("Modbus Address Changed");
+		if (plc_address_flag) {
+			plc_address_flag = false;
+			return;
+		};
+		modbus_address_flag = true;
 		if (!frappe.get_doc(cdt, cdn).modbus_address) return;
 		let modbus_address = frappe.get_doc(cdt, cdn).modbus_address;
 		let location_type = modbus_address > 799 ? "Digital Output Slave Coil" : "Digital Output Coil";
-		let plc_address = portPrefixMap[location_type] + Math.floor(modbus_address / 8) + "." + (modbus_address % 8);
-		doc.db_set(cdt, cdn, "plc_address", plc_address);
-		doc.db_set(cdt, cdn, "location_type", location_type);
-		console.log(`Modbbus address changed to ${modbus_address}, PLC address should be ${plc_address} and location Type should be ${location_type}`);
+		let plc_address = `%QX${parseInt(modbus_address / 8)}.${modbus_address % 8}`;
+		frappe.model.set_value(cdt, cdn, "plc_address", plc_address);
+		frappe.model.set_value(cdt, cdn, "location_type", location_type);
+		plc_address_flag = false;
 	},
 	force_true: function (frm, cdt, cdn) {
 		frappe.msgprint("Force True");
