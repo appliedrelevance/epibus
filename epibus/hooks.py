@@ -7,6 +7,7 @@ app_description = "ERPNext integration with MODBUS/TCP networked programmable lo
 app_email = "geveritt@appliedrelevance.com"
 app_license = "MIT"
 
+
 # Includes in <head>
 # ------------------
 

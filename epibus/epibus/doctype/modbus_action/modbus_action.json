@@ -10,7 +10,9 @@
  "field_order": [
   "connection",
   "action",
-  "location"
+  "location",
+  "bit_value",
+  "byte_value"
  ],
  "fields": [
   {
@@ -30,11 +32,24 @@
    "fieldtype": "Link",
    "label": "Location",
    "options": "Modbus Location"
+  },
+  {
+   "fieldname": "byte_value",
+   "fieldtype": "Data",
+   "label": "Byte Value",
+   "read_only_depends_on": "eval:doc.action==\"Read\""
+  },
+  {
+   "default": "0",
+   "fieldname": "bit_value",
+   "fieldtype": "Check",
+   "label": "Bit Value",
+   "read_only_depends_on": "eval: doc.action==\"Read\""
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2022-10-24 21:46:58.153228",
+ "modified": "2022-11-01 16:59:37.415522",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Action",
