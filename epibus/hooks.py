@@ -8,6 +8,17 @@ app_email = "geveritt@appliedrelevance.com"
 app_license = "MIT"
 
 
+# Document Events
+# ---------------
+# Hook on document methods and events
+
+
+doc_events = {
+    "Pick List": {
+        "validate": "epibus.crud_events.trigger_modbus_action.validate",
+    }
+}
+
 # Includes in <head>
 # ------------------
 
@@ -99,17 +110,6 @@ app_license = "MIT"
 #	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 
-# Document Events
-# ---------------
-# Hook on document methods and events
-
-# doc_events = {
-#	"*": {
-#		"on_update": "method",
-#		"on_cancel": "method",
-#		"on_trash": "method"
-#	}
-# }
 
 # Scheduled Tasks
 # ---------------

@@ -7,7 +7,7 @@ const test_connection = (frm) => {
 		.then(connection => {
 			let loc = connection.locations.find(location => location.name === parseInt(frm.doc.location));
 			if (!loc) {
-				return frappe.msgprint('Location not found');
+				frappe.throw('Location not found');
 			}
 			let locint = parseInt(loc.modbus_address);
 			let bitvalue = frm.doc.bit_value ? 1 : 0;
@@ -23,24 +23,35 @@ const test_connection = (frm) => {
 				},
 				callback: function (r) {
 					if (r.message) {
-						frappe.msgprint(r.message);
+						frappe.show_alert({ message: r.message, indicator: 'green' });
 					}
 				}
 			});
 		});
 }
 
+const trigger_action = (frm) => {
+	frm.call({
+		doc: frm.doc,
+		method: 'trigger_action',
+		callback: function (r) {
+			if (r.message) {
+				frappe.show_alert({ message: r.message, indicator: 'green' });
+			}
+		}
+	})
+}
+
 frappe.ui.form.on('Modbus Action', {
 	refresh: function (frm) {
-		frm.add_custom_button(__('Test Connection'), function () {
-			console.log('Called Test Connection button handler')
-			return test_connection(frm);
+		frm.add_custom_button(__('Trigger Action'), function () {
+			return trigger_action(frm);
 		});
 	},
 	location: function (frm) {
-		return test_connection(frm);
+		return trigger_action(frm);
 	},
 	bit_value: function (frm) {
-		return test_connection(frm);
+		return trigger_action(frm);
 	}
 });
