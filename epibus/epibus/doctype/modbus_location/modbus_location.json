@@ -2,8 +2,10 @@
  "actions": [],
  "autoname": "autoincrement",
  "creation": "2022-10-17 18:32:17.320067",
+ "default_view": "List",
  "description": "Modbus Location is a single Input, Output, or Register address on PLC Hardware.  It uses IEC 61131-3 nomenclature.\n",
  "doctype": "DocType",
+ "document_type": "Document",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
@@ -12,8 +14,7 @@
   "modbus_address",
   "location_type",
   "value",
-  "force_true",
-  "force_false"
+  "toggle"
  ],
  "fields": [
   {
@@ -36,7 +37,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Location Type",
-   "options": "Digital Output Coil\nDigital Output Slave Coil\nDigital Input Contact\nDigital Input Slave Contact\nAnalog Input Register\nMemory Register (16 bit)\nMemory Register (32 bit)\nMemory Register (64 bit)"
+   "options": "Digital Output Coil\nDigital Output Slave Coil\nDigital Input Contact\nDigital Input Slave Contact\nAnalog Input Register\nAnalog Output Holding Register\nMemory Register (16 bit)\nMemory Register (32 bit)\nMemory Register (64 bit)"
   },
   {
    "fieldname": "value",
@@ -45,35 +46,30 @@
    "label": "Value"
   },
   {
-   "fieldname": "force_true",
-   "fieldtype": "Button",
-   "in_standard_filter": 1,
-   "label": "Force True"
-  },
-  {
-   "fieldname": "force_false",
-   "fieldtype": "Button",
-   "in_standard_filter": 1,
-   "label": "Force False"
-  },
-  {
    "bold": 1,
+   "description": "Name for on-device pin label.  ",
    "fieldname": "device_address",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Device Address"
+  },
+  {
+   "default": "0",
+   "fieldname": "toggle",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "Toggle"
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2022-10-24 19:12:13.181720",
+ "modified": "2022-11-26 12:01:19.501919",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Location",
  "naming_rule": "Autoincrement",
  "owner": "Administrator",
  "permissions": [],
- "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

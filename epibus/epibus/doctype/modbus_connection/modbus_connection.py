@@ -10,7 +10,9 @@ from pymodbus.client import ModbusTcpClient
 class ModbusConnection(Document):
     @frappe.whitelist()
     def test_connection(self, host, port):
+        print('Testing Modbus Connection ' + self.name)
         client = ModbusTcpClient(host, port)
+        print('Connecting to ' + host + ":" + str(port))
         res = client.connect()
         locs = "Locations: "
         for d in self.get("locations"):
