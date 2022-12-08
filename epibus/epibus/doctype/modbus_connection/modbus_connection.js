@@ -215,6 +215,7 @@ let modbus_address_flag = false;
 
 frappe.ui.form.on("Modbus Location", {
 	location_type: function (frm, cdt, cdn) {
+		console.log("Location Type Changed");
 		const locDoc = frappe.get_doc(cdt, cdn);
 		const locType = locDoc.location_type;
 		if (!locType) return;
@@ -223,6 +224,7 @@ frappe.ui.form.on("Modbus Location", {
 	},
 	plc_address: function (frm, cdt, cdn) {
 		// if modbus_address_flag is set, then this event was triggered by the modbus_address change.
+		console.log("PLC Address Changed");
 		if (modbus_address_flag) {
 			modbus_address_flag = false;
 			return;
@@ -235,6 +237,7 @@ frappe.ui.form.on("Modbus Location", {
 		modbus_address_flag = false;
 	},
 	modbus_address: function (frm, cdt, cdn) {
+		console.log("Modbus Address Changed");
 		// If plc_address_flag is set, then this event was triggered by plc_address change.
 		if (plc_address_flag) {
 			plc_address_flag = false;
