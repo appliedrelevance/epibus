@@ -2,8 +2,11 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Modbus Connection', {
+	onload: function (frm) {
+		console.log('Loading Modbus Connection Form');
+	},
 	refresh: function (frm) {
-		console.log('Refreshing Modbus Connection');
+		console.log('Refreshing Modbus Connection Form');
 		frm.add_custom_button(__('Test Connection'), function () {
 			frm.call({
 				doc: frm.doc,
@@ -18,6 +21,22 @@ frappe.ui.form.on('Modbus Connection', {
 					}
 				}
 			});
+		});
+	},
+	on_save: function (frm) {
+		console.log('Saving Modbus Connection Form');
+		frm.call({
+			doc: frm.doc,
+			method: 'test_connection',
+			args: {
+				"host": frm.doc.host,
+				"port": frm.doc.port,
+			},
+			callback: function (r) {
+				if (r.message) {
+					frappe.msgprint(r.message);
+				}
+			}
 		});
 	}
 });
@@ -189,23 +208,112 @@ const modBusPinMap = [
 	}
 ]
 
+// Match PLC address in the form of %TTn.n
+const plcAddressRe = /(%[A-Z]+)(\d+)\.(\d+)/;
+// Match location name that ends with a number
+const locationNameRe = /([^0-9]*)(\d+)/;
+
 const prefixFor = (locType) => {
-	console.log('Looking for locType ', locType, ' in ', modBusPinMap);
 	const mapVal = modBusPinMap.find((map) => (map["Name"] === locType));
-	console.log("MapVal: ", mapVal);
-	return mapVal ? mapVal["PLC Prefix"] : "Not Found"
+	const prefix = mapVal ? mapVal["PLC Prefix"] : "Not Found";
+	console.log('Prefix for ' + locType + ' is ' + prefix);
+	return prefix;
 }
 
 const plcAddressFor = (locType, modbusAddress) => {
 	const mapVal = modBusPinMap.find((map) => (map["Name"] === locType));
 	if (mapVal) {
-		const prefix = mapVal["PLC Prefix"];
+		const prefix = prefixFor(locType);
 		const plcMajor = mapVal["PLC Lower Bound Major"] + Math.floor(modbusAddress / 8);
 		const plcMinor = mapVal["PLC Lower Bound Minor"] + (modbusAddress % 8);
-		return `${prefix}${plcMajor}.${plcMinor}`;
+		const plcAddress = `${prefix}${plcMajor}.${plcMinor}`;
+		console.log ('PLC Address for ' + locType + ' is ' + plcAddress);
+	} else {
+		console.log ('PLC Address for ' + locType + ' is Not Found');
+		return "Not Found";
+	}
+}
+
+// Get the list of all locations and return the penultimate one.
+const lastLocationItem = () => {
+	const locationList = frappe.get_list("Modbus Location");
+	if (locationList.length > 1) {
+		return locationList[locationList.length - 2];
+	}
+	else
+	{
+		return null;
+	}
+}
+
+const incrementModbusAddress = (modbusAddress) => {
+	return modbusAddress + 1;
+}
+
+const incrementPLCAddress = (plcAddress) => {
+	const match = plcAddressRe.exec(plcAddress);
+	if (match) {
+		const prefix = match[1];
+		const major = parseInt(match[2]);
+		const minor = parseInt(match[3]);
+		if (minor < 7) {
+			return `${prefix}${major}.${minor + 1}`;
+		} else {
+			return `${prefix}${major + 1}.0`;
+		}
 	} else {
 		return "Not Found";
 	}
+}
+
+const decrementPLCAddress = (plcAddress) => {
+	const match = plcAddressRe.exec(plcAddress);
+	if (match) {
+		const prefix = match[1];
+		const major = parseInt(match[2]);
+		const minor = parseInt(match[3]);
+		if (minor > 0) {
+			return `${prefix}${major}.${minor - 1}`;
+		} else {
+			return `${prefix}${major - 1}.7`;
+		}
+	} else {
+		return "Not Found";
+	}
+}
+
+// Given a string of digits, return the next number padded with leading zeros
+// to the length of the original string.
+const incrementNumber = (number) => {
+	if (typeof number !== 'string') {
+		return number.toString();
+	}
+	const num = parseInt(number);
+	const numLen = number.length;
+	const nextNum = num + 1;
+	const nextNumStr = nextNum.toString();
+	const nextNumLen = nextNumStr.length;
+	if (nextNumLen > numLen) {
+		return nextNumStr;
+	} else {
+		return nextNumStr.padStart(numLen, '0');
+	}
+}
+
+const incrementLocationName = (locationName) => {
+	const match = locationNameRe.exec(locationName);
+	if (match) {
+		const prefix = match[1];
+		const suffix = incrementNumber(match[2]);
+		return `${prefix}${suffix}`;
+	} else {
+		return "Not Found";
+	}
+}
+
+const isWritable = (locType) => {
+	const mapVal = modBusPinMap.find((map) => (map["Name"] === locType));
+	return mapVal ? mapVal["Access"] === "RW" : false;
 }
 
 
@@ -213,46 +321,94 @@ let plc_address_flag = false;
 let location_type_flag = false;
 let modbus_address_flag = false;
 
+
 frappe.ui.form.on("Modbus Location", {
+	locations_add: function (frm, cdt, cdn) {
+		console.log("Location Added");
+		const lastItem = lastLocationItem();
+		console.log('Last Item: ', lastItem);
+		if (lastItem) {			
+			frappe.model.set_value(cdt, cdn, "location_name", incrementLocationName(lastItem.location_name));
+			frappe.model.set_value(cdt, cdn, "location_type", lastItem.location_type);
+			frappe.model.set_value(cdt, cdn, "plc_address", incrementPLCAddress(lastItem.plc_address));
+			frappe.model.set_value(cdt, cdn, "modbus_address", incrementModbusAddress(lastItem.modbus_address));
+		} else {
+			frappe.model.set_value(cdt, cdn, "location_name", "LED00");
+			frappe.model.set_value(cdt, cdn, "location_type", "Digital Output Coil");
+			frappe.model.set_value(cdt, cdn, "plc_address", "%QX0.0");
+			frappe.model.set_value(cdt, cdn, "modbus_address", 0);
+		}
+	},
 	location_type: function (frm, cdt, cdn) {
-		console.log("Location Type Changed");
+		console.log("Location Type Changed for form:", frm);
 		const locDoc = frappe.get_doc(cdt, cdn);
-		const locType = locDoc.location_type;
-		if (!locType) return;
-		const prefix = prefixFor(locType);
-		frappe.msgprint(`Location Type for ${JSON.stringify(locDoc)} Changed to ${locType} with prefix ${prefix}`);
+		const writable = isWritable(locDoc.location_type);
+		console.log("Is Writable: ", writable);
+		// Disable toggle button if it is not writable.
+		if (!writable) {
+			frm.set_df_property("toggle", "read_only", 1);
+		} else {
+			frm.set_df_property("toggle", "read_only", 0);
+		}
 	},
 	plc_address: function (frm, cdt, cdn) {
 		// if modbus_address_flag is set, then this event was triggered by the modbus_address change.
 		console.log("PLC Address Changed");
 		if (modbus_address_flag) {
+			console.log("Called from inside modbus_address change event. Ignoring.");
 			modbus_address_flag = false;
 			return;
 		}
 		plc_address_flag = true;
-		if (!frappe.get_doc(cdt, cdn).plc_address) return;
-		let locType = frappe.get_doc(cdt, cdn).location_type;
-		let calculatedPlcAddress = plcAddressFor(locType, frappe.get_doc(cdt, cdn).modbusAddress);
-		frappe.model.set_value(cdt, cdn, "plc_address", calculatedPlcAddress);
+		const currentDoc = frappe.get_doc(cdt, cdn);
+		console.log("Current Location Doc: ", currentDoc);
 		modbus_address_flag = false;
 	},
 	modbus_address: function (frm, cdt, cdn) {
 		console.log("Modbus Address Changed");
 		// If plc_address_flag is set, then this event was triggered by plc_address change.
 		if (plc_address_flag) {
+			console.log("Called from inside plc_address change event. Ignoring.");
 			plc_address_flag = false;
 			return;
 		};
 		modbus_address_flag = true;
-		if (!frappe.get_doc(cdt, cdn).modbus_address) return;
-		let modbus_address = frappe.get_doc(cdt, cdn).modbus_address;
-		let location_type = modbus_address > 799 ? "Digital Output Slave Coil" : "Digital Output Coil";
-		let plc_address = `%QX${parseInt(modbus_address / 8)}.${modbus_address % 8}`;
-		frappe.model.set_value(cdt, cdn, "plc_address", plc_address);
-		frappe.model.set_value(cdt, cdn, "location_type", location_type);
+		const currentDoc = frappe.get_doc(cdt, cdn);
+		console.log("Current Location Doc: ", currentDoc);
+		// Compute the PLC Address from the modbus address and update the doc.
+		const locType = currentDoc.location_type;
+		const modbusAddress = currentDoc.modbus_address;
+		const plcAddress = plcAddressFor(locType, modbusAddress);
+		currentDoc.plc_address = plcAddress;
+		frappe.model.set_value(cdt, cdn, "plc_address", plcAddress);
 		plc_address_flag = false;
 	},
 	toggle: function (frm, cdt, cdn) {
-		frappe.msgprint("Toggle");
+		// If the Location Type has "W" access, then the toggle button should be enabled.
+		const locDoc = frappe.get_doc(cdt, cdn);
+		const writable = isWritable(locDoc.location_type);
+		console.log("Is Writable: ", writable);
+		// If location is not writable, notify the user and return.
+		if (!writable) {
+			frappe.msgprint("This location is not writable.");
+			return;
+		} else {
+			// If the location is writable, call the server toggle function.
+			frappe.call({
+				doc: frm.doc,
+				method: "toggle_location",
+				args: {
+					"host": frm.doc.host,
+					"port": frm.doc.port,
+					"modbus_address": locDoc.modbus_address,
+					"location_type": locDoc.location_type,
+				},
+				callback: function (r) {
+					if (r.message) {
+						frappe.msgprint(r.message);
+					}
+				}
+			});
+		}
 	},
 });

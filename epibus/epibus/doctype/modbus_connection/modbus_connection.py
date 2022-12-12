@@ -16,9 +16,26 @@ class ModbusConnection(Document):
         res = client.connect()
         locs = "Locations: "
         for d in self.get("locations"):
-            state = "On" if client.read_coils(
-                d.modbus_address, 1).bits[0] else "Off"
-            locs += d.device_address + ": " + \
-                d.plc_address + " (" + state + "), "
+            stateBln = client.read_coils(d.modbus_address, 1).bits[0];
+            state = "On" if stateBln else "Off"
+            if d.modbus_address is None or d.plc_address is None:
+                locs += "Not Configured, "
+            else:
+                locs += str(d.location_name) + ": " + \
+                    str(d.plc_address) + " (" + state + "), "
             d.value = state
+            d.toggle = stateBln;
         return "Connection successful " + locs if res else "Connection failed"
+    @frappe.whitelist()
+    def toggle_location(self, host, port, modbus_address, location_type):
+        print('Toggling ' + str(modbus_address))
+        client = ModbusTcpClient(host, port)
+        res = client.connect()
+        if res:
+            state = client.read_coils(modbus_address, 1).bits[0];
+            print('Current state: ' + str(state))
+            client.write_coil(modbus_address, not state)
+            client.close()
+            print("Toggled from " + str(state) + " to " + str(not state))
+        else:
+            return "Connection Failed"
