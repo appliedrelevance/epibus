@@ -9,10 +9,10 @@
  "engine": "InnoDB",
  "field_order": [
   "connection",
+  "location",
   "action",
   "bit_value",
-  "byte_value",
-  "location"
+  "byte_value"
  ],
  "fields": [
   {
@@ -22,8 +22,11 @@
    "options": "Modbus Connection"
   },
   {
+   "depends_on": "eval:!!doc.location;",
    "fieldname": "action",
    "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Action",
    "options": "Read\nWrite"
   },
@@ -38,9 +41,10 @@
    "fieldname": "bit_value",
    "fieldtype": "Check",
    "label": "Bit Value",
-   "read_only_depends_on": "eval: doc.action==\"Read\""
+   "read_only_depends_on": "doc.action=='Read'&&doc.name&&doc.location;"
   },
   {
+   "depends_on": "eval:!!doc.connection;\n",
    "fieldname": "location",
    "fieldtype": "Link",
    "label": "Location",
@@ -49,7 +53,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2022-11-23 12:35:28.028601",
+ "modified": "2023-01-09 10:46:00.480216",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Action",

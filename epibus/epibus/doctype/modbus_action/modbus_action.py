@@ -34,7 +34,13 @@ class ModbusAction(Document):
         host = connection.host
         port = connection.port
         action = self.action
-        location = int(self.location)
+        location_name = self.location
+        # Get the Location document
+        location = frappe.get_doc("Modbus Location", location_name)
+        print("Location: " + str(location.as_dict()))
+        if not location:
+            frappe.throw('Location not found: ' + location_name)
+        address = location.modbus_address
         bit_value = self.bit_value
         client = ModbusTcpClient(host, port)
         res = client.connect()
@@ -43,10 +49,11 @@ class ModbusAction(Document):
             frappe.throw('Connection Failed')
             # If the action is a write, write the bit_value to the location
         if action == "Write":
-            resp = client.write_coil(location, bit_value)
+            resp = client.write_coil(address, bit_value)
             return "Wrote " + str(resp.value) + " to location " + str(resp.address) + " on " + str(host) + ":" + str(port)
         else:  # If the action is a read, read the value from the location
-            resp = client.read_coils(location, 1)
+            print("Reading coils from " + str(location_name))
+            resp = client.read_coils(address, 1)
             retval = "On" if resp.bits[0] else "Off"
             self.bit_value = bool(resp.bits[0])
-            return "Coil value at " + str(location) + " is " + retval
+            return "Coil value at " + str(location_name) + " is " + retval

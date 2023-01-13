@@ -5,7 +5,7 @@
 const test_connection = (frm) => {
 	frappe.db.get_doc("Modbus Connection", frm.doc.connection)
 		.then(connection => {
-			let loc = connection.locations.find(location => location.name === parseInt(frm.doc.location));
+			let loc = connection.locations.find(location => location.name === frm.doc.location);
 			if (!loc) {
 				frappe.throw('Location not found');
 			}
@@ -55,3 +55,4 @@ frappe.ui.form.on('Modbus Action', {
 		return trigger_action(frm);
 	}
 });
+
