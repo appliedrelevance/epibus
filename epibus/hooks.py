@@ -11,13 +11,20 @@ app_license = "MIT"
 # Document Events
 # ---------------
 # Hook on document methods and events
-
+# hooks.py
 
 doc_events = {
-    "Pick List": {
-        "validate": "epibus.crud_events.trigger_modbus_action.validate",
-    }
+    "*": {
+        "on_submit": "epibus.epibus.doctype.modbus_action.modbus_action.handle_submit",
+        "on_cancel": "epibus.epibus.doctype.modbus_action.modbus_action.handle_cancel",
+        "on_update": "epibus.epibus.doctype.modbus_action.modbus_action.handle_update",
+    },
 }
+
+
+fixtures = [
+    {"dt": "Role", "filters": [["name", "in", ["Modbus Administrator", "Modbus User"]]]}
+]
 
 # Includes in <head>
 # ------------------

@@ -12,7 +12,10 @@
   "location",
   "action",
   "bit_value",
-  "byte_value"
+  "byte_value",
+  "column_break_s3v5p",
+  "event_trigger",
+  "linked_doctype"
  ],
  "fields": [
   {
@@ -32,7 +35,7 @@
   },
   {
    "fieldname": "byte_value",
-   "fieldtype": "Data",
+   "fieldtype": "Int",
    "label": "Byte Value",
    "read_only_depends_on": "eval:doc.action==\"Read\""
   },
@@ -49,11 +52,27 @@
    "fieldtype": "Link",
    "label": "Location",
    "options": "Modbus Location"
+  },
+  {
+   "fieldname": "event_trigger",
+   "fieldtype": "Select",
+   "label": "Event Trigger",
+   "options": "On Save\nOn Submit\nOn Cancel"
+  },
+  {
+   "fieldname": "linked_doctype",
+   "fieldtype": "Link",
+   "label": "Linked Doctype",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "column_break_s3v5p",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-01-09 10:46:00.480216",
+ "modified": "2023-09-26 22:11:43.952261",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Action",
@@ -69,6 +88,30 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Modbus Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Modbus User",
    "share": 1,
    "write": 1
   }
