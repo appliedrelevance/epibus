@@ -23,7 +23,7 @@ class ModbusAction(Document):
                 "Wrote "
                 + str(bit_value)
                 + " to location "
-                + str(location.address)
+                + str(location)
                 + " on "
                 + str(host)
                 + ":"
@@ -49,7 +49,7 @@ class ModbusAction(Document):
         print("Location: " + str(location.as_dict()))
         if not location:
             frappe.throw("Location not found: " + location_name)
-        address = location.address
+        address = location.modbus_address
         bit_value = self.bit_value
         client = ModbusTcpClient(host, port)
         res = client.connect()
@@ -61,9 +61,9 @@ class ModbusAction(Document):
             resp = client.write_coil(address, bit_value)
             return (
                 "Wrote "
-                + str(resp.bits[0])
+                + str(bit_value)
                 + " to location "
-                + str(address)
+                + str(location_name)
                 + " on "
                 + str(host)
                 + ":"
