@@ -7,7 +7,10 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "enable_triggers"
+  "enable_triggers",
+  "default_coil_prefix",
+  "default_contact_prefix",
+  "default_register_prefix"
  ],
  "fields": [
   {
@@ -16,12 +19,30 @@
    "fieldname": "enable_triggers",
    "fieldtype": "Check",
    "label": "Enable Triggers"
+  },
+  {
+   "default": "COIL_",
+   "fieldname": "default_coil_prefix",
+   "fieldtype": "Data",
+   "label": "Default Coil Prefix"
+  },
+  {
+   "default": "CONTACT_",
+   "fieldname": "default_contact_prefix",
+   "fieldtype": "Data",
+   "label": "Default Contact Prefix"
+  },
+  {
+   "default": "REGISTER_",
+   "fieldname": "default_register_prefix",
+   "fieldtype": "Data",
+   "label": "Default Register Prefix"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-09-26 22:09:55.871717",
+ "modified": "2023-09-28 12:47:26.048508",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Settings",

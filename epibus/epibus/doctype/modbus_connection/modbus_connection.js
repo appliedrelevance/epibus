@@ -227,9 +227,9 @@ const plcAddressFor = (locType, modbusAddress) => {
 		const plcMajor = mapVal["PLC Lower Bound Major"] + Math.floor(modbusAddress / 8);
 		const plcMinor = mapVal["PLC Lower Bound Minor"] + (modbusAddress % 8);
 		const plcAddress = `${prefix}${plcMajor}.${plcMinor}`;
-		console.log ('PLC Address for ' + locType + ' is ' + plcAddress);
+		console.log('PLC Address for ' + locType + ' is ' + plcAddress);
 	} else {
-		console.log ('PLC Address for ' + locType + ' is Not Found');
+		console.log('PLC Address for ' + locType + ' is Not Found');
 		return "Not Found";
 	}
 }
@@ -240,8 +240,7 @@ const lastLocationItem = () => {
 	if (locationList.length > 1) {
 		return locationList[locationList.length - 2];
 	}
-	else
-	{
+	else {
 		return null;
 	}
 }
@@ -320,20 +319,27 @@ const isWritable = (locType) => {
 let plc_address_flag = false;
 let location_type_flag = false;
 let modbus_address_flag = false;
-
+let modbus_settings = null;
 
 frappe.ui.form.on("Modbus Location", {
+	onload: function (frm) {
+		frappe.model.with_doc("Modbus Settings", function () {
+			modbus_settings = frappe.get_doc("Modbus Settings");
+			console.log("Modbus Settings: ", settings);
+			// Do something with the settings document
+		});
+	},
 	locations_add: function (frm, cdt, cdn) {
 		console.log("Location Added");
 		const lastItem = lastLocationItem();
 		console.log('Last Item: ', lastItem);
-		if (lastItem) {			
+		if (lastItem) {
 			frappe.model.set_value(cdt, cdn, "location_name", incrementLocationName(lastItem.location_name));
 			frappe.model.set_value(cdt, cdn, "location_type", lastItem.location_type);
 			frappe.model.set_value(cdt, cdn, "plc_address", incrementPLCAddress(lastItem.plc_address));
 			frappe.model.set_value(cdt, cdn, "modbus_address", incrementModbusAddress(lastItem.modbus_address));
 		} else {
-			frappe.model.set_value(cdt, cdn, "location_name", "LED00");
+			frappe.model.set_value(cdt, cdn, "location_name", modbus_settings.default_coil_prefix);
 			frappe.model.set_value(cdt, cdn, "location_type", "Digital Output Coil");
 			frappe.model.set_value(cdt, cdn, "plc_address", "%QX0.0");
 			frappe.model.set_value(cdt, cdn, "modbus_address", 0);
