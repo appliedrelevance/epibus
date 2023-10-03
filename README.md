@@ -67,6 +67,30 @@ A **Modbus Action** provides an interface between ERPNext and the MODBUS/TCP con
 - **Trigger DocType**: The DocType on which the action will be performed. 
 - **Trigger State**: The **Workflow State** of the action as specified in a **Workflow** document
 
+## Creating a Modbus Connection
+
+1. In the Awesome Bar, search for "Modbus Connection List" and click on the result.
+2. Click the **+ Add Modbus Connection** button.
+![Modbus Connection List](epibus/public/img/modbus_connection_list.png)
+1. Enter the following information:
+    - **Name**: A unique name for this connection. You can connect to any number of PLCs with this app.
+    - **Host**: The IP address or hostname of the PLC
+    - **Port**: The port number of the PLC
+    - **Device Name**: The brand and model name of the device (for reference only)
+    - **Unit**: The MODBUS unit ID of the device (defaults to 1)
+2. Click the **Save** button.
+![Modbus Connection Form](epibus/public/img/modbus_connection_form.png?raw=true)
+3. Test the connection by clicking the **Test Connection** button. If the connection is successful, you will see a message that says "Connection successful". If the connection is unsuccessful, you will see a message that says "Connection failed".
+![Modbus Connection Test](epibus/public/img/modbus_connection_test.png?raw=true)
+4. Click the **Add Row** button in the **Locations** table.
+5. For each I/O pin on the PLC, enter the following information:
+    - **Device Address**: The name of the I/O pin on the PLC. For reference only.
+    - **PLC Address**: The standardized IEC 61131-3 address of the I/O pin on the PLC.
+    - **Modbus Address**: The MODBUS address of the I/O pin on the PLC. (See information below)
+    - **Location Type**: The type of I/O pin on the PLC. (See information below)
+6. Click the **Save** button again.
+
+
 ## Using Workflow Documents with Modbus Actions in EPIBUS
 
 The EPIBUS application integrates Frappe Framework, ERPNext, Epinomy, and Modbus devices to automate various actions. One of the powerful features of EPIBUS is the ability to trigger Modbus Actions based on Workflow state changes in the Frappe system. This section outlines how to utilize Workflow documents to trigger Modbus Actions seamlessly.
@@ -95,53 +119,6 @@ Here's how to set up the Workflow document for controlling Modbus Actions:
    - **Allowed Transitions**: Specify from which `Source State` to which `Target State` the transition is allowed.
    - **Condition**: Optional. You can set a condition that must be fulfilled to make the transition.
 
-## Linking Modbus Action and Workflow
-
-1. Within the `Modbus Action` document, add fields to specify the `trigger_doctype` and `trigger_state`. These fields will be used to determine when this particular Modbus Action should be triggered.
-   - `trigger_doctype`: The name of the doctype (e.g., `Stock Entry`) where the workflow state change occurs.
-   - `trigger_state`: The specific workflow state (e.g., `Ready to Pick`) that will trigger this Modbus Action.
-
-2. In your custom application's server-side Python code, implement a `on_workflow_state_change` function to look for `Modbus Action` documents with a matching `trigger_doctype` and `trigger_state`, and invoke the `trigger_action` method on them.
-
-```python
-# In your custom application's Python code
-def on_workflow_state_change(doc, method):
-    if hasattr(doc, 'workflow_state'):
-        current_state = doc.workflow_state
-        modbus_actions = frappe.get_all('Modbus Action',
-            filters={
-                'trigger_doctype': doc.doctype,
-                'trigger_state': current_state
-            })
-        for action in modbus_actions:
-            modbus_action_doc = frappe.get_doc('Modbus Action', action.name)
-            modbus_action_doc.trigger_action(source_doc=doc)
-```
-
-By following these steps, you can easily configure a Workflow document to trigger Modbus Actions in the EPIBUS system. This provides a flexible, user-friendly interface for automating tasks across your organization.
-
-## Creating a Modbus Connection
-
-1. In the Awesome Bar, search for "Modbus Connection List" and click on the result.
-2. Click the **+ Add Modbus Connection** button.
-![Modbus Connection List](epibus/public/img/modbus_connection_list.png)
-1. Enter the following information:
-    - **Name**: A unique name for this connection. You can connect to any number of PLCs with this app.
-    - **Host**: The IP address or hostname of the PLC
-    - **Port**: The port number of the PLC
-    - **Device Name**: The brand and model name of the device (for reference only)
-    - **Unit**: The MODBUS unit ID of the device (defaults to 1)
-2. Click the **Save** button.
-![Modbus Connection Form](epibus/public/img/modbus_connection_form.png?raw=true)
-3. Test the connection by clicking the **Test Connection** button. If the connection is successful, you will see a message that says "Connection successful". If the connection is unsuccessful, you will see a message that says "Connection failed".
-![Modbus Connection Test](epibus/public/img/modbus_connection_test.png?raw=true)
-4. Click the **Add Row** button in the **Locations** table.
-5. For each I/O pin on the PLC, enter the following information:
-    - **Device Address**: The name of the I/O pin on the PLC. For reference only.
-    - **PLC Address**: The standardized IEC 61131-3 address of the I/O pin on the PLC.
-    - **Modbus Address**: The MODBUS address of the I/O pin on the PLC. (See information below)
-    - **Location Type**: The type of I/O pin on the PLC. (See information below)
-6. Click the **Save** button again.
 
 ## Input, Output, and Memory Addressing
 
