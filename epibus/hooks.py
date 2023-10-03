@@ -15,9 +15,7 @@ app_license = "MIT"
 
 doc_events = {
     "*": {
-        "on_submit": "epibus.epibus.doctype.modbus_action.modbus_action.handle_submit",
-        "on_cancel": "epibus.epibus.doctype.modbus_action.modbus_action.handle_cancel",
-        "on_update": "epibus.epibus.doctype.modbus_action.modbus_action.handle_update",
+        "on_update": "epibus.utils.workflow_utils.on_workflow_state_change"
     },
 }
 
