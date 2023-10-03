@@ -38,7 +38,8 @@ class ModbusAction(Document):
     @frappe.whitelist()
     def trigger_action(self, source_doc=None):
         print(f"Triggering Modbus Action {self.name}")
-        
+        source_doc.add_comment("Comment", f"Triggering Modbus Action {self.name}")
+        self.add_comment("Comment", f"Triggering Modbus Action {self.name} on source_doc {source_doc.name}")
         connection = frappe.get_doc("Modbus Connection", self.connection)
         host = connection.host
         port = connection.port
@@ -63,6 +64,7 @@ class ModbusAction(Document):
         # If the action is a write, write the bit_value to the location
         if action == "Write":
             print(f"Writing {bit_value} to location {location_name} on {host}:{port}")
+            source_doc.add_comment("Comment", f"Writing {bit_value} to location {location_name} on {host}:{port}")
             resp = client.write_coil(address, bit_value)
             return (
                 "Wrote "
@@ -79,4 +81,5 @@ class ModbusAction(Document):
             resp = client.read_coils(address, 1)
             retval = "On" if resp.bits[0] else "Off"
             self.bit_value = bool(resp.bits[0])
+            source_doc.add_comment("Comment", f"Read {retval} from location {location_name} on {host}:{port}")
             return "Coil value at " + str(location_name) + " is " + retval
