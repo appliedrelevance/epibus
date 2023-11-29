@@ -83,3 +83,14 @@ class ModbusAction(Document):
             self.bit_value = bool(resp.bits[0])
             source_doc.add_comment("Comment", f"Read {retval} from location {location_name} on {host}:{port}")
             return "Coil value at " + str(location_name) + " is " + retval
+    @frappe.whitelist()
+    def get_fields(self, doctype):
+        fields = []
+        meta = frappe.get_meta(doctype)
+        for field in meta.fields:
+            fields.append(field.fieldname)
+            if field.fieldtype == 'Table':
+                child_meta = frappe.get_meta(field.options)
+                for child_field in child_meta.fields:
+                    fields.append(f"{field.fieldname}.{child_field.fieldname}")
+        return fields

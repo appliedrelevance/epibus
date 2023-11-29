@@ -16,7 +16,8 @@
   "byte_value",
   "column_break_s3v5p",
   "trigger_doctype",
-  "trigger_state"
+  "trigger_state",
+  "parameters"
  ],
  "fields": [
   {
@@ -79,11 +80,17 @@
    "fieldtype": "Link",
    "label": "Trigger DocType",
    "options": "DocType"
+  },
+  {
+   "fieldname": "parameters",
+   "fieldtype": "Table",
+   "label": "Parameters",
+   "options": "Modbus Action Parameter"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-10-02 21:28:39.288461",
+ "modified": "2023-10-04 16:22:45.503766",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Action",
