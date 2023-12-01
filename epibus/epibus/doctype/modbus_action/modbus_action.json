@@ -8,16 +8,14 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "action_name",
   "connection",
   "location",
   "action",
   "bit_value",
   "byte_value",
   "column_break_s3v5p",
-  "trigger_doctype",
-  "trigger_state",
-  "parameters"
+  "event_trigger",
+  "linked_doctype"
  ],
  "fields": [
   {
@@ -56,41 +54,25 @@
    "options": "Modbus Location"
   },
   {
-   "fieldname": "column_break_s3v5p",
-   "fieldtype": "Column Break"
+   "fieldname": "event_trigger",
+   "fieldtype": "Select",
+   "label": "Event Trigger",
+   "options": "On Save\nOn Submit\nOn Cancel"
   },
   {
-   "fieldname": "action_name",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "in_preview": 1,
-   "in_standard_filter": 1,
-   "label": "Action Name"
-  },
-  {
-   "description": "When the Trigger DocType transitions to this state, execute the Modbus Action. ",
-   "fieldname": "trigger_state",
+   "fieldname": "linked_doctype",
    "fieldtype": "Link",
-   "label": "Trigger State",
-   "options": "Workflow State"
-  },
-  {
-   "description": "Watch for workflow state changes on this doctype.  For example, Stock Entry for moving inventory from one location to another.",
-   "fieldname": "trigger_doctype",
-   "fieldtype": "Link",
-   "label": "Trigger DocType",
+   "label": "Linked Doctype",
    "options": "DocType"
   },
   {
-   "fieldname": "parameters",
-   "fieldtype": "Table",
-   "label": "Parameters",
-   "options": "Modbus Action Parameter"
+   "fieldname": "column_break_s3v5p",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-10-04 16:22:45.503766",
+ "modified": "2023-09-27 16:35:53.691809",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Action",

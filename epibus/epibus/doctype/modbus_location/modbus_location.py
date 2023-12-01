@@ -24,7 +24,7 @@ class ModbusLocation(Document):
             # Update the 'value' field with the read value
             self.value = current_value
             self.save()
-            frappe.msgprint(f"Toggled {self.location_name} to {current_value}")
+
             return current_value
 
 

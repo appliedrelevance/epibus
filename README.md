@@ -58,14 +58,11 @@ A **Modbus Location** is a child DocType of **Modbus Connection**. It is used to
 ### Modbus Action
 
 A **Modbus Action** provides an interface between ERPNext and the MODBUS/TCP connection. It executes a MODBUS read or write operation on a **Modbus Location** and can be triggered from any ERPNext DocType that is linked to a **Modbus Action**. It contains the following fields:
-
-- **Action Name**: The name of the Modbus Action.     
-- **Connection**: The **Modbus Connection** that this action will use.
-- **Location**: The **Modbus Location** that this action will use.
-- **Action**: The type of action that this action will perform. (Read or Write)
+    
+- **Modbus Connection**: The **Modbus Connection** that this action will use.
+- **Modbus Location**: The **Modbus Location** that this action will use.
+- **Action Type**: The type of action that this action will perform. (See information below)
 - **Value**: The value that will be written to the **Modbus Location**. (Only used for write actions)
-- **Trigger DocType**: The DocType on which the action will be performed. 
-- **Trigger State**: The **Workflow State** of the action as specified in a **Workflow** document
 
 ## Creating a Modbus Connection
 
@@ -89,36 +86,6 @@ A **Modbus Action** provides an interface between ERPNext and the MODBUS/TCP con
     - **Modbus Address**: The MODBUS address of the I/O pin on the PLC. (See information below)
     - **Location Type**: The type of I/O pin on the PLC. (See information below)
 6. Click the **Save** button again.
-
-
-## Using Workflow Documents with Modbus Actions in EPIBUS
-
-The EPIBUS application integrates Frappe Framework, ERPNext, Epinomy, and Modbus devices to automate various actions. One of the powerful features of EPIBUS is the ability to trigger Modbus Actions based on Workflow state changes in the Frappe system. This section outlines how to utilize Workflow documents to trigger Modbus Actions seamlessly.
-
-## Prerequisites
-
-1. **Modbus Action Document**: Make sure you have a `Modbus Action` document configured. This document should be associated with a `Modbus Connection` that specifies the IP address and protocol that pymodbus uses to connect to the PLC.
-   
-2. **Workflow Document**: Ensure that a Workflow is set up on the doctype you wish to interact with (e.g., `Stock Entry`).
-
-3. **ModbusAction Class**: Ensure that the `trigger_action` method of your `ModbusAction` class is updated to accept `source_doc` as an optional parameter.
-
-## Setting Up Workflow Document
-
-Here's how to set up the Workflow document for controlling Modbus Actions:
-
-1. **States**: Define various workflow states like `Ready to Pick`, `On Conveyor`, and `Out of Stock`.
-   - **Doc Status**: Defines the document's status (`0` for Draft, `1` for Submitted, `2` for Cancelled).
-   - **Update Field**: Usually set to `workflow_state`.
-   - **Update Value**: The value the `workflow_state` will be updated to.
-   - **Only Allow Edit For**: Roles that are allowed to edit the document in the current state.
-
-   **Note**: If you leave the `Update Field` and `Update Value` blank, the workflow will not automatically update any fields on the document when it transitions to this state.
-
-2. **Transition Rules**: Define the rules for transitioning from one state to another.
-   - **Allowed Transitions**: Specify from which `Source State` to which `Target State` the transition is allowed.
-   - **Condition**: Optional. You can set a condition that must be fulfilled to make the transition.
-
 
 ## Input, Output, and Memory Addressing
 

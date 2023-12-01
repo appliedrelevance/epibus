@@ -54,21 +54,19 @@
    "default": "0",
    "fieldname": "toggle",
    "fieldtype": "Check",
-   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Toggle"
   },
   {
    "fieldname": "location_name",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Location Name",
    "reqd": 1
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2023-10-02 20:31:39.177920",
+ "modified": "2023-09-28 10:22:45.847124",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Location",
