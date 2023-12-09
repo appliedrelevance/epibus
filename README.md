@@ -55,6 +55,8 @@ A **Modbus Location** is a child DocType of **Modbus Connection**. It is used to
 - **Modbus Address**: The MODBUS address of the I/O pin on the PLC. (See information below)
 - **Location Type**: The type of I/O pin on the PLC. (See information below)
 
+[Read More](docs/modbus_location.md)
+
 ### Modbus Action
 
 A **Modbus Action** provides an interface between ERPNext and the MODBUS/TCP connection. It executes a MODBUS read or write operation on a **Modbus Location** and can be triggered from any ERPNext DocType that is linked to a **Modbus Action**. It contains the following fields:
@@ -63,6 +65,8 @@ A **Modbus Action** provides an interface between ERPNext and the MODBUS/TCP con
 - **Modbus Location**: The **Modbus Location** that this action will use.
 - **Action Type**: The type of action that this action will perform. (See information below)
 - **Value**: The value that will be written to the **Modbus Location**. (Only used for write actions)
+
+[Read More](docs/modbus_action.md)
 
 ## Creating a Modbus Connection
 
