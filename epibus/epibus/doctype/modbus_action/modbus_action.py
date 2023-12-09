@@ -5,7 +5,7 @@ from pprint import pprint
 import frappe
 from frappe.model.document import Document
 from pymodbus.client import ModbusTcpClient
-from frappe import get_all
+from frappe import get_all, _
 
 
 class ModbusAction(Document):
@@ -37,84 +37,78 @@ class ModbusAction(Document):
 
     @frappe.whitelist()
     def trigger_action(self):
-        print(f"Triggering Modbus Action {self.name}")
-        pprint(self.as_dict())
-        connection = frappe.get_doc("Modbus Connection", self.connection)
-        host = connection.host
-        port = connection.port
-        action = self.action
-        location_name = self.location
-        # Get the Location document
-        location = frappe.get_doc("Modbus Location", location_name)
-        print("Location: " + str(location.as_dict()))
-        if not location:
-            frappe.throw("Location not found: " + location_name)
-        address = location.modbus_address
-        bit_value = self.bit_value
-        client = ModbusTcpClient(host, port)
-        res = client.connect()
-        # Throw an error if the connection fails
-        if not res:
-            frappe.throw("Connection Failed")
-            # If the action is a write, write the bit_value to the location
-        if action == "Write":
-            resp = client.write_coil(address, bit_value)
-            return (
-                "Wrote "
-                + str(bit_value)
-                + " to location "
-                + str(location_name)
-                + " on "
-                + str(host)
-                + ":"
-                + str(port)
+        try:
+            # Set up Modbus connection
+            connection = frappe.get_doc("Modbus Connection", self.connection)
+            client = ModbusTcpClient(connection.host, connection.port)
+            if not client.connect():
+                frappe.throw(
+                    _("Failed to connect to Modbus server at {0}:{1}").format(
+                        connection.host, connection.port
+                    )
+                )
+
+            # Perform the Modbus action
+            location = frappe.get_doc("Modbus Location", self.location)
+            if self.action == "Write":
+                response = client.write_coil(location.modbus_address, self.bit_value)
+                action_result = _("Wrote {0} to location {1} on {2}:{3}").format(
+                    self.bit_value, self.location, connection.host, connection.port
+                )
+            else:  # Assume action is "Read"
+                response = client.read_coils(location.modbus_address, 1)
+                action_result = _("Read value {0} from location {1}").format(
+                    response.bits[0], self.location
+                )
+
+            # Disconnect the Modbus client
+            client.close()
+
+            # Add a timeline entry
+            comment_text = _("Modbus Action '{0}' triggered: {1}").format(
+                self.name, action_result
             )
-        else:  # If the action is a read, read the value from the location
-            print("Reading coils from " + str(location_name))
-            resp = client.read_coils(address, 1)
-            retval = "On" if resp.bits[0] else "Off"
-            self.bit_value = bool(resp.bits[0])
-            return "Coil value at " + str(location_name) + " is " + retval
+            self.add_comment("Comment", text=comment_text)
+
+            # Save the document to update the timeline
+            self.save(ignore_permissions=True)
+
+            return action_result
+
+        except Exception as e:
+            error_message = _("Failed to trigger Modbus Action '{0}': {1}").format(
+                self.name, str(e)
+            )
+            # Log the error
+            frappe.log_error(frappe.get_traceback(), "Modbus Action Trigger Error")
+
+            # Add a timeline entry for the error
+            self.add_comment("Comment", text=error_message)
+            self.save(ignore_permissions=True)
+
+            # Re-raise the exception
+            raise e
 
 
-# Event Handlers
+@frappe.whitelist()
 def handle_submit(doc, method):
-    execute_action_if_needed(doc, method)
+    # Iterate through each item in the stock entry
+    for item in doc.items:
+        source_warehouse = item.s_warehouse
 
+        # Find Modbus Actions linked to this warehouse
+        modbus_actions = frappe.get_all(
+            "Modbus Action", filters={"Warehouse": source_warehouse}, fields=["name"]
+        )
 
-def handle_cancel(doc, method):
-    execute_action_if_needed(doc, method)
-
-
-def handle_update(doc, method):
-    execute_action_if_needed(doc, method)
-
-
-def execute_action_if_needed(doc, method):
-    # First, check if the feature is activated from the singleton DocType
-    settings = frappe.get_doc("Modbus Settings")
-    if not settings.enable_triggers:
-        return
-    # Translate the method into a human-readable format.
-    # This assumes your 'Event Trigger' options in the Doctype are "On Save", "On Submit", and "On Cancel"
-    human_readable_method = method.replace("_", " ").title()
-
-    # Filter Modbus Actions based on the triggering event and the linked Doctype
-    filters = {"event_trigger": human_readable_method, "linked_doctype": doc.doctype}
-
-    # Find matching Modbus Actions based on filters
-    matching_actions = get_all("Modbus Action", filters=filters)
-
-    # Loop through all matching Modbus Actions and trigger them
-    for action in matching_actions:
-        action_doc = frappe.get_doc("Modbus Action", action.name)
-
-        # Diagnostic code
-        print(f"Type of action_doc: {type(action_doc)}")
-        print(f"Methods available in action_doc: {dir(action_doc)}")
-
-        # Trigger action
-        if hasattr(action_doc, "trigger_action"):
-            action_doc.trigger_action()
-        else:
-            print(f"'trigger_action' not found in action_doc")
+        # Trigger the Modbus Actions
+        for action in modbus_actions:
+            modbus_action_doc = frappe.get_doc("Modbus Action", action.name)
+            try:
+                result = modbus_action_doc.trigger_action()
+                frappe.msgprint(_("Modbus Action Triggered: {0}").format(result))
+            except Exception as e:
+                frappe.log_error(frappe.get_traceback(), "Modbus Action Trigger Error")
+                frappe.msgprint(
+                    _("Failed to trigger Modbus Action: {0}").format(str(e))
+                )

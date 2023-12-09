@@ -3,7 +3,9 @@ from . import __version__ as app_version
 app_name = "epibus"
 app_title = "Epibus"
 app_publisher = "Applied Relevance"
-app_description = "ERPNext integration with MODBUS/TCP networked programmable logic controllers (PLC)"
+app_description = (
+    "ERPNext integration with MODBUS/TCP networked programmable logic controllers (PLC)"
+)
 app_email = "geveritt@appliedrelevance.com"
 app_license = "MIT"
 
@@ -14,10 +16,8 @@ app_license = "MIT"
 # hooks.py
 
 doc_events = {
-    "*": {
-        "on_submit": "epibus.epibus.doctype.modbus_action.modbus_action.handle_submit",
-        "on_cancel": "epibus.epibus.doctype.modbus_action.modbus_action.handle_cancel",
-        "on_update": "epibus.epibus.doctype.modbus_action.modbus_action.handle_update",
+    "Stock Entry": {
+        "on_submit": "epibus.epibus.doctype.modbus_action.modbus_action.handle_submit"
     },
 }
 
@@ -61,7 +61,7 @@ fixtures = [
 
 # website user home page (by Role)
 # role_home_page = {
-#	"Role": "home_page"
+# 	"Role": "home_page"
 # }
 
 # Generators
@@ -75,8 +75,8 @@ fixtures = [
 
 # add methods and filters to jinja environment
 # jinja = {
-#	"methods": "epibus.utils.jinja_methods",
-#	"filters": "epibus.utils.jinja_filters"
+# 	"methods": "epibus.utils.jinja_methods",
+# 	"filters": "epibus.utils.jinja_filters"
 # }
 
 # Installation
@@ -102,11 +102,11 @@ fixtures = [
 # Permissions evaluated in scripted ways
 
 # permission_query_conditions = {
-#	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
+# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 # }
 #
 # has_permission = {
-#	"Event": "frappe.desk.doctype.event.event.has_permission",
+# 	"Event": "frappe.desk.doctype.event.event.has_permission",
 # }
 
 # DocType Class
@@ -114,7 +114,7 @@ fixtures = [
 # Override standard doctype classes
 
 # override_doctype_class = {
-#	"ToDo": "custom_app.overrides.CustomToDo"
+# 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 
 
@@ -122,21 +122,21 @@ fixtures = [
 # ---------------
 
 # scheduler_events = {
-#	"all": [
-#		"epibus.tasks.all"
-#	],
-#	"daily": [
-#		"epibus.tasks.daily"
-#	],
-#	"hourly": [
-#		"epibus.tasks.hourly"
-#	],
-#	"weekly": [
-#		"epibus.tasks.weekly"
-#	],
-#	"monthly": [
-#		"epibus.tasks.monthly"
-#	],
+# 	"all": [
+# 		"epibus.tasks.all"
+# 	],
+# 	"daily": [
+# 		"epibus.tasks.daily"
+# 	],
+# 	"hourly": [
+# 		"epibus.tasks.hourly"
+# 	],
+# 	"weekly": [
+# 		"epibus.tasks.weekly"
+# 	],
+# 	"monthly": [
+# 		"epibus.tasks.monthly"
+# 	],
 # }
 
 # Testing
@@ -148,14 +148,14 @@ fixtures = [
 # ------------------------------
 #
 # override_whitelisted_methods = {
-#	"frappe.desk.doctype.event.event.get_events": "epibus.event.get_events"
+# 	"frappe.desk.doctype.event.event.get_events": "epibus.event.get_events"
 # }
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
 # override_doctype_dashboards = {
-#	"Task": "epibus.task.get_dashboard_data"
+# 	"Task": "epibus.task.get_dashboard_data"
 # }
 
 # exempt linked doctypes from being automatically cancelled
@@ -167,29 +167,29 @@ fixtures = [
 # --------------------
 
 # user_data_fields = [
-#	{
-#		"doctype": "{doctype_1}",
-#		"filter_by": "{filter_by}",
-#		"redact_fields": ["{field_1}", "{field_2}"],
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_2}",
-#		"filter_by": "{filter_by}",
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_3}",
-#		"strict": False,
-#	},
-#	{
-#		"doctype": "{doctype_4}"
-#	}
+# 	{
+# 		"doctype": "{doctype_1}",
+# 		"filter_by": "{filter_by}",
+# 		"redact_fields": ["{field_1}", "{field_2}"],
+# 		"partial": 1,
+# 	},
+# 	{
+# 		"doctype": "{doctype_2}",
+# 		"filter_by": "{filter_by}",
+# 		"partial": 1,
+# 	},
+# 	{
+# 		"doctype": "{doctype_3}",
+# 		"strict": False,
+# 	},
+# 	{
+# 		"doctype": "{doctype_4}"
+# 	}
 # ]
 
 # Authentication and authorization
 # --------------------------------
 
 # auth_hooks = [
-#	"epibus.auth.validate"
+# 	"epibus.auth.validate"
 # ]

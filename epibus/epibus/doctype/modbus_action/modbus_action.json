@@ -10,12 +10,10 @@
  "field_order": [
   "connection",
   "location",
+  "column_break_pycm1",
   "action",
   "bit_value",
-  "byte_value",
-  "column_break_s3v5p",
-  "event_trigger",
-  "linked_doctype"
+  "warehouse"
  ],
  "fields": [
   {
@@ -34,13 +32,7 @@
    "options": "Read\nWrite"
   },
   {
-   "fieldname": "byte_value",
-   "fieldtype": "Int",
-   "label": "Byte Value",
-   "read_only_depends_on": "eval:doc.action==\"Read\""
-  },
-  {
-   "default": "0",
+   "default": "1",
    "fieldname": "bit_value",
    "fieldtype": "Check",
    "label": "Bit Value",
@@ -54,25 +46,20 @@
    "options": "Modbus Location"
   },
   {
-   "fieldname": "event_trigger",
-   "fieldtype": "Select",
-   "label": "Event Trigger",
-   "options": "On Save\nOn Submit\nOn Cancel"
-  },
-  {
-   "fieldname": "linked_doctype",
+   "description": "Warehouse to Watch.  Trigger this action when an item is moved from this warehouse.  ",
+   "fieldname": "warehouse",
    "fieldtype": "Link",
-   "label": "Linked Doctype",
-   "options": "DocType"
+   "label": "Warehouse",
+   "options": "Warehouse"
   },
   {
-   "fieldname": "column_break_s3v5p",
+   "fieldname": "column_break_pycm1",
    "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-09-27 16:35:53.691809",
+ "modified": "2023-12-08 20:20:54.599713",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Action",

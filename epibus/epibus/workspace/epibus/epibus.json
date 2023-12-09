@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"boPg_-oQOX\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Epibus</span>\",\"col\":12}},{\"id\":\"caExZmdfT9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Modbus Settings\",\"col\":5}},{\"id\":\"DqK8wkoHQF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Modbus Documents</span>\",\"col\":12}},{\"id\":\"fI6Hh2Ueq2\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Connections\",\"col\":6}},{\"id\":\"OlilxW5QK5\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Actions\",\"col\":6}},{\"id\":\"WJbcgtmtk6\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Workflows\",\"col\":6}},{\"id\":\"zNkRlJLOq4\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Workflow Actions\",\"col\":6}}]",
+ "content": "[{\"id\":\"boPg_-oQOX\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Epibus</span>\",\"col\":12}},{\"id\":\"caExZmdfT9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Modbus Settings\",\"col\":5}},{\"id\":\"DqK8wkoHQF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Modbus Documents</span>\",\"col\":12}},{\"id\":\"fI6Hh2Ueq2\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Connections\",\"col\":6}},{\"id\":\"OlilxW5QK5\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Actions\",\"col\":6}}]",
  "creation": "2023-11-29 18:11:20.800049",
  "custom_blocks": [],
  "docstatus": 0,
@@ -12,7 +12,7 @@
  "is_hidden": 0,
  "label": "Epibus",
  "links": [],
- "modified": "2023-12-01 15:38:01.069456",
+ "modified": "2023-12-08 20:02:18.428066",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Epibus",
@@ -28,14 +28,6 @@
   {
    "document_type": "Modbus Action",
    "label": "Modbus Actions"
-  },
-  {
-   "document_type": "Workflow",
-   "label": "Workflows"
-  },
-  {
-   "document_type": "Workflow Action",
-   "label": "Workflow Actions"
   }
  ],
  "roles": [],
