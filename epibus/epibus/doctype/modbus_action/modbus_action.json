@@ -20,7 +20,8 @@
    "fieldname": "connection",
    "fieldtype": "Link",
    "label": "Connection",
-   "options": "Modbus Connection"
+   "options": "Modbus Connection",
+   "reqd": 1
   },
   {
    "depends_on": "eval:!!doc.location;",
@@ -39,11 +40,13 @@
    "read_only_depends_on": "doc.action=='Read'&&doc.name&&doc.location;"
   },
   {
-   "depends_on": "eval:!!doc.connection;\n",
+   "depends_on": "eval:!!cur_frm.doc.connection;",
    "fieldname": "location",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "label": "Location",
-   "options": "Modbus Location"
+   "options": "Modbus Location",
+   "reqd": 1
   },
   {
    "description": "Warehouse to Watch.  Trigger this action when an item is moved from this warehouse.  ",
@@ -59,7 +62,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-12-08 20:20:54.599713",
+ "modified": "2023-12-11 14:59:44.971990",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Action",
