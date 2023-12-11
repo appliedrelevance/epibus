@@ -52,8 +52,8 @@
    "label": "route"
   }
  ],
- "has_web_view": 1,
- "index_web_pages_for_search": 1,
+ "has_web_view": 0,
+ "index_web_pages_for_search": 0,
  "links": [],
  "modified": "2023-12-08 22:04:10.232269",
  "modified_by": "Administrator",
@@ -99,7 +99,6 @@
    "write": 1
   }
  ],
- "route": "modbus",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
