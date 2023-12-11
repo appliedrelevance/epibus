@@ -11,7 +11,8 @@
   "port",
   "device_name",
   "unit",
-  "locations"
+  "locations",
+  "route"
  ],
  "fields": [
   {
@@ -44,11 +45,17 @@
    "fieldtype": "Table",
    "label": "Locations",
    "options": "Modbus Location"
+  },
+  {
+   "fieldname": "route",
+   "fieldtype": "Data",
+   "label": "route"
   }
  ],
+ "has_web_view": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-09-27 15:16:38.085379",
+ "modified": "2023-12-08 22:04:10.232269",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Connection",
@@ -92,6 +99,7 @@
    "write": 1
   }
  ],
+ "route": "modbus",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

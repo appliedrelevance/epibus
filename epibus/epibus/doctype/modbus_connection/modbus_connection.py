@@ -2,8 +2,9 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe.model.document import Document
+from frappe.website.website_generator import WebsiteGenerator
 from pymodbus.client import ModbusTcpClient
+from frappe.model.document import Document
 
 
 class ModbusConnection(Document):
