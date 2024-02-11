@@ -26,32 +26,6 @@ fixtures = [
     {"dt": "Role", "filters": [["name", "in", ["Modbus Administrator", "Modbus User"]]]}
 ]
 
-# In your app's hooks.py
-
-scheduler_events = {
-    "all": [
-        # List of functions to be executed in all sites every X time
-    ],
-    "hourly": [
-        # Other hourly tasks
-    ],
-    "daily": [
-        # Other daily tasks
-    ],
-    "weekly": [
-        # Other weekly tasks
-    ],
-    "monthly": [
-        # Other monthly tasks
-    ],
-    "cron": {
-        # Here, we define a custom schedule for updating the Modbus server status
-        "*/5 * * * *": [  # Every 5 minutes; adjust the timing as needed
-            "epibus.epibus.doctype.modbus_server.modbus_server.update_status"
-        ]
-    },
-}
-
 
 # Includes in <head>
 # ------------------
