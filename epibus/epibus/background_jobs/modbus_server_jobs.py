@@ -6,7 +6,7 @@ import logging
 
 # Configure logging with a more detailed format and debug level on root logger
 logging.basicConfig(
-    level=logging.info, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 

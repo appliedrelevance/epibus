@@ -7,8 +7,10 @@
  "field_order": [
   "hostname",
   "port",
-  "modbus_port",
-  "server_status"
+  "column_break_ogxa",
+  "server_status",
+  "section_break_dgqu",
+  "modbus_port"
  ],
  "fields": [
   {
@@ -39,12 +41,20 @@
    "fieldtype": "Select",
    "label": "Server Status",
    "options": "Running\nStarting\nStopped"
+  },
+  {
+   "fieldname": "column_break_ogxa",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_dgqu",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-02-11 11:13:27.112360",
+ "modified": "2024-02-11 12:08:41.328702",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Server",
