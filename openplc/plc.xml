@@ -1,0 +1,949 @@
+<?xml version='1.0' encoding='utf-8'?>
+<project xmlns:ns1="http://www.plcopen.org/xml/tc6.xsd" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.plcopen.org/xml/tc6_0201">
+  <fileHeader companyName="Unknown" productName="Unnamed" productVersion="1" creationDateTime="2022-10-16T10:53:06"/>
+  <contentHeader name="Unnamed" modificationDateTime="2022-10-16T17:55:15">
+    <coordinateInfo>
+      <fbd>
+        <scaling x="10" y="10"/>
+      </fbd>
+      <ld>
+        <scaling x="10" y="10"/>
+      </ld>
+      <sfc>
+        <scaling x="10" y="10"/>
+      </sfc>
+    </coordinateInfo>
+  </contentHeader>
+  <types>
+    <dataTypes/>
+    <pous>
+      <pou name="Actuators" pouType="program">
+        <interface>
+          <localVars>
+            <variable name="PON00" address="%IX0.0">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="PON01" address="%IX0.1">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="PON02" address="%IX0.2">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="PON03" address="%IX0.3">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="PON04" address="%IX0.4">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="PON05" address="%IX0.5">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="PON06" address="%IX0.6">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="PON07" address="%IX0.7">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="POF00" address="%IX1.0">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="POF01" address="%IX1.1">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="POF02" address="%IX1.2">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="POF03" address="%IX1.3">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="POF04" address="%IX1.4">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="POF05" address="%IX1.5">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="POF06" address="%IX1.6">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="POF07" address="%IX1.7">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="LED00" address="%QX0.0">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="LED01" address="%QX0.1">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="LED02" address="%QX0.2">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="LED03" address="%QX0.3">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="LED04" address="%QX0.4">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="LED05" address="%QX0.5">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="LED06" address="%QX0.6">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+            <variable name="LED07" address="%QX0.7">
+              <type>
+                <BOOL/>
+              </type>
+            </variable>
+          </localVars>
+        </interface>
+        <body>
+          <LD>
+            <leftPowerRail localId="2" height="2000" width="10">
+              <position x="220" y="80"/>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="20"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="60"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="100"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="140"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="180"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="220"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="260"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="300"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="340"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="380"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="420"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="460"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="500"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="540"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="580"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="620"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="660"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="700"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="740"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="780"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="820"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="860"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="900"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="940"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="980"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1020"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1060"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1100"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1140"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1180"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1220"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1260"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1300"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1340"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1380"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1420"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1460"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1500"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1540"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1580"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1620"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1660"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1700"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1740"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1780"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1820"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1860"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1900"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1940"/>
+              </connectionPointOut>
+              <connectionPointOut formalParameter="">
+                <relPosition x="10" y="1980"/>
+              </connectionPointOut>
+            </leftPowerRail>
+            <rightPowerRail localId="3" height="2000" width="10">
+              <position x="790" y="80"/>
+              <connectionPointIn>
+                <relPosition x="0" y="20"/>
+                <connection refLocalId="8">
+                  <position x="790" y="100"/>
+                  <position x="681" y="100"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="60"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="100"/>
+                <connection refLocalId="10">
+                  <position x="790" y="180"/>
+                  <position x="681" y="180"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="140"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="180"/>
+                <connection refLocalId="16">
+                  <position x="790" y="260"/>
+                  <position x="680" y="260"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="220"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="260"/>
+                <connection refLocalId="18">
+                  <position x="790" y="340"/>
+                  <position x="680" y="340"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="300"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="340"/>
+                <connection refLocalId="24">
+                  <position x="790" y="420"/>
+                  <position x="680" y="420"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="380"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="420"/>
+                <connection refLocalId="26">
+                  <position x="790" y="500"/>
+                  <position x="680" y="500"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="460"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="500"/>
+                <connection refLocalId="32">
+                  <position x="790" y="580"/>
+                  <position x="680" y="580"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="540"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="580"/>
+                <connection refLocalId="34">
+                  <position x="790" y="660"/>
+                  <position x="680" y="660"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="620"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="660"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="700"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="740"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="780"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="820"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="860"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="900"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="940"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="980"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1020"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1060"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1100"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1140"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1180"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1220"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1260"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1300"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1340"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1380"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1420"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1460"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1500"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1540"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1580"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1620"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1660"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1700"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1740"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1780"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1820"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1860"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1900"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1940"/>
+              </connectionPointIn>
+              <connectionPointIn>
+                <relPosition x="0" y="1980"/>
+              </connectionPointIn>
+            </rightPowerRail>
+            <contact localId="4" height="20" width="21" negated="false">
+              <position x="330" y="90"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="2">
+                  <position x="330" y="100"/>
+                  <position x="230" y="100"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>PON00</variable>
+            </contact>
+            <contact localId="5" height="20" width="21" negated="true">
+              <position x="480" y="90"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="6">
+                  <position x="480" y="100"/>
+                  <position x="415" y="100"/>
+                  <position x="415" y="140"/>
+                  <position x="351" y="140"/>
+                </connection>
+                <connection refLocalId="4">
+                  <position x="480" y="100"/>
+                  <position x="351" y="100"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>POF00</variable>
+            </contact>
+            <contact localId="6" height="20" width="21" negated="false">
+              <position x="330" y="130"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="2">
+                  <position x="330" y="140"/>
+                  <position x="230" y="140"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED00</variable>
+            </contact>
+            <coil localId="8" height="20" width="21" negated="false">
+              <position x="660" y="90"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="5">
+                  <position x="660" y="100"/>
+                  <position x="501" y="100"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED00</variable>
+            </coil>
+            <contact localId="1" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="330" y="170"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="2">
+                  <position x="330" y="180"/>
+                  <position x="230" y="180"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>PON01</variable>
+            </contact>
+            <contact localId="7" height="20" width="21" negated="true" executionOrderId="0">
+              <position x="480" y="170"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="9">
+                  <position x="480" y="180"/>
+                  <position x="415" y="180"/>
+                  <position x="415" y="220"/>
+                  <position x="351" y="220"/>
+                </connection>
+                <connection refLocalId="1">
+                  <position x="480" y="180"/>
+                  <position x="351" y="180"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>POF01</variable>
+            </contact>
+            <contact localId="9" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="330" y="210"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="2">
+                  <position x="330" y="220"/>
+                  <position x="230" y="220"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED01</variable>
+            </contact>
+            <coil localId="10" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="660" y="170"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="7">
+                  <position x="660" y="180"/>
+                  <position x="501" y="180"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED01</variable>
+            </coil>
+            <contact localId="11" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="330" y="330"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>PON03</variable>
+            </contact>
+            <contact localId="12" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="330" y="250"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>PON02</variable>
+            </contact>
+            <contact localId="13" height="20" width="21" negated="true" executionOrderId="0">
+              <position x="480" y="250"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="14">
+                  <position x="480" y="260"/>
+                  <position x="420" y="260"/>
+                  <position x="420" y="300"/>
+                  <position x="351" y="300"/>
+                </connection>
+                <connection refLocalId="12">
+                  <position x="480" y="260"/>
+                  <position x="351" y="260"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>POF02</variable>
+            </contact>
+            <contact localId="14" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="330" y="290"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED02</variable>
+            </contact>
+            <contact localId="15" height="20" width="21" negated="true" executionOrderId="0">
+              <position x="480" y="330"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="17">
+                  <position x="480" y="340"/>
+                  <position x="420" y="340"/>
+                  <position x="420" y="380"/>
+                  <position x="351" y="380"/>
+                </connection>
+                <connection refLocalId="11">
+                  <position x="480" y="340"/>
+                  <position x="351" y="340"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>POF03</variable>
+            </contact>
+            <coil localId="16" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="660" y="250"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="13">
+                  <position x="660" y="260"/>
+                  <position x="501" y="260"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED02</variable>
+            </coil>
+            <contact localId="17" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="330" y="370"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED03</variable>
+            </contact>
+            <coil localId="18" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="660" y="330"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="15">
+                  <position x="660" y="340"/>
+                  <position x="501" y="340"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED03</variable>
+            </coil>
+            <contact localId="19" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="330" y="490"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>PON05</variable>
+            </contact>
+            <contact localId="20" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="330" y="410"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>PON04</variable>
+            </contact>
+            <contact localId="21" height="20" width="21" negated="true" executionOrderId="0">
+              <position x="480" y="410"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="22">
+                  <position x="480" y="420"/>
+                  <position x="415" y="420"/>
+                  <position x="415" y="460"/>
+                  <position x="351" y="460"/>
+                </connection>
+                <connection refLocalId="20">
+                  <position x="480" y="420"/>
+                  <position x="351" y="420"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>POF04</variable>
+            </contact>
+            <contact localId="22" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="330" y="450"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED04</variable>
+            </contact>
+            <contact localId="23" height="20" width="21" negated="true" executionOrderId="0">
+              <position x="480" y="490"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="25">
+                  <position x="480" y="500"/>
+                  <position x="415" y="500"/>
+                  <position x="415" y="540"/>
+                  <position x="351" y="540"/>
+                </connection>
+                <connection refLocalId="19">
+                  <position x="480" y="500"/>
+                  <position x="351" y="500"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>POF05</variable>
+            </contact>
+            <coil localId="24" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="660" y="410"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="21">
+                  <position x="660" y="420"/>
+                  <position x="501" y="420"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED04</variable>
+            </coil>
+            <contact localId="25" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="330" y="530"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED05</variable>
+            </contact>
+            <coil localId="26" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="660" y="490"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="23">
+                  <position x="660" y="500"/>
+                  <position x="501" y="500"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED05</variable>
+            </coil>
+            <contact localId="27" height="20" width="20" negated="false" executionOrderId="0">
+              <position x="330" y="650"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="20" y="10"/>
+              </connectionPointOut>
+              <variable>PON07</variable>
+            </contact>
+            <contact localId="28" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="330" y="570"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>PON06</variable>
+            </contact>
+            <contact localId="29" height="20" width="21" negated="true" executionOrderId="0">
+              <position x="480" y="570"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="30">
+                  <position x="480" y="580"/>
+                  <position x="420" y="580"/>
+                  <position x="420" y="620"/>
+                  <position x="351" y="620"/>
+                </connection>
+                <connection refLocalId="28">
+                  <position x="480" y="580"/>
+                  <position x="351" y="580"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>POF06</variable>
+            </contact>
+            <contact localId="30" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="330" y="610"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED06</variable>
+            </contact>
+            <contact localId="31" height="20" width="21" negated="true" executionOrderId="0">
+              <position x="480" y="650"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="33">
+                  <position x="480" y="660"/>
+                  <position x="361" y="660"/>
+                  <position x="361" y="700"/>
+                  <position x="351" y="700"/>
+                </connection>
+                <connection refLocalId="27">
+                  <position x="480" y="660"/>
+                  <position x="351" y="660"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>POF07</variable>
+            </contact>
+            <coil localId="32" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="660" y="570"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="29">
+                  <position x="660" y="580"/>
+                  <position x="501" y="580"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED06</variable>
+            </coil>
+            <contact localId="33" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="330" y="690"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED07</variable>
+            </contact>
+            <coil localId="34" height="20" width="21" negated="false" executionOrderId="0">
+              <position x="660" y="650"/>
+              <connectionPointIn>
+                <relPosition x="0" y="10"/>
+                <connection refLocalId="31">
+                  <position x="660" y="660"/>
+                  <position x="501" y="660"/>
+                </connection>
+              </connectionPointIn>
+              <connectionPointOut>
+                <relPosition x="21" y="10"/>
+              </connectionPointOut>
+              <variable>LED07</variable>
+            </coil>
+          </LD>
+        </body>
+      </pou>
+    </pous>
+  </types>
+  <instances>
+    <configurations>
+      <configuration name="Config0">
+        <resource name="Res0">
+          <task name="task0" priority="0" interval="T#20ms">
+            <pouInstance name="instance0" typeName="Actuators"/>
+          </task>
+        </resource>
+      </configuration>
+    </configurations>
+  </instances>
+</project>

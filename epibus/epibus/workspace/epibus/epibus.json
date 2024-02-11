@@ -12,13 +12,13 @@
  "is_hidden": 0,
  "label": "Epibus",
  "links": [],
- "modified": "2023-12-08 20:02:18.428066",
+ "modified": "2024-02-10 23:22:50.229804",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Epibus",
  "number_cards": [],
  "owner": "Administrator",
- "parent_page": "",
+ "parent_page": "Epinomy",
  "public": 1,
  "quick_lists": [
   {
@@ -31,7 +31,7 @@
   }
  ],
  "roles": [],
- "sequence_id": 1.0,
+ "sequence_id": 2.0,
  "shortcuts": [
   {
    "color": "Grey",
