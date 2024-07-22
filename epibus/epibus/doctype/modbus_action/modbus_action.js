@@ -49,5 +49,8 @@ frappe.ui.form.on("Modbus Action", {
 		frm.add_custom_button(__("Trigger Action"), function () {
 			return trigger_action(frm);
 		});
+	},
+	location: function (frm) {
+		return test_connection(frm); // Assuming you want to test the connection when location changes
 	}
 });

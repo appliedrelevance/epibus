@@ -19,6 +19,7 @@
   {
    "fieldname": "connection",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "label": "Connection",
    "options": "Modbus Connection",
    "reqd": 1
@@ -62,11 +63,10 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-12-11 14:59:44.971990",
+ "modified": "2024-01-26 07:36:05.852013",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Action",
- "name_case": "UPPER CASE",
  "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
