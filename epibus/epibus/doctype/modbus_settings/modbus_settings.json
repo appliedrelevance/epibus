@@ -42,7 +42,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-09-28 12:47:26.048508",
+ "modified": "2024-01-26 06:26:48.426174",
  "modified_by": "Administrator",
  "module": "Epibus",
  "name": "Modbus Settings",
@@ -55,6 +55,26 @@
    "print": 1,
    "read": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Modbus Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Modbus User",
    "share": 1,
    "write": 1
   }
