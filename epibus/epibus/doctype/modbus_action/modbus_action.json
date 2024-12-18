@@ -65,7 +65,7 @@
  "links": [],
  "modified": "2024-01-26 07:36:05.852013",
  "modified_by": "Administrator",
- "module": "Epibus",
+ "module": "EpiBus",
  "name": "Modbus Action",
  "naming_rule": "Expression",
  "owner": "Administrator",

@@ -1,6 +1,6 @@
-# Epibus - MODBUS/TCP integration for ERPNext
+# EpiBus - MODBUS/TCP integration for ERPNext
 
-**Epibus** provides an ERPNext integration with MODBUS/TCP networked programmable logic controllers (PLC).
+**EpiBus** provides an ERPNext integration with MODBUS/TCP networked programmable logic controllers (PLC).
 
 A Programmable Logic Controller, or PLC, is a hardware device used to control machines and processes. It is a computer that is designed to be used in harsh environments. It is used to control machines and processes in manufacturing, oil and gas, water treatment, and many others.
 
@@ -8,9 +8,9 @@ MODBUS is a communication protocol that is used to communicate with PLCs. It is 
 
 Note that the MODBUS protocol has been around since 1979 before the words "master" and "slave" in the context of machinery were considered offensive. The MODBUS protocol is still used today and is the most common protocol used to communicate with PLCs.
 
-The name "Epibus" is a portmanteau of "Epi" (from "Epinomy") and "Bus" (from "MODBUS"). 
+The name "EpiBus" is a portmanteau of "Epi" (from "Epinomy") and "Bus" (from "MODBUS"). 
 
-Epibus is based on the excellent [PyModbus library](https://pymodbus.readthedocs.io/en/latest/readme.html), which is a pure Python implementation of the MODBUS protocol.
+EpiBus is based on the excellent [PyModbus library](https://pymodbus.readthedocs.io/en/latest/readme.html), which is a pure Python implementation of the MODBUS protocol.
 
 ## Installation
 
@@ -27,14 +27,14 @@ bench --site site1.local install-app epibus
 bench restart
 ```
 
-Epibus will install the following dependencies:
+EpiBus will install the following dependencies:
 - pymodbus
 - pygments
 - pyserial_asyncio
 
 ## Usage Overview
 
-Epibus configures three DocTypes: **Modbus Connection**, **Modbus Location**, and **Modbus Action**.
+EpiBus configures three DocTypes: **Modbus Connection**, **Modbus Location**, and **Modbus Action**.
 
 ### Modbus Connection
 

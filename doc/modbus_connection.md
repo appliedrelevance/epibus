@@ -1,7 +1,7 @@
-## Epibus _Modbus Connection_ DocType
+## EpiBus _Modbus Connection_ DocType
 
 ### Overview
-The Modbus Connection DocType in Epibus provides a structure for defining connections to Modbus devices. It is essential for configuring and managing Modbus communication within the system.
+The Modbus Connection DocType in EpiBus provides a structure for defining connections to Modbus devices. It is essential for configuring and managing Modbus communication within the system.
 
 ### Fields Description
 1. **Host**: (Type: Data, Required) The IP address or hostname of the Modbus device. It is set to "0.0.0.0" by default but should be updated to the actual device's address.
@@ -20,7 +20,7 @@ The permissions for creating, reading, updating, and deleting Modbus Connection 
 ### Configuring a Modbus Connection
 To set up a Modbus Connection, follow these steps:
 
-1. **Access Modbus Connection DocType**: Navigate to the Modbus Connection DocType in the Epibus system.
+1. **Access Modbus Connection DocType**: Navigate to the Modbus Connection DocType in the EpiBus system.
 
 2. **Create New Record**: Start a new Modbus Connection record.
 
@@ -36,8 +36,8 @@ To set up a Modbus Connection, follow these steps:
 
 7. **Save and Test**: After configuring the settings, save the document. Ensure to test the connection for proper communication with the Modbus device.
 
-By completing these steps, users can successfully configure and manage Modbus connections within the Epibus system, facilitating effective communication with Modbus devices.
+By completing these steps, users can successfully configure and manage Modbus connections within the EpiBus system, facilitating effective communication with Modbus devices.
 
 ---
 
-This documentation provides a straightforward guide for users to set up Modbus connections in the Epibus environment. It can be expanded or adjusted according to additional features or specific requirements of the system.
+This documentation provides a straightforward guide for users to set up Modbus connections in the EpiBus environment. It can be expanded or adjusted according to additional features or specific requirements of the system.

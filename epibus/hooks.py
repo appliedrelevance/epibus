@@ -1,7 +1,7 @@
 from . import __version__ as app_version
 
 app_name = "epibus"
-app_title = "Epibus"
+app_title = "EpiBus"
 app_publisher = "Applied Relevance"
 app_description = (
     "ERPNext integration with MODBUS/TCP networked programmable logic controllers (PLC)"
@@ -23,7 +23,8 @@ doc_events = {
 
 
 fixtures = [
-    {"dt": "Role", "filters": [["name", "in", ["Modbus Administrator", "Modbus User"]]]}
+    {"dt": "Role", "filters": [["name", "in", ["Modbus Administrator", "Modbus User"]]]},
+    {"dt": "Workspace", "filters": [["name", "in", ["EpiBus"]]]}
 ]
 
 

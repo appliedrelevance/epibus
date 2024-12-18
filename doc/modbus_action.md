@@ -1,7 +1,7 @@
-## Epibus _Modbus Action_ DocType
+## EpiBus _Modbus Action_ DocType
 
 ### Overview
-The Epibus Modbus Action DocType is designed to control or monitor Modbus I/O ports. It is triggered by a hook that watches for the `on_submit` event on Stock Entry documents. When a Stock Entry is submitted, the Modbus Action iterates over the Item entries in the document and triggers the action associated with the source warehouse.
+The EpiBus Modbus Action DocType is designed to control or monitor Modbus I/O ports. It is triggered by a hook that watches for the `on_submit` event on Stock Entry documents. When a Stock Entry is submitted, the Modbus Action iterates over the Item entries in the document and triggers the action associated with the source warehouse.
 
 ### Fields Description
 
@@ -36,4 +36,4 @@ To configure the Modbus Action to process transactions for a given warehouse, fo
 
 7. **Save and Enable**: After configuring the fields, save the document to enable the action.
 
-By following these steps, users can set up the Modbus Action to automatically execute actions based on stock movements in specified warehouses, leveraging the Epibus system's integration with Modbus devices.
+By following these steps, users can set up the Modbus Action to automatically execute actions based on stock movements in specified warehouses, leveraging the EpiBus system's integration with Modbus devices.

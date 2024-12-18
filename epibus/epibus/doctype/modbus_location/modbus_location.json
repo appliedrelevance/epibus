@@ -72,7 +72,7 @@
  "links": [],
  "modified": "2024-02-24 07:52:34.683164",
  "modified_by": "Administrator",
- "module": "Epibus",
+ "module": "EpiBus",
  "name": "Modbus Location",
  "naming_rule": "Expression",
  "owner": "Administrator",

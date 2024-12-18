@@ -1,7 +1,7 @@
-## Epibus _Modbus Settings_ DocType
+## EpiBus _Modbus Settings_ DocType
 
 ### Overview
-Modbus Settings DocType in Epibus is a configuration tool that allows users to set general parameters for Modbus operations within the system. This document explains the fields in the Modbus Settings and how to configure them.
+Modbus Settings DocType in EpiBus is a configuration tool that allows users to set general parameters for Modbus operations within the system. This document explains the fields in the Modbus Settings and how to configure them.
 
 ### Fields Description
 1. **Enable Triggers**: (Type: Check, Default: Enabled) This field determines whether Modbus Actions are triggered on events. When enabled, any configured Modbus Action will be executed based on specified events.
@@ -18,7 +18,7 @@ Permissions for accessing and modifying the Modbus Settings are generally restri
 ### Configuring Modbus Settings
 To configure Modbus Settings for your system, follow these steps:
 
-1. **Navigate to Modbus Settings**: Access the Modbus Settings DocType in the Epibus system.
+1. **Navigate to Modbus Settings**: Access the Modbus Settings DocType in the EpiBus system.
 
 2. **Set Trigger Option**:
    - Check or uncheck the 'Enable Triggers' box based on whether you want Modbus Actions to be automatically triggered by events in the system.

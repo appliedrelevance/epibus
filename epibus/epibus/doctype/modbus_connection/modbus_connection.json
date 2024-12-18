@@ -57,7 +57,7 @@
  "links": [],
  "modified": "2023-12-08 22:04:10.232269",
  "modified_by": "Administrator",
- "module": "Epibus",
+ "module": "EpiBus",
  "name": "Modbus Connection",
  "naming_rule": "Set by user",
  "owner": "Administrator",

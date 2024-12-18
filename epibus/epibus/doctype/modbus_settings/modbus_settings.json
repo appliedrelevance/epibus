@@ -44,7 +44,7 @@
  "links": [],
  "modified": "2024-01-26 06:26:48.426174",
  "modified_by": "Administrator",
- "module": "Epibus",
+ "module": "EpiBus",
  "name": "Modbus Settings",
  "owner": "Administrator",
  "permissions": [
