@@ -7,10 +7,18 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "modbus_tab",
   "enable_triggers",
   "default_coil_prefix",
   "default_contact_prefix",
-  "default_register_prefix"
+  "default_register_prefix",
+  "plc_simulator_tab",
+  "enable_simulator",
+  "simulator_host",
+  "auto_fluctuate_input_values",
+  "simulator_status_section",
+  "connection_status",
+  "last_status_update"
  ],
  "fields": [
   {
@@ -37,12 +45,59 @@
    "fieldname": "default_register_prefix",
    "fieldtype": "Data",
    "label": "Default Register Prefix"
+  },
+  {
+   "fieldname": "modbus_tab",
+   "fieldtype": "Tab Break",
+   "label": "ModBus"
+  },
+  {
+   "fieldname": "plc_simulator_tab",
+   "fieldtype": "Tab Break",
+   "label": "PLC Simulator"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_simulator",
+   "fieldtype": "Check",
+   "label": "Enable Simulator"
+  },
+  {
+   "depends_on": "eval:enable_simulator\n",
+   "fieldname": "simulator_host",
+   "fieldtype": "Data",
+   "label": "Simulator Host"
+  },
+  {
+   "default": "1000",
+   "fieldname": "auto_fluctuate_input_values",
+   "fieldtype": "Int",
+   "label": "Auto Fluctuate Input Values"
+  },
+  {
+   "fieldname": "simulator_status_section",
+   "fieldtype": "Section Break",
+   "label": "Simulator Status"
+  },
+  {
+   "fieldname": "connection_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Connection Status",
+   "options": "Disconnecting\nConnecting\nConnected\nError",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_status_update",
+   "fieldtype": "Datetime",
+   "label": "Last Status Update",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-01-26 06:26:48.426174",
+ "modified": "2024-12-18 17:09:32.409719",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Settings",
