@@ -1,0 +1,171 @@
+[
+ {
+  "connection_status": "Connected",
+  "description": "Universal Robots MODBUS Simulator",
+  "docstatus": 0,
+  "doctype": "PLC Simulator",
+  "enabled": 1,
+  "equipment_type": "Robot",
+  "io_points": [
+   {
+    "location_name": "Robot Mode",
+    "location_type": "Analog Input Register",
+    "modbus_address": 0,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%IW0",
+    "toggle": 0,
+    "value": "0"
+   },
+   {
+    "location_name": "Robot Status Bits",
+    "location_type": "Digital Input Contact",
+    "modbus_address": 0,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%QX0.0",
+    "toggle": 0,
+    "value": "0"
+   },
+   {
+    "location_name": "Safety Status",
+    "location_type": "Digital Input Contact",
+    "modbus_address": 1,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%IX0.1",
+    "toggle": 0,
+    "value": "1"
+   },
+   {
+    "location_name": "Program Start",
+    "location_type": "Digital Output Coil",
+    "modbus_address": 128,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%QX16.0",
+    "toggle": 0,
+    "value": "0"
+   },
+   {
+    "location_name": "Program Stop",
+    "location_type": "Digital Output Coil",
+    "modbus_address": 129,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%Qx16.1",
+    "toggle": 0,
+    "value": "0"
+   },
+   {
+    "location_name": "Program Pause",
+    "location_type": "Digital Output Coil",
+    "modbus_address": 130,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%QX16.2",
+    "toggle": 0,
+    "value": "0"
+   },
+   {
+    "location_name": "Tool Enable",
+    "location_type": "Digital Output Coil",
+    "modbus_address": 200,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%QX25.0",
+    "toggle": 0,
+    "value": "0"
+   },
+   {
+    "location_name": "Digital Tool Out 0",
+    "location_type": "Digital Output Coil",
+    "modbus_address": 201,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%QX25.1",
+    "toggle": 0,
+    "value": "0"
+   },
+   {
+    "location_name": "Digital Tool Out 1",
+    "location_type": "Digital Output Coil",
+    "modbus_address": 202,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%QX25.2",
+    "toggle": 0,
+    "value": "0"
+   },
+   {
+    "location_name": "Digital Tool In 0",
+    "location_type": "Digital Input Contact",
+    "modbus_address": 200,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%IX25.0",
+    "toggle": 0,
+    "value": "0"
+   },
+   {
+    "location_name": "Digital Tool In 1",
+    "location_type": "Digital Input Contact",
+    "modbus_address": 201,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%IX25.1",
+    "toggle": 0,
+    "value": "0"
+   },
+   {
+    "location_name": "TCP X Position",
+    "location_type": "Analog Input Register",
+    "modbus_address": 400,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%IW400",
+    "toggle": 0,
+    "value": "0"
+   },
+   {
+    "location_name": "TCP Y Position",
+    "location_type": "Analog Input Register",
+    "modbus_address": 401,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%IW401",
+    "toggle": 0,
+    "value": "0"
+   },
+   {
+    "location_name": "TCP Z Position",
+    "location_type": "Analog Input Register",
+    "modbus_address": 402,
+    "parent": "UR Sim",
+    "parentfield": "io_points",
+    "parenttype": "PLC Simulator",
+    "plc_address": "%IW402",
+    "toggle": 0,
+    "value": "0"
+   }
+  ],
+  "last_status_update": "2024-12-19 16:49:30.107208",
+  "modified": "2024-12-19 12:06:10.541778",
+  "name": "UR Sim",
+  "server_port": 502,
+  "simulator_name": "UR Sim"
+ }
+]

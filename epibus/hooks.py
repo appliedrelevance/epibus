@@ -23,10 +23,23 @@ doc_events = {
 
 
 fixtures = [
-    {"dt": "Role", "filters": [["name", "in", ["Modbus Administrator", "Modbus User"]]]},
-    {"dt": "Workspace", "filters": [["name", "in", ["EpiBus"]]]}
+    {
+        "dt": "Role",
+        "filters": [["name", "in", ["Modbus Administrator", "Modbus User"]]]
+    },
+    {
+        "dt": "Workspace",
+        "filters": [["name", "in", ["EpiBus"]]]
+    },
+    {
+        "dt": "PLC Simulator",
+        "filters": [["simulator_name", "=", "UR Sim"]]
+    },
+    {
+        "dt": "Modbus Location",
+        "filters": [["parent", "=", "UR Sim"]]
+    }
 ]
-
 
 # Includes in <head>
 # ------------------
