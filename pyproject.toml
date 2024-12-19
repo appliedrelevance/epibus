@@ -9,10 +9,9 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # Core dependencies
-    "pymodbus",
+    "pymodbus>=3.8.0",
     "pyserial-asyncio",
-    "pygments",
-    "prompt-toolkit",
+    "pygments"
 ]
 
 [build-system]

@@ -2,36 +2,59 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe import _
 from pymodbus.client import ModbusTcpClient
 from frappe.model.document import Document
 
 
 class ModbusConnection(Document):
+
     @frappe.whitelist()
     def test_connection(self, host, port):
         print("Testing Modbus Connection " + self.name)
-        client = ModbusTcpClient(host, port)
-        print("Connecting to " + host + ":" + str(port))
-        res = client.connect()
-        locs = "Locations: "
-        for d in self.get("locations"):
-            stateBln = client.read_coils(d.modbus_address, 1).bits[0]
-            state = "On" if stateBln else "Off"
-            if d.modbus_address is None or d.plc_address is None:
-                locs += "Not Configured, "
-            else:
-                locs += (
-                    str(d.location_name)
-                    + ": "
-                    + str(d.plc_address)
-                    + " ("
-                    + state
-                    + "), "
-                )
-            d.value = state
-            d.toggle = stateBln
-        return "Connection successful " + locs if res else "Connection failed"
+        try:
+            # Initialize client with kwargs
+            client = ModbusTcpClient(host=host, port=int(port))
+            print("Connecting to " + host + ":" + str(port))
+            
+            if not client.connect():
+                return "Connection failed"
+
+            locs = "Locations: "
+            for d in self.get("locations"):
+                if not d.modbus_address or not d.plc_address:
+                    locs += "Not Configured, "
+                    continue
+
+                try:
+                    # Read value based on signal type
+                    if "Digital Output Coil" in d.signal_type:
+                        response = client.read_coils(d.modbus_address, 1)
+                        state = "On" if response.bits[0] else "Off"
+                        d.toggle = response.bits[0]
+                    elif "Digital Input Contact" in d.signal_type:
+                        response = client.read_discrete_inputs(d.modbus_address, 1)
+                        state = "On" if response.bits[0] else "Off"
+                        d.toggle = response.bits[0]
+                    elif "Analog Input Register" in d.signal_type:
+                        response = client.read_input_registers(d.modbus_address, 1)
+                        state = str(response.registers[0])
+                    elif "Analog Output" in d.signal_type or "Memory Register" in d.signal_type:
+                        response = client.read_holding_registers(d.modbus_address, 1)
+                        state = str(response.registers[0])
+                    else:
+                        state = "Unknown Type"
+
+                    d.value = state
+                    locs += f"{d.location_name}: {d.plc_address} ({state}), "
+
+                except Exception as e:
+                    locs += f"{d.location_name}: Error ({str(e)}), "
+
+            client.close()
+            return "Connection successful " + locs
+
+        except Exception as e:
+            return f"Connection failed: {str(e)}"
 
     @frappe.whitelist()
     def import_from_simulator(self, simulator_name):
