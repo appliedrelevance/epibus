@@ -46,7 +46,7 @@
    "fieldtype": "Link",
    "ignore_user_permissions": 1,
    "label": "Location",
-   "options": "Modbus Location",
+   "options": "Modbus Signal",
    "reqd": 1
   },
   {
@@ -63,7 +63,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-01-26 07:36:05.852013",
+ "modified": "2024-12-19 16:29:04.918445",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Action",

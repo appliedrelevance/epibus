@@ -12,7 +12,7 @@ The Modbus Connection DocType in EpiBus provides a structure for defining connec
 
 4. **Unit**: (Type: Int) Represents the unit identifier in the Modbus network. It is useful for distinguishing between different devices on the same network.
 
-5. **Locations**: (Type: Table, Options: "Modbus Location") This field links to the Modbus Location DocType, allowing the specification of various locations or points within the Modbus device.
+5. **Locations**: (Type: Table, Options: "Modbus Signal") This field links to the Modbus Signal DocType, allowing the specification of various locations or points within the Modbus device.
 
 ### Permissions
 The permissions for creating, reading, updating, and deleting Modbus Connection are typically restricted to roles like 'System Manager', 'Modbus Administrator', and 'Modbus User'.
@@ -32,7 +32,7 @@ To set up a Modbus Connection, follow these steps:
 
 5. **Set Unit Identifier**: Enter the unit identifier specific to your Modbus network setup.
 
-6. **Specify Locations**: Add locations using the 'Modbus Location' DocType to define various points or locations on the Modbus device that you want to interact with.
+6. **Specify Locations**: Add locations using the 'Modbus Signal' DocType to define various points or locations on the Modbus device that you want to interact with.
 
 7. **Save and Test**: After configuring the settings, save the document. Ensure to test the connection for proper communication with the Modbus device.
 

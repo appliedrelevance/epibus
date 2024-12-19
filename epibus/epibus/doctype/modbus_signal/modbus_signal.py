@@ -5,7 +5,7 @@ import frappe
 from frappe.model.document import Document
 
 
-class ModbusLocation(Document):
+class ModbusSignal(Document):
     @frappe.whitelist()
     def toggle_location_pin(self):
         # Fetch the corresponding Modbus Connection document

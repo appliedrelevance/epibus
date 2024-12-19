@@ -36,7 +36,7 @@ fixtures = [
         "filters": [["simulator_name", "=", "UR Sim"]]
     },
     {
-        "dt": "Modbus Location",
+        "dt": "Modbus Signal",
         "filters": [["parent", "=", "UR Sim"]]
     }
 ]

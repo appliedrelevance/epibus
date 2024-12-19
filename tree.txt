@@ -29,14 +29,14 @@
 │   │   │   │   │   ├── modbus_connection.html
 │   │   │   │   │   └── modbus_connection_row.html
 │   │   │   │   └── test_modbus_connection.py
-│   │   │   ├── modbus_location
+│   │   │   ├── modbus_signal
 │   │   │   │   ├── __init__.py
-│   │   │   │   ├── modbus_location.js
-│   │   │   │   ├── modbus_location.json
-│   │   │   │   ├── modbus_location.py
+│   │   │   │   ├── modbus_signal.js
+│   │   │   │   ├── modbus_signal.json
+│   │   │   │   ├── modbus_signal.py
 │   │   │   │   └── __pycache__
 │   │   │   │       ├── __init__.cpython-311.pyc
-│   │   │   │       └── modbus_location.cpython-311.pyc
+│   │   │   │       └── modbus_signal.cpython-311.pyc
 │   │   │   ├── modbus_settings
 │   │   │   │   ├── __init__.py
 │   │   │   │   ├── modbus_settings.js

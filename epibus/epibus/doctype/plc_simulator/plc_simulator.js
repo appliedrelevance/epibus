@@ -158,9 +158,9 @@ function refresh_io_points(dialog, frm) {
 
 function organize_io_points(points) {
     return {
-        digital_outputs: points.filter(p => p.location_type.includes('Digital Output')),
-        digital_inputs: points.filter(p => p.location_type.includes('Digital Input')),
-        analog_points: points.filter(p => p.location_type.includes('Analog'))
+        digital_outputs: points.filter(p => p.signal_type.includes('Digital Output')),
+        digital_inputs: points.filter(p => p.signal_type.includes('Digital Input')),
+        analog_points: points.filter(p => p.signal_type.includes('Analog'))
     };
 }
 
@@ -231,7 +231,7 @@ function generate_analog_html(points) {
 }
 
 function generate_analog_controls(point) {
-    if (point.location_type.includes('Output')) {
+    if (point.signal_type.includes('Output')) {
         return `
             <div class="analog-controls mt-2">
                 <input type="range" class="form-control-range"

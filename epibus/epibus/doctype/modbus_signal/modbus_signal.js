@@ -1,4 +1,4 @@
-frappe.ui.form.on('Modbus Location', {
+frappe.ui.form.on('Modbus Signal', {
     toggle: function (frm) {
         // When the 'toggle' field changes, call a Python method to update the pin and read the value back
         frm.call({

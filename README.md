@@ -34,7 +34,7 @@ EpiBus will install the following dependencies:
 
 ## Usage Overview
 
-EpiBus configures three DocTypes: **Modbus Connection**, **Modbus Location**, and **Modbus Action**.
+EpiBus configures three DocTypes: **Modbus Connection**, **Modbus Signal**, and **Modbus Action**.
 
 ### Modbus Connection
 
@@ -44,27 +44,27 @@ A **Modbus Connection** is a configuration for a MODBUS/TCP connection. It conta
 - **Port**: The port number of the PLC (default is 502)
 - **Device Name**: The brand and model name of the device (for reference only)
 - **Unit**: The MODBUS unit ID of the device
-- **Locations**: A list of **Modbus Location**s that are associated with this connection.
+- **Locations**: A list of **Modbus Signal**s that are associated with this connection.
 
-### Modbus Location
+### Modbus Signal
 
-A **Modbus Location** is a child DocType of **Modbus Connection**. It is used to map from the proprietary name of the location to the standard IEC 61131-3 name and the integer MODBUS address. It contains the following fields:
+A **Modbus Signal** is a child DocType of **Modbus Connection**. It is used to map from the proprietary name of the location to the standard IEC 61131-3 name and the integer MODBUS address. It contains the following fields:
 
 - **Device Address**: The name of the I/O pin on the PLC. This is specific to the brand and model of the PLC. For reference only.
 - **PLC Address**: The standardized IEC 61131-3 address of the I/O pin on the PLC.
 - **Modbus Address**: The MODBUS address of the I/O pin on the PLC. (See information below)
 - **Location Type**: The type of I/O pin on the PLC. (See information below)
 
-[Read More](docs/modbus_location.md)
+[Read More](docs/modbus_signal.md)
 
 ### Modbus Action
 
-A **Modbus Action** provides an interface between ERPNext and the MODBUS/TCP connection. It executes a MODBUS read or write operation on a **Modbus Location** and can be triggered from any ERPNext DocType that is linked to a **Modbus Action**. It contains the following fields:
+A **Modbus Action** provides an interface between ERPNext and the MODBUS/TCP connection. It executes a MODBUS read or write operation on a **Modbus Signal** and can be triggered from any ERPNext DocType that is linked to a **Modbus Action**. It contains the following fields:
     
 - **Modbus Connection**: The **Modbus Connection** that this action will use.
-- **Modbus Location**: The **Modbus Location** that this action will use.
+- **Modbus Signal**: The **Modbus Signal** that this action will use.
 - **Action Type**: The type of action that this action will perform. (See information below)
-- **Value**: The value that will be written to the **Modbus Location**. (Only used for write actions)
+- **Value**: The value that will be written to the **Modbus Signal**. (Only used for write actions)
 
 [Read More](docs/modbus_action.md)
 

@@ -9,7 +9,7 @@
   "io_points": [
    {
     "location_name": "Robot Mode",
-    "location_type": "Analog Input Register",
+    "signal_type": "Analog Input Register",
     "modbus_address": 0,
     "parent": "UR Sim",
     "parentfield": "io_points",
@@ -20,7 +20,7 @@
    },
    {
     "location_name": "Robot Status Bits",
-    "location_type": "Digital Input Contact",
+    "signal_type": "Digital Input Contact",
     "modbus_address": 0,
     "parent": "UR Sim",
     "parentfield": "io_points",
@@ -31,7 +31,7 @@
    },
    {
     "location_name": "Safety Status",
-    "location_type": "Digital Input Contact",
+    "signal_type": "Digital Input Contact",
     "modbus_address": 1,
     "parent": "UR Sim",
     "parentfield": "io_points",
@@ -42,7 +42,7 @@
    },
    {
     "location_name": "Program Start",
-    "location_type": "Digital Output Coil",
+    "signal_type": "Digital Output Coil",
     "modbus_address": 128,
     "parent": "UR Sim",
     "parentfield": "io_points",
@@ -53,7 +53,7 @@
    },
    {
     "location_name": "Program Stop",
-    "location_type": "Digital Output Coil",
+    "signal_type": "Digital Output Coil",
     "modbus_address": 129,
     "parent": "UR Sim",
     "parentfield": "io_points",
@@ -64,7 +64,7 @@
    },
    {
     "location_name": "Program Pause",
-    "location_type": "Digital Output Coil",
+    "signal_type": "Digital Output Coil",
     "modbus_address": 130,
     "parent": "UR Sim",
     "parentfield": "io_points",
@@ -75,7 +75,7 @@
    },
    {
     "location_name": "Tool Enable",
-    "location_type": "Digital Output Coil",
+    "signal_type": "Digital Output Coil",
     "modbus_address": 200,
     "parent": "UR Sim",
     "parentfield": "io_points",
@@ -86,7 +86,7 @@
    },
    {
     "location_name": "Digital Tool Out 0",
-    "location_type": "Digital Output Coil",
+    "signal_type": "Digital Output Coil",
     "modbus_address": 201,
     "parent": "UR Sim",
     "parentfield": "io_points",
@@ -97,7 +97,7 @@
    },
    {
     "location_name": "Digital Tool Out 1",
-    "location_type": "Digital Output Coil",
+    "signal_type": "Digital Output Coil",
     "modbus_address": 202,
     "parent": "UR Sim",
     "parentfield": "io_points",
@@ -108,7 +108,7 @@
    },
    {
     "location_name": "Digital Tool In 0",
-    "location_type": "Digital Input Contact",
+    "signal_type": "Digital Input Contact",
     "modbus_address": 200,
     "parent": "UR Sim",
     "parentfield": "io_points",
@@ -119,7 +119,7 @@
    },
    {
     "location_name": "Digital Tool In 1",
-    "location_type": "Digital Input Contact",
+    "signal_type": "Digital Input Contact",
     "modbus_address": 201,
     "parent": "UR Sim",
     "parentfield": "io_points",
@@ -130,7 +130,7 @@
    },
    {
     "location_name": "TCP X Position",
-    "location_type": "Analog Input Register",
+    "signal_type": "Analog Input Register",
     "modbus_address": 400,
     "parent": "UR Sim",
     "parentfield": "io_points",
@@ -141,7 +141,7 @@
    },
    {
     "location_name": "TCP Y Position",
-    "location_type": "Analog Input Register",
+    "signal_type": "Analog Input Register",
     "modbus_address": 401,
     "parent": "UR Sim",
     "parentfield": "io_points",
@@ -152,7 +152,7 @@
    },
    {
     "location_name": "TCP Z Position",
-    "location_type": "Analog Input Register",
+    "signal_type": "Analog Input Register",
     "modbus_address": 402,
     "parent": "UR Sim",
     "parentfield": "io_points",

@@ -54,7 +54,7 @@ class ModbusAction(Document):
                 )
 
             # Perform the Modbus action
-            location = frappe.get_doc("Modbus Location", self.location)
+            location = frappe.get_doc("Modbus Signal", self.location)
             if self.action == "Write":
                 response = client.write_coil(location.modbus_address, self.bit_value)
                 action_result = f"Wrote {self.bit_value} to location {location.modbus_address} modbus port {self.location} on {connection.host}:{connection.port}"

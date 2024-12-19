@@ -7,7 +7,7 @@ The EpiBus Modbus Action DocType is designed to control or monitor Modbus I/O po
 
 1. **Connection**: (Type: Link) This field links to the 'Modbus Connection' DocType. It specifies the Modbus connection used by the action.
 
-2. **Location**: (Type: Link, depends on Connection) Links to the 'Modbus Location' DocType. This field defines the location where the Modbus action will be executed.
+2. **Location**: (Type: Link, depends on Connection) Links to the 'Modbus Signal' DocType. This field defines the location where the Modbus action will be executed.
 
 3. **Action**: (Type: Select, depends on Location) Allows the selection of either 'Read' or 'Write' actions. This field determines whether the Modbus Action will read from or write to the specified location.
 
