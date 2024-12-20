@@ -24,7 +24,7 @@
     "parent": "UR Sim",
     "parentfield": "io_points",
     "parenttype": "PLC Simulator",
-    "plc_address": "%QX0.0",
+    "plc_address": "%IX0.0",
     "signal_type": "Digital Input Contact",
     "toggle": 0,
     "value": "0"
@@ -162,8 +162,8 @@
     "value": "0"
    }
   ],
-  "last_status_update": "2024-12-19 16:49:30.107208",
-  "modified": "2024-12-19 12:06:10.541778",
+  "last_status_update": "2024-12-20 17:00:55.233739",
+  "modified": "2024-12-20 17:50:11.798889",
   "name": "UR Sim",
   "server_port": 502,
   "simulator_name": "UR Sim"

@@ -423,3 +423,19 @@ class PLCSimulator(Document):
         except Exception as e:
             logger.error(f"Failed to set input register {address}: {str(e)}")
             return False
+
+
+@frappe.whitelist()
+def get_simulators():
+    """Get list of all PLC simulators with their status"""
+    try:
+        simulators = frappe.get_all(
+            "PLC Simulator",
+            fields=["name", "simulator_name", "equipment_type", "connection_status", 
+                   "server_port", "enabled", "last_status_update"],
+            order_by="simulator_name"
+        )
+        return simulators
+    except Exception as e:
+        logger.error(f"Error fetching simulators: {str(e)}")
+        frappe.throw(_("Failed to fetch simulators"))

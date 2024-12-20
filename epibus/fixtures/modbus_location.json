@@ -25,7 +25,7 @@
   "parent": "UR Sim",
   "parentfield": "io_points",
   "parenttype": "PLC Simulator",
-  "plc_address": "%QX0.0",
+  "plc_address": "%IX0.0",
   "toggle": 0,
   "value": "0"
  },
@@ -70,7 +70,7 @@
   "parent": "UR Sim",
   "parentfield": "io_points",
   "parenttype": "PLC Simulator",
-  "plc_address": "%Qx16.1",
+  "plc_address": "%QX16.1",
   "toggle": 0,
   "value": "0"
  },
