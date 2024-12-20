@@ -54,44 +54,50 @@ function setup_simulator_controls(frm) {
     }
 }
 
-async function handle_simulator_start(frm) {
-    try {
-        const r = await frm.call('start_simulator');
-        if (r.message) {
-            frappe.show_alert({
-                message: __('Simulator started successfully'),
-                indicator: 'green'
-            });
-            await frm.reload_doc();
+function handle_simulator_start(frm) {
+    frm.call('start_simulator')
+        .then(r => {
+            if (r.message) {
+                frappe.show_alert({
+                    message: __('Simulator started successfully'),
+                    indicator: 'green'
+                });
+                return frm.reload_doc();
+            }
+        })
+        .then(() => {
             setup_simulator_controls(frm);
-        }
-    } catch (err) {
-        console.error('Error starting simulator:', err);
-        frappe.show_alert({
-            message: __('Failed to start simulator: ') + err.message,
-            indicator: 'red'
+        })
+        .catch(err => {
+            console.error('Error starting simulator:', err);
+            frappe.show_alert({
+                message: __('Failed to start simulator: ') + err.message,
+                indicator: 'red'
+            });
         });
-    }
 }
 
-async function handle_simulator_stop(frm) {
-    try {
-        const r = await frm.call('stop_simulator');
-        if (r.message) {
-            frappe.show_alert({
-                message: __('Simulator stopped successfully'),
-                indicator: 'yellow'
-            });
-            await frm.reload_doc();
+function handle_simulator_stop(frm) {
+    frm.call('stop_simulator')
+        .then(r => {
+            if (r.message) {
+                frappe.show_alert({
+                    message: __('Simulator stopped successfully'),
+                    indicator: 'yellow'
+                });
+                return frm.reload_doc();
+            }
+        })
+        .then(() => {
             setup_simulator_controls(frm);
-        }
-    } catch (err) {
-        console.error('Error stopping simulator:', err);
-        frappe.show_alert({
-            message: __('Failed to stop simulator: ') + err.message,
-            indicator: 'red'
+        })
+        .catch(err => {
+            console.error('Error stopping simulator:', err);
+            frappe.show_alert({
+                message: __('Failed to stop simulator: ') + err.message,
+                indicator: 'red'
+            });
         });
-    }
 }
 
 // Status management functions
@@ -193,19 +199,20 @@ function show_io_monitor(frm) {
     d.show();
 }
 
-async function refresh_io_points(dialog, frm) {
-    try {
-        const r = await frm.call('get_io_points');
-        if (r.message) {
-            update_io_display(dialog, organize_io_points(r.message));
-        }
-    } catch (err) {
-        frappe.show_alert({
-            message: __('Failed to refresh I/O points'),
-            indicator: 'red'
+function refresh_io_points(dialog, frm) {
+    frm.call('get_io_points')
+        .then(r => {
+            if (r.message) {
+                update_io_display(dialog, organize_io_points(r.message));
+            }
+        })
+        .catch(err => {
+            frappe.show_alert({
+                message: __('Failed to refresh I/O points'),
+                indicator: 'red'
+            });
+            console.error('Error refreshing I/O points:', err);
         });
-        console.error('Error refreshing I/O points:', err);
-    }
 }
 
 function organize_io_points(points) {
@@ -304,7 +311,7 @@ function generate_analog_controls(point) {
 window.handle_output_change = async function(address, value) {
     try {
         const r = await frappe.call({
-            method: 'epibus.simulator.set_output',
+            method: 'set_output',
             args: {
                 address: parseInt(address),
                 value: value ? 1 : 0
@@ -326,27 +333,27 @@ window.handle_output_change = async function(address, value) {
     }
 };
 
-window.handle_analog_change = async function(address, value) {
-    try {
-        const r = await frappe.call({
-            method: 'epibus.simulator.set_holding_register',
-            args: {
-                address: parseInt(address),
-                value: parseInt(value)
-            }
-        });
-        
-        if (r.message) {
-            frappe.show_alert({
-                message: __(`Register ${address} set to ${value}`),
-                indicator: 'green'
-            });
+window.handle_analog_change = function(address, value) {
+    frappe.call({
+        method: 'set_holding_register',
+        args: {
+            address: parseInt(address),
+            value: parseInt(value)
         }
-    } catch (err) {
-        frappe.show_alert({
-            message: __('Failed to set register value'),
-            indicator: 'red'
+    })
+        .then(r => {
+            if (r.message) {
+                frappe.show_alert({
+                    message: __(`Register ${address} set to ${value}`),
+                    indicator: 'green'
+                });
+            }
+        })
+        .catch(err => {
+            frappe.show_alert({
+                message: __('Failed to set register value'),
+                indicator: 'red'
+            });
+            console.error('Error setting register:', err);
         });
-        console.error('Error setting register:', err);
-    }
 };

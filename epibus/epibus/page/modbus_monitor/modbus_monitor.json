@@ -1,0 +1,30 @@
+{
+ "content": null,
+ "creation": "2024-12-20 11:57:33.937707",
+ "docstatus": 0,
+ "doctype": "Page",
+ "icon": "",
+ "idx": 0,
+ "modified": "2024-12-20 11:58:58.077365",
+ "modified_by": "Administrator",
+ "module": "EpiBus",
+ "name": "modbus-monitor",
+ "owner": "Administrator",
+ "page_name": "modbus-monitor",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Modbus Administrator"
+  },
+  {
+   "role": "Modbus User"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "PLC Simulator Monitor"
+}
