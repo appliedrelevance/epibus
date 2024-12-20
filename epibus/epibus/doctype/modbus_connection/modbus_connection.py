@@ -2,9 +2,12 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from pymodbus.client import ModbusTcpClient
 from frappe.model.document import Document
+from epibus.epibus.utils.epinomy_logger import get_logger
 
+logger = get_logger(__name__)
 
 class ModbusConnection(Document):
 

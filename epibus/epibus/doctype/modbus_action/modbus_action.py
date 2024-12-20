@@ -6,13 +6,9 @@ import frappe
 from frappe.model.document import Document
 from pymodbus.client import ModbusTcpClient
 from frappe import get_all, _
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-stream_handler = logging.StreamHandler()
-# formatter = logging.Formatter('%(levelname)s - %(asctime)s - %(message)s')
-# stream_handler.setFormatter(formatter)
-# logger.addHandler(stream_handler)
+from epibus.epibus.utils.epinomy_logger import get_logger
+
+logger = get_logger(__name__)
 
 class ModbusAction(Document):
     @frappe.whitelist()
@@ -102,9 +98,7 @@ def handle_submit(doc, method):
         for item in doc.locations:
             move_from_warehouse(item.warehouse)
     else:
-    	frappe.log_error(f"Modbus Actions are not defined for {doc.doctype}") 
-
-
+        frappe.log_error(f"Modbus Actions are not defined for {doc.doctype}") 
     logger.info(f"Completed handling submit for DocType: {doc.doctype}, Name: {doc.name}")
 
 def move_from_warehouse(warehouse):
