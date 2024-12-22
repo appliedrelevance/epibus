@@ -41,6 +41,13 @@ fixtures = [
     }
 ]
 
+# epibus/hooks.py
+
+# Add to the existing hooks.py
+page_js = {
+    "modbus-monitor": "public/js/modbus_monitor.js"
+}
+
 # Includes in <head>
 # ------------------
 

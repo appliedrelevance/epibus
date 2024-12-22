@@ -1,158 +1,133 @@
-// components/PLCSimulator.tsx
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { Card, CardContent } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Slider } from '@/components/ui/slider'
-import { Power, XCircle, AlertCircle, Activity } from 'lucide-react'
-import { useSimulator } from '@/hooks/useSimulator'
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AlertCircle } from 'lucide-react';
+import { useSimulatorAPI } from '@/hooks/useSimulatorAPI';
+import type { Simulator } from '@/types/simulator';
 
-export const PLCSimulator: React.FC = () => {
-  const { isConnected, ioPoints, error, connect, disconnect, togglePoint, setValue } = useSimulator()
-  const [selectedTab, setSelectedTab] = useState('digital')
+export function PLCSimulator(): React.ReactElement {
+  const { 
+    simulators, 
+    simulatorsError, 
+    startSimulator, 
+    stopSimulator 
+  } = useSimulatorAPI();
 
-  const handleConnect = async () => {
-    if (isConnected) {
-      await disconnect()
-    } else {
-      await connect()
+  console.log('simulators from hook', simulators);
+  console.log('simulatorsError from hook', simulatorsError);
+
+  const handleStart = async (simulator: Simulator): Promise<void> => {
+    try {
+      await startSimulator(simulator.name);
+    } catch (error) {
+      console.error('Failed to start simulator:', error);
     }
-  }
+  };
 
-  const handleToggle = async (address: number, type: string) => {
-    await togglePoint(address, type)
-  }
-
-  const handleSliderChange = async (address: number, values: number[]) => {
-    await setValue(address, 'register', values[0])
-  }
-
-  const filteredPoints = ioPoints.filter(point => {
-    switch (selectedTab) {
-      case 'digital':
-        return point.type === 'input' || point.type === 'output'
-      case 'analog':
-        return point.type === 'register' && point.name.toLowerCase().includes('analog')
-      case 'registers':
-        return point.type === 'register' && !point.name.toLowerCase().includes('analog')
-      default:
-        return false
+  const handleStop = async (simulator: Simulator): Promise<void> => {
+    try {
+      await stopSimulator(simulator.name);
+    } catch (error) {
+      console.error('Failed to stop simulator:', error);
     }
-  })
+  };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">PLC Simulator</h1>
-        <div className="flex items-center gap-4">
-          {isConnected && (
-            <div className="flex items-center text-green-500">
-              <Activity className="w-4 h-4 animate-pulse mr-2" />
-              <span className="text-sm">Connected</span>
-            </div>
-          )}
-          <Button
-            variant={isConnected ? "destructive" : "default"}
-            onClick={handleConnect}
-          >
-            {isConnected ? (
-              <>
-                <XCircle className="mr-2 h-4 w-4" />
-                Disconnect
-              </>
-            ) : (
-              <>
-                <Power className="mr-2 h-4 w-4" />
-                Connect
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-
-      <Card>
+  if (simulatorsError) {
+    return (
+      <Card className="border-red-200">
         <CardContent className="p-6">
-          <div className="space-y-4">
-            <ToggleGroup type="single" value={selectedTab} onValueChange={setSelectedTab} className="justify-start">
-              <ToggleGroupItem value="digital" className="px-4">
-                Digital I/O
-              </ToggleGroupItem>
-              <ToggleGroupItem value="analog" className="px-4">
-                Analog I/O
-              </ToggleGroupItem>
-              <ToggleGroupItem value="registers" className="px-4">
-                Registers
-              </ToggleGroupItem>
-            </ToggleGroup>
-
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead>PLC Address</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Value</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPoints.map((point) => (
-                  <TableRow key={`${point.type}-${point.address}`}>
-                    <TableCell>{point.name}</TableCell>
-                    <TableCell>{point.address}</TableCell>
-                    <TableCell>{point.plc_address}</TableCell>
-                    <TableCell className="capitalize">{point.type}</TableCell>
-                    <TableCell>
-                      {typeof point.value === 'boolean' 
-                        ? point.value ? 'ON' : 'OFF'
-                        : point.value}
-                    </TableCell>
-                    <TableCell>
-                      {point.type === 'register' ? (
-                        <div className="w-32">
-                          <Slider
-                            defaultValue={[point.value as number]}
-                            min={0}
-                            max={65535}
-                            step={1}
-                            onValueChange={(values) => handleSliderChange(point.address, values)}
-                            disabled={!isConnected}
-                          />
-                        </div>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleToggle(point.address, point.type)}
-                          disabled={!isConnected || point.type === 'input'}
-                        >
-                          Toggle
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="flex items-center gap-2 text-red-600">
+            <AlertCircle className="w-5 h-5" />
+            <span>Failed to fetch simulators: {simulatorsError.message}</span>
           </div>
         </CardContent>
       </Card>
+    );
+  }
 
-      {error && (
-        <div className="flex items-center space-x-2 text-destructive">
-          <AlertCircle className="h-4 w-4" />
-          <span>{error}</span>
-        </div>
-      )}
-    </div>
-  )
+  if (!simulators?.length) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center">
+            <h3 className="text-lg font-medium mb-2">No Simulators Found</h3>
+            <p className="text-gray-500 mb-4">No PLC simulators are currently configured.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Port</TableHead>
+              <TableHead>Enabled</TableHead>
+              <TableHead>Last Updated</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {simulators.map((simulator) => (
+              <TableRow key={simulator.name}>
+                <TableCell className="font-medium">{simulator.name}</TableCell>
+                <TableCell>
+                  <div className="flex items-center">
+                    <span 
+                      className={`w-2 h-2 rounded-full mr-2 ${
+                        simulator.connection_status === 'Connected' 
+                          ? 'bg-green-500' 
+                          : simulator.connection_status === 'Error'
+                          ? 'bg-red-500'
+                          : 'bg-gray-500'
+                      }`}
+                    />
+                    {simulator.connection_status}
+                  </div>
+                </TableCell>
+                <TableCell>{simulator.server_port}</TableCell>
+                <TableCell>
+                  {simulator.enabled ? (
+                    <span className="text-green-600">Yes</span>
+                  ) : (
+                    <span className="text-gray-500">No</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {new Date(simulator.last_status_update).toLocaleString()}
+                </TableCell>
+                <TableCell>
+                  {simulator.connection_status === 'Connected' ? (
+                    <button
+                      onClick={() => void handleStop(simulator)}
+                      className="text-red-600 hover:text-red-800"
+                      type="button"
+                    >
+                      Stop
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => void handleStart(simulator)}
+                      className="text-green-600 hover:text-green-800"
+                      disabled={!simulator.enabled}
+                      type="button"
+                    >
+                      Start
+                    </button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
 }
+
+export default PLCSimulator;

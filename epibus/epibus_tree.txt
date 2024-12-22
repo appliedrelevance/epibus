@@ -1,0 +1,122 @@
+.
+├── epibus
+│   ├── doctype
+│   │   ├── __init__.py
+│   │   ├── modbus_action
+│   │   │   ├── __init__.py
+│   │   │   ├── modbus_action.js
+│   │   │   ├── modbus_action.json
+│   │   │   ├── modbus_action.py
+│   │   │   ├── __pycache__
+│   │   │   │   ├── __init__.cpython-311.pyc
+│   │   │   │   └── modbus_action.cpython-311.pyc
+│   │   │   └── test_modbus_action.py
+│   │   ├── modbus_connection
+│   │   │   ├── __init__.py
+│   │   │   ├── modbus_connection.js
+│   │   │   ├── modbus_connection.json
+│   │   │   ├── modbus_connection.py
+│   │   │   ├── __pycache__
+│   │   │   │   ├── __init__.cpython-311.pyc
+│   │   │   │   └── modbus_connection.cpython-311.pyc
+│   │   │   ├── templates
+│   │   │   │   ├── modbus_connection.html
+│   │   │   │   └── modbus_connection_row.html
+│   │   │   └── test_modbus_connection.py
+│   │   ├── modbus_settings
+│   │   │   ├── __init__.py
+│   │   │   ├── modbus_settings.js
+│   │   │   ├── modbus_settings.json
+│   │   │   ├── modbus_settings.py
+│   │   │   ├── __pycache__
+│   │   │   │   ├── __init__.cpython-311.pyc
+│   │   │   │   └── modbus_settings.cpython-311.pyc
+│   │   │   └── test_modbus_settings.py
+│   │   ├── modbus_signal
+│   │   │   ├── __init__.py
+│   │   │   ├── modbus_signal.js
+│   │   │   ├── modbus_signal.json
+│   │   │   ├── modbus_signal.py
+│   │   │   └── __pycache__
+│   │   │       ├── __init__.cpython-311.pyc
+│   │   │       ├── modbus_location.cpython-311.pyc
+│   │   │       └── modbus_signal.cpython-311.pyc
+│   │   ├── plc_signal
+│   │   │   ├── __init__.py
+│   │   │   ├── plc_signal.json
+│   │   │   ├── plc_signal.py
+│   │   │   └── __pycache__
+│   │   │       ├── __init__.cpython-311.pyc
+│   │   │       └── plc_signal.cpython-311.pyc
+│   │   ├── plc_simulator
+│   │   │   ├── __init__.py
+│   │   │   ├── plc_simulator.js
+│   │   │   ├── plc_simulator.json
+│   │   │   ├── plc_simulator.py
+│   │   │   ├── __pycache__
+│   │   │   │   ├── __init__.cpython-311.pyc
+│   │   │   │   └── plc_simulator.cpython-311.pyc
+│   │   │   └── test_plc_simulator.py
+│   │   └── __pycache__
+│   │       └── __init__.cpython-311.pyc
+│   ├── __init__.py
+│   ├── page
+│   │   ├── __init__.py
+│   │   └── modbus_monitor
+│   │       ├── __init__.py
+│   │       ├── modbus_monitor.js
+│   │       └── modbus_monitor.json
+│   ├── __pycache__
+│   │   └── __init__.cpython-311.pyc
+│   ├── utils
+│   │   ├── epinomy_logger.py
+│   │   └── __pycache__
+│   │       └── epinomy_logger.cpython-311.pyc
+│   └── workspace
+│       └── epibus
+│           └── epibus.json
+├── epibus_tree.txt
+├── fixtures
+│   ├── modbus_location.json
+│   ├── modbus_signal.json
+│   ├── plc_simulator.json
+│   ├── role.json
+│   └── workspace.json
+├── hooks.py
+├── __init__.py
+├── modules.txt
+├── patches.txt
+├── public
+│   └── img
+│       ├── modbus_action_form.png
+│       ├── modbus_action_list.png
+│       ├── modbus_action_pick_location.png
+│       ├── modbus_connection_form.png
+│       ├── modbus_connection_list.png
+│       ├── modbus_location_form.png
+│       ├── modbus_server_connection_error.png
+│       ├── modbus_server_connection_successful.png
+│       ├── modbus_server_connection_success_list.png
+│       ├── openplc_compiling_1.png
+│       ├── openplc_compiling_2.png
+│       ├── openplc_monitoring_1.png
+│       ├── openplc_monitoring_2.png
+│       └── openplc_program_info.png
+├── __pycache__
+│   ├── hooks.cpython-311.pyc
+│   └── __init__.cpython-311.pyc
+├── roles
+│   ├── modbus_administrator.json
+│   └── modbus_user.json
+├── templates
+│   ├── __init__.py
+│   └── pages
+│       ├── __init__.py
+│       └── __pycache__
+│           └── __init__.py
+└── www
+    ├── __init__.py
+    └── __pycache__
+        └── __init__.py
+
+34 directories, 86 files
