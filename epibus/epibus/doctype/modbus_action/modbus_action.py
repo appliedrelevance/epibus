@@ -1,11 +1,11 @@
 # Copyright (c) 2022, Applied Relevance and contributors
 # For license information, please see license.txt
 
-from pprint import pprint
 import frappe
+import asyncio
 from frappe.model.document import Document
 from pymodbus.client import ModbusTcpClient
-from frappe import get_all, _
+from frappe import _
 from epibus.epibus.utils.epinomy_logger import get_logger
 
 logger = get_logger(__name__)
@@ -13,38 +13,59 @@ logger = get_logger(__name__)
 class ModbusAction(Document):
     @frappe.whitelist()
     def test_action(self, host, port, action, location, bit_value):
-        client = ModbusTcpClient(
+        try:
+            # Ensure there is an active event loop for the current thread
+            try:
+                asyncio.get_event_loop()
+            except RuntimeError:
+                asyncio.set_event_loop(asyncio.new_event_loop())
+
+            client = ModbusTcpClient(
                 host=host,
                 port=int(port),
                 timeout=10
             )
-        res = client.connect()
-        # Throw an error if the connection fails
-        if not res:
-            frappe.throw("Connection Failed")
-        # If the action is a write, wrote the bit_value to the location
-        if action == "Write":
-            print("Writing Modbus Action")
-            resp = client.write_coil(location, bit_value)
-            return (
-                "Wrote "
-                + str(bit_value)
-                + " to location "
-                + str(location)
-                + " on "
-                + str(host)
-                + ":"
-                + str(port)
-            )
-        else:  # If the action is a read, read the value from the location
-            resp = client.read_coils(location)
-            retval = "On" if resp.bits[0] else "Off"
-            self.bit_value = bool(resp.bits[0])
-            return "Coil value at " + str(location) + " is " + retval
-
+            res = client.connect()
+            # Throw an error if the connection fails
+            if not res:
+                frappe.throw("Connection Failed")
+            # If the action is a write, wrote the bit_value to the location
+            if action == "Write":
+                print("Writing Modbus Action")
+                resp = client.write_coil(location, bit_value)
+                return (
+                    "Wrote "
+                    + str(bit_value)
+                    + " to location "
+                    + str(location)
+                    + " on "
+                    + str(host)
+                    + ":"
+                    + str(port)
+                )
+            else:  # If the action is a read, read the value from the location
+                resp = client.read_coils(location)
+                retval = "On" if resp.bits[0] else "Off"
+                self.bit_value = bool(resp.bits[0])
+                return "Coil value at " + str(location) + " is " + retval
+        except Exception as e:
+            logger.error(f"Connection failed: {str(e)}")
+            if 'client' in locals() and client:
+                try:
+                    client.close()
+                except:
+                    pass
+            return f"Connection failed: {str(e)}"
+        
     @frappe.whitelist()
     def trigger_action(self):
         try:
+
+            # Ensure there is an active event loop for the current thread
+            try:
+                asyncio.get_event_loop()
+            except RuntimeError:
+                asyncio.set_event_loop(asyncio.new_event_loop())
             # Set up Modbus connection
             connection = frappe.get_doc("Modbus Connection", self.connection)
             client = ModbusTcpClient(
