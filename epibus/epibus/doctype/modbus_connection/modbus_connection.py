@@ -3,9 +3,11 @@
 
 import frappe
 from frappe import _
+import asyncio
 from pymodbus.client import ModbusTcpClient
 from frappe.model.document import Document
 from epibus.epibus.utils.epinomy_logger import get_logger
+
 
 logger = get_logger(__name__)
 
@@ -13,36 +15,50 @@ class ModbusConnection(Document):
 
     @frappe.whitelist()
     def test_connection(self, host, port):
-        print("Testing Modbus Connection " + self.name)
+        """Test connection to Modbus server"""
+        logger.info(f"Testing Modbus Connection {self.name}")
         try:
-            # Initialize client with kwargs
-            client = ModbusTcpClient(host=host, port=int(port))
-            print("Connecting to " + host + ":" + str(port))
+            # Ensure there is an active event loop for the current thread
+            try:
+                asyncio.get_event_loop()
+            except RuntimeError:
+                asyncio.set_event_loop(asyncio.new_event_loop())
+
+            client = ModbusTcpClient(
+                host=host,
+                port=int(port),
+                timeout=10
+            )
             
+            logger.info(f"Connecting to {host}:{port}")
+            
+            # Connect using PyModbus 3.x syntax
             if not client.connect():
+                logger.error("Connection failed")
                 return "Connection failed"
 
             locs = "Locations: "
             for d in self.get("locations"):
-                if not d.modbus_address or not d.plc_address:
+                if not isinstance(d.modbus_address, int) or not d.plc_address:
                     locs += "Not Configured, "
                     continue
 
                 try:
-                    # Read value based on signal type
+                    addr = int(d.modbus_address)
+                    # Read value based on signal type using PyModbus 3.x methods
                     if "Digital Output Coil" in d.signal_type:
-                        response = client.read_coils(d.modbus_address, 1)
+                        response = client.read_coils(addr)
                         state = "On" if response.bits[0] else "Off"
                         d.toggle = response.bits[0]
                     elif "Digital Input Contact" in d.signal_type:
-                        response = client.read_discrete_inputs(d.modbus_address, 1)
+                        response = client.read_discrete_inputs(addr)
                         state = "On" if response.bits[0] else "Off"
                         d.toggle = response.bits[0]
                     elif "Analog Input Register" in d.signal_type:
-                        response = client.read_input_registers(d.modbus_address, 1)
+                        response = client.read_input_registers(addr)
                         state = str(response.registers[0])
                     elif "Analog Output" in d.signal_type or "Memory Register" in d.signal_type:
-                        response = client.read_holding_registers(d.modbus_address, 1)
+                        response = client.read_holding_registers(addr)
                         state = str(response.registers[0])
                     else:
                         state = "Unknown Type"
@@ -51,12 +67,22 @@ class ModbusConnection(Document):
                     locs += f"{d.location_name}: {d.plc_address} ({state}), "
 
                 except Exception as e:
+                    logger.error(f"Error reading location {d.location_name}: {str(e)}")
                     locs += f"{d.location_name}: Error ({str(e)}), "
-
+            
+            # Close the connection
             client.close()
+            
+            logger.info("Connection test successful")
             return "Connection successful " + locs
 
         except Exception as e:
+            logger.error(f"Connection failed: {str(e)}")
+            if 'client' in locals() and client:
+                try:
+                    client.close()
+                except:
+                    pass
             return f"Connection failed: {str(e)}"
 
     @frappe.whitelist()
@@ -102,7 +128,7 @@ class ModbusConnection(Document):
         client = ModbusTcpClient(host, port)
         res = client.connect()
         if res:
-            state = client.read_coils(modbus_address, 1).bits[0]
+            state = client.read_coils(modbus_address).bits[0]
             print("Current state: " + str(state))
             client.write_coil(modbus_address, not state)
             client.close()
@@ -150,7 +176,7 @@ class ModbusConnection(Document):
             try:
                 # Read based on the location type
                 if location_doc.signal_type == "Digital Output Coil":
-                    response = client.read_coils(location_doc.modbus_address, unit=unit)
+                    response = client.read_coils(location_doc.modbus_address)
                 elif location_doc.signal_type == "Digital Input Contact":
                     response = client.read_discrete_inputs(
                         location_doc.modbus_address, unit=unit

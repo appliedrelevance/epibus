@@ -13,7 +13,11 @@ logger = get_logger(__name__)
 class ModbusAction(Document):
     @frappe.whitelist()
     def test_action(self, host, port, action, location, bit_value):
-        client = ModbusTcpClient(host, port)
+        client = ModbusTcpClient(
+                host=host,
+                port=int(port),
+                timeout=10
+            )
         res = client.connect()
         # Throw an error if the connection fails
         if not res:
@@ -33,7 +37,7 @@ class ModbusAction(Document):
                 + str(port)
             )
         else:  # If the action is a read, read the value from the location
-            resp = client.read_coils(location, 1)
+            resp = client.read_coils(location)
             retval = "On" if resp.bits[0] else "Off"
             self.bit_value = bool(resp.bits[0])
             return "Coil value at " + str(location) + " is " + retval
@@ -43,7 +47,11 @@ class ModbusAction(Document):
         try:
             # Set up Modbus connection
             connection = frappe.get_doc("Modbus Connection", self.connection)
-            client = ModbusTcpClient(connection.host, connection.port)
+            client = ModbusTcpClient(
+                host=connection.host,
+                port=int(connection.port),
+                timeout=10
+            )
             if not client.connect():
                 frappe.throw(
                     f"Failed to connect to Modbus server at {connection.host}:{connection.port}"
@@ -55,7 +63,7 @@ class ModbusAction(Document):
                 response = client.write_coil(location.modbus_address, self.bit_value)
                 action_result = f"Wrote {self.bit_value} to location {location.modbus_address} modbus port {self.location} on {connection.host}:{connection.port}"
             else:  # Assume action is "Read"
-                response = client.read_coils(location.modbus_address, 1)
+                response = client.read_coils(location.modbus_address)
                 action_result = f"Read value {response.bits[0]} from location {self.location}"
 
             # Disconnect the Modbus client
