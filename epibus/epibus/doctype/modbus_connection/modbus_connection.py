@@ -128,7 +128,7 @@ class ModbusConnection(Document):
         client = ModbusTcpClient(host, port)
         res = client.connect()
         if res:
-            state = client.read_coils(modbus_address).bits[0]
+            state = client.read_coils(modbus_address, 1).bits[0]
             print("Current state: " + str(state))
             client.write_coil(modbus_address, not state)
             client.close()
@@ -176,7 +176,7 @@ class ModbusConnection(Document):
             try:
                 # Read based on the location type
                 if location_doc.signal_type == "Digital Output Coil":
-                    response = client.read_coils(location_doc.modbus_address)
+                    response = client.read_coils(location_doc.modbus_address, unit=unit)
                 elif location_doc.signal_type == "Digital Input Contact":
                     response = client.read_discrete_inputs(
                         location_doc.modbus_address, unit=unit

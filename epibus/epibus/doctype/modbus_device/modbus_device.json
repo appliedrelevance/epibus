@@ -1,0 +1,96 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:device_name",
+ "creation": "2024-12-24 18:18:01.099799",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "device_name",
+  "device_type",
+  "enabled",
+  "column_break_qtfq",
+  "host",
+  "port",
+  "signals_section",
+  "signals"
+ ],
+ "fields": [
+  {
+   "fieldname": "device_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Device Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "device_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Device Type",
+   "options": "PLC\nRobot\nSimulator\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "host",
+   "fieldtype": "Data",
+   "label": "Host",
+   "reqd": 1
+  },
+  {
+   "default": "502",
+   "fieldname": "port",
+   "fieldtype": "Int",
+   "label": "Port",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "signals_section",
+   "fieldtype": "Section Break",
+   "label": "Signals"
+  },
+  {
+   "fieldname": "signals",
+   "fieldtype": "Table",
+   "label": "Signals",
+   "options": "Modbus Signal"
+  },
+  {
+   "fieldname": "column_break_qtfq",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-12-24 19:43:49.655190",
+ "modified_by": "Administrator",
+ "module": "EpiBus",
+ "name": "Modbus Device",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

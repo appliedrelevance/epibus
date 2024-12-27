@@ -10,24 +10,22 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "location_name",
-  "plc_address",
-  "modbus_address",
+  "signal_name",
   "signal_type",
+  "modbus_address",
+  "column_break_actx",
   "value",
-  "toggle"
+  "boolean_value",
+  "plc_address"
  ],
  "fields": [
   {
-   "default": "%QX0.0",
-   "description": "PLC Nomenclature address, e.g., %IX0.0 or %QX0.0",
    "fieldname": "plc_address",
    "fieldtype": "Data",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "PLC Address",
-   "reqd": 1,
-   "search_index": 1
+   "read_only": 1
   },
   {
    "fieldname": "modbus_address",
@@ -38,26 +36,11 @@
    "reqd": 1
   },
   {
+   "depends_on": "eval:doc.signal_type.includes('Register')",
    "fieldname": "value",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Value"
-  },
-  {
-   "default": "0",
-   "fieldname": "toggle",
-   "fieldtype": "Check",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Toggle"
-  },
-  {
-   "fieldname": "location_name",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Location Name",
-   "reqd": 1
+   "label": "Numeric Value"
   },
   {
    "fieldname": "signal_type",
@@ -65,12 +48,34 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Signal Type",
-   "options": "Digital Output Coil\nDigital Output Slave Coil\nDigital Input Contact\nDigital Input Slave Contact\nAnalog Input Register\nAnalog Output Holding Register\nMemory Register (16 bit)\nMemory Register (32 bit)\nMemory Register (64 bit)"
+   "options": "Digital Output Coil\nDigital Input Contact\nAnalog Input Register\nAnalog Output Register\nHolding Register",
+   "reqd": 1
+  },
+  {
+   "fieldname": "signal_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Signal Name",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:!doc.signal_type.includes('Register')",
+   "fieldname": "boolean_value",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Boolean Value"
+  },
+  {
+   "fieldname": "column_break_actx",
+   "fieldtype": "Column Break"
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2024-12-19 16:29:41.971319",
+ "modified": "2024-12-27 15:46:17.173768",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Signal",
