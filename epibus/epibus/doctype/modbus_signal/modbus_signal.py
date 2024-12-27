@@ -55,7 +55,6 @@ class ModbusSignal(Document):
         try:
             self.validate_signal_type()
             self.validate_modbus_address()
-            self.set_plc_address()
         except Exception as e:
             logger.error(f"Validation error for ModbusSignal {self.name}: {str(e)}")
             raise
@@ -74,23 +73,28 @@ class ModbusSignal(Document):
             frappe.throw(_("Modbus address {0} out of range ({1}-{2}) for signal type {3}").format(
                 self.modbus_address, modbus_start, modbus_end, self.signal_type))
 
-    def set_plc_address(self):
-        """Calculate and set the PLC address based on signal type and Modbus address"""
-        signal_config = SIGNAL_TYPE_MAPPINGS[self.signal_type]
-        
-        if signal_config['bit_addressed']:
-            # For bit-addressed signals (Digital I/O)
-            plc_major = signal_config['plc_major_start'] + (self.modbus_address // 8)
-            plc_minor = self.modbus_address % 8
+    @property
+    def plc_address(self):
+        """Calculate and return PLC address based on signal type and Modbus address"""
+        try:
+            signal_config = SIGNAL_TYPE_MAPPINGS[self.signal_type]
             
-            if plc_minor > signal_config['plc_minor_max']:
-                frappe.throw(_("Invalid bit address calculated"))
+            if signal_config['bit_addressed']:
+                # For bit-addressed signals (Digital I/O)
+                plc_major = signal_config['plc_major_start'] + (self.modbus_address // 8)
+                plc_minor = self.modbus_address % 8
                 
-            self.plc_address = f"%{signal_config['prefix']}{plc_major}.{plc_minor}"
-        else:
-            # For word-addressed signals (Analog and Holding Registers)
-            plc_major = signal_config['plc_major_start'] + self.modbus_address
-            self.plc_address = f"%{signal_config['prefix']}{plc_major}"
+                if plc_minor > signal_config['plc_minor_max']:
+                    frappe.throw(_("Invalid bit address calculated"))
+                    
+                return f"%{signal_config['prefix']}{plc_major}.{plc_minor}"
+            else:
+                # For word-addressed signals (Analog and Holding Registers)
+                plc_major = signal_config['plc_major_start'] + self.modbus_address
+                return f"%{signal_config['prefix']}{plc_major}"
+        except Exception as e:
+            logger.error(f"Error calculating PLC address for signal {self.name}: {str(e)}")
+            return ""
 
     @frappe.whitelist()
     def toggle_location_pin(self):
