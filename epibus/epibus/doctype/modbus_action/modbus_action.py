@@ -11,8 +11,22 @@ from epibus.epibus.utils.epinomy_logger import get_logger
 logger = get_logger(__name__)
 
 class ModbusAction(Document):
+    # begin: auto-generated types
+    # This code is auto-generated. Do not modify anything in this block.
+
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from frappe.types import DF
+
+        action: DF.Literal["Read", "Write"]
+        bit_value: DF.Check
+        device: DF.Link
+        signal: DF.Link
+        warehouse: DF.Link | None
+    # end: auto-generated types
     @frappe.whitelist()
-    def test_action(self, host, port, action, location, bit_value):
+    def test_action(self, host, port, action, signal, bit_value):
         try:
             # Ensure there is an active event loop for the current thread
             try:
@@ -26,28 +40,28 @@ class ModbusAction(Document):
                 timeout=10
             )
             res = client.connect()
-            # Throw an error if the connection fails
+            # Throw an error if the device fails
             if not res:
                 frappe.throw("Connection Failed")
-            # If the action is a write, wrote the bit_value to the location
+            # If the action is a write, wrote the bit_value to the signal
             if action == "Write":
                 print("Writing Modbus Action")
-                resp = client.write_coil(location, bit_value)
+                resp = client.write_coil(signal, bit_value)
                 return (
                     "Wrote "
                     + str(bit_value)
-                    + " to location "
-                    + str(location)
+                    + " to signal "
+                    + str(signal)
                     + " on "
                     + str(host)
                     + ":"
                     + str(port)
                 )
-            else:  # If the action is a read, read the value from the location
-                resp = client.read_coils(location)
+            else:  # If the action is a read, read the value from the signal
+                resp = client.read_coils(signal)
                 retval = "On" if resp.bits[0] else "Off"
                 self.bit_value = bool(resp.bits[0])
-                return "Coil value at " + str(location) + " is " + retval
+                return "Coil value at " + str(signal) + " is " + retval
         except Exception as e:
             logger.error(f"Connection failed: {str(e)}")
             if 'client' in locals() and client:
@@ -66,26 +80,26 @@ class ModbusAction(Document):
                 asyncio.get_event_loop()
             except RuntimeError:
                 asyncio.set_event_loop(asyncio.new_event_loop())
-            # Set up Modbus connection
-            connection = frappe.get_doc("Modbus Connection", self.connection)
+            # Set up Modbus Device
+            device = frappe.get_doc("Modbus Device", self.device)
             client = ModbusTcpClient(
-                host=connection.host,
-                port=int(connection.port),
+                host=device.host,
+                port=int(device.port),
                 timeout=10
             )
             if not client.connect():
                 frappe.throw(
-                    f"Failed to connect to Modbus server at {connection.host}:{connection.port}"
+                    f"Failed to connect to Modbus server at {device.host}:{device.port}"
                 )
 
             # Perform the Modbus action
-            location = frappe.get_doc("Modbus Signal", self.location)
+            signal = frappe.get_doc("Modbus Signal", self.signal)
             if self.action == "Write":
-                response = client.write_coil(location.modbus_address, self.bit_value)
-                action_result = f"Wrote {self.bit_value} to location {location.modbus_address} modbus port {self.location} on {connection.host}:{connection.port}"
+                response = client.write_coil(signal.modbus_address, self.bit_value)
+                action_result = f"Wrote {self.bit_value} to signal {signal.modbus_address} modbus port {self.signal} on {device.host}:{device.port}"
             else:  # Assume action is "Read"
-                response = client.read_coils(location.modbus_address)
-                action_result = f"Read value {response.bits[0]} from location {self.location}"
+                response = client.read_coils(signal.modbus_address)
+                action_result = f"Read value {response.bits[0]} from signal {self.signal}"
 
             # Disconnect the Modbus client
             client.close()
@@ -124,7 +138,7 @@ def handle_submit(doc, method):
         for item in doc.items:
             move_from_warehouse(item.s_warehouse)
     elif doc.doctype == "Pick List":
-        for item in doc.locations:
+        for item in doc.signals:
             move_from_warehouse(item.warehouse)
     else:
         frappe.log_error(f"Modbus Actions are not defined for {doc.doctype}") 

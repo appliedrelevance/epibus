@@ -1,7 +1,7 @@
 {
  "charts": [],
- "content": "[{\"id\":\"boPg_-oQOX\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">EpiBus</span>\",\"col\":12}},{\"id\":\"LEfpIArEmD\",\"type\":\"paragraph\",\"data\":{\"text\":\"EpiBus is a MODBUS Integration for Epinomy and ERPNext.&nbsp; It allows you to control manufacturing hardware like Programmable Logic Controllers (PLCs), Robots and other devices that support the MODBUS protocol.&nbsp;\",\"col\":12}},{\"id\":\"caExZmdfT9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Modbus Settings\",\"col\":5}},{\"id\":\"RkE16sfFy2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Modbus Simulator\",\"col\":3}},{\"id\":\"DqK8wkoHQF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Modbus Documents</span>\",\"col\":12}},{\"id\":\"fI6Hh2Ueq2\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Connections\",\"col\":4}},{\"id\":\"OlilxW5QK5\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Actions\",\"col\":4}},{\"id\":\"MgEf8L4E8P\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"PLC Simulators\",\"col\":4}},{\"id\":\"KPT1S3MuK0\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Devices\",\"col\":4}}]",
- "creation": "2024-12-22 21:26:44.991902",
+ "content": "[{\"id\":\"boPg_-oQOX\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">EpiBus</span>\",\"col\":12}},{\"id\":\"LEfpIArEmD\",\"type\":\"paragraph\",\"data\":{\"text\":\"EpiBus is a MODBUS Integration for Epinomy and ERPNext.&nbsp; It allows you to control manufacturing hardware like Programmable Logic Controllers (PLCs), Robots and other devices that support the MODBUS protocol.&nbsp;\",\"col\":12}},{\"id\":\"caExZmdfT9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Modbus Settings\",\"col\":5}},{\"id\":\"DqK8wkoHQF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Modbus Documents</span>\",\"col\":12}},{\"id\":\"OlilxW5QK5\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Actions\",\"col\":4}},{\"id\":\"KPT1S3MuK0\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Devices\",\"col\":4}}]",
+ "creation": "2025-01-01 18:11:14.874823",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -12,7 +12,7 @@
  "is_hidden": 0,
  "label": "EpiBus",
  "links": [],
- "modified": "2024-12-24 19:38:53.870728",
+ "modified": "2025-01-01 18:12:26.671748",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "EpiBus",
@@ -25,15 +25,6 @@
    "document_type": "Modbus Device",
    "label": "Modbus Devices",
    "quick_list_filter": "[]"
-  },
-  {
-   "document_type": "PLC Simulator",
-   "label": "PLC Simulators",
-   "quick_list_filter": "[]"
-  },
-  {
-   "document_type": "Modbus Connection",
-   "label": "Modbus Connections"
   },
   {
    "document_type": "Modbus Action",
@@ -49,13 +40,6 @@
    "label": "Modbus Settings",
    "link_to": "Modbus Settings",
    "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "Modbus Simulator",
-   "link_to": "modbus-monitor",
-   "type": "Page"
   }
  ],
  "title": "EpiBus"

@@ -32,21 +32,15 @@ fixtures = [
         "filters": [["name", "in", ["EpiBus"]]]
     },
     {
-        "dt": "PLC Simulator",
-        "filters": [["simulator_name", "=", "UR Sim"]]
-    },
-    {
-        "dt": "Modbus Signal",
-        "filters": [["parent", "=", "UR Sim"]]
+        "dt": "Modbus Device"
     }
 ]
 
-# epibus/hooks.py
-
-# Add to the existing hooks.py
 page_js = {
     "modbus-monitor": "public/js/modbus_monitor.js"
 }
+
+export_python_type_annotations = True
 
 # Includes in <head>
 # ------------------
