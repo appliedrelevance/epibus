@@ -50,6 +50,48 @@ SIGNAL_TYPE_MAPPINGS = {
 }
 
 class ModbusSignal(Document):
+    # begin: auto-generated types
+    # This code is auto-generated. Do not modify anything in this block.
+
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from frappe.types import DF
+
+        boolean_value: DF.Literal["HIGH", "LOW"]
+        float_value: DF.Data | None
+        modbus_address: DF.Int
+        parent: DF.Data
+        parentfield: DF.Data
+        parenttype: DF.Data
+        plc_address: DF.Data | None
+        signal_name: DF.Data
+        signal_type: DF.Literal["Digital Output Coil", "Digital Input Contact", "Analog Input Register", "Analog Output Register", "Holding Register"]
+    # end: auto-generated types
+
+    def autoname(self):
+        """
+        Generate unique name for Modbus Signal based on signal name and modbus address
+        Format: <signal_name>_<modbus_address>
+        """
+        if not self.signal_name:
+            frappe.throw(_("Signal Name is required"))
+            
+        # Clean the signal name - remove special chars and convert to uppercase
+        clean_name = frappe.scrub(self.signal_name).upper()
+        
+        # Create the full name
+        self.name = f"{clean_name}_{self.modbus_address}"
+        
+        # Check for duplicates
+        if frappe.db.exists("Modbus Signal", self.name):
+            count = 1
+            while frappe.db.exists("Modbus Signal", f"{self.name}_{count}"):
+                count += 1
+            self.name = f"{self.name}_{count}"
+            
+        logger.debug(f"Generated signal name: {self.name}")
+
     def validate(self):
         """Validate the signal configuration"""
         try:

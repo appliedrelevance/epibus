@@ -60,6 +60,22 @@ class SignalHandler:
         write_fn(address, conv_fn(value))
 
 class ModbusDevice(Document):
+    # begin: auto-generated types
+    # This code is auto-generated. Do not modify anything in this block.
+
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from epibus.epibus.doctype.modbus_signal.modbus_signal import ModbusSignal
+        from frappe.types import DF
+
+        device_name: DF.Data
+        device_type: DF.Literal["PLC", "Robot", "Simulator", "Other"]
+        enabled: DF.Check
+        host: DF.Data
+        port: DF.Int
+        signals: DF.Table[ModbusSignal]
+    # end: auto-generated types
     def validate(self):
         self.validate_connection_settings()
         
@@ -154,7 +170,7 @@ class ModbusDevice(Document):
                         
                         if isinstance(value, bool):
                             signal.boolean_value = value
-                            state = "On" if value else "Off"
+                            state = "HIGH" if value else "LOW"
                             indicator_color = "green" if value else "gray"
                         else:
                             signal.current_value = value

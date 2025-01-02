@@ -5,72 +5,208 @@
  "creation": "2022-10-24 14:19:45.347624",
  "description": "Control or monitor a Modbus I/O port.",
  "doctype": "DocType",
+ "document_type": "Document",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "action_name",
   "device",
   "signal",
-  "column_break_pycm1",
-  "action",
-  "bit_value",
-  "warehouse"
+  "signal_type",
+  "column_break_qqht",
+  "action_type",
+  "boolean_value",
+  "float_value",
+  "section_break_ebhf",
+  "trigger_doctype",
+  "test_document",
+  "column_break_ehlf",
+  "monitor_signal",
+  "events_section",
+  "handle_validate",
+  "handle_before_insert",
+  "handle_after_insert",
+  "handle_before_save",
+  "handle_before_update_after_submit",
+  "handle_on_update_after_submit",
+  "column_break_nibk",
+  "handle_on_update",
+  "handle_on_restore",
+  "handle_on_submit",
+  "handle_on_cancel",
+  "handle_on_trash",
+  "section_break_nsdj",
+  "trigger_script"
  ],
  "fields": [
   {
-   "depends_on": "eval:!!doc.location;",
-   "fieldname": "action",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Action",
-   "options": "Read\nWrite"
-  },
-  {
-   "default": "1",
-   "fieldname": "bit_value",
-   "fieldtype": "Check",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Bit Value",
-   "read_only_depends_on": "doc.action=='Read'&&doc.name&&doc.location;"
-  },
-  {
-   "description": "Warehouse to Watch.  Trigger this action when an item is moved from this warehouse.  ",
-   "fieldname": "warehouse",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Warehouse",
-   "options": "Warehouse"
-  },
-  {
-   "fieldname": "column_break_pycm1",
-   "fieldtype": "Column Break"
-  },
-  {
-   "depends_on": "eval:!!cur_frm.doc.connection;",
    "fieldname": "signal",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "Signal",
    "options": "Modbus Signal",
    "reqd": 1
   },
   {
-   "description": "A link to the Modbus Device for which this Action is performed.",
+   "fieldname": "boolean_value",
+   "fieldtype": "Select",
+   "label": "Digital Value",
+   "options": "HIGH\nLOW"
+  },
+  {
+   "fieldname": "float_value",
+   "fieldtype": "Float",
+   "label": "Analog Value"
+  },
+  {
+   "fieldname": "action_type",
+   "fieldtype": "Select",
+   "label": "Action Type",
+   "options": "Read\nWrite",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.action_type == 'Read'",
+   "description": "Enable to monitor this signal for changes.",
+   "fieldname": "monitor_signal",
+   "fieldtype": "Check",
+   "label": "Monitor Signal"
+  },
+  {
+   "default": "# This script is executed when a Stock Entry document's state changes\n# Context variables available:\n#   doc: The current ModbusAction document\n#   target: The Stock Entry document being monitored\n#   signal: The Modbus Signal document being controlled\n#   logger: The epinomy logger instance\n\ntry:\n    # First check if this is actually a submission\n    # This prevents the script from running during other events\n    if target.docstatus == 1:  # 1 = Submitted\n        # Log the start of our processing\n        logger.info(\n            f\"Processing Stock Entry {target.name} for Modbus Action {doc.name} \"\n            f\"on signal {signal.name}\"\n        )\n\n        # Check if any items are being moved from Bin 1\n        # items is a table field in Stock Entry containing Stock Entry Detail records\n        bin1_items = [\n            item for item in target.items \n            if item.s_warehouse == \"Bin 1\"\n        ]\n\n        if bin1_items:\n            # Log what we found\n            logger.info(\n                f\"Found {len(bin1_items)} items being moved from Bin 1 in \"\n                f\"Stock Entry {target.name}:\"\n            )\n            for item in bin1_items:\n                logger.info(\n                    f\"- {item.item_code}: {item.qty} {item.uom} \"\n                    f\"to {item.t_warehouse or 'consumed'}\"\n                )\n\n            # Toggle our signal\n            # Note: signal was passed to us in the context and is already\n            # a loaded Modbus Signal document\n            logger.info(\n                f\"Triggering signal {signal.name} via toggle_location_pin()\"\n            )\n            signal.toggle_location_pin()\n\n            # Add a comment to the Stock Entry for audit trail\n            target.add_comment(\n                'Comment',  # Built-in comment type\n                text=(\n                    f\"Modbus Action {doc.name} triggered:\\n\"\n                    f\"- Signal: {signal.name}\\n\"\n                    f\"- Items from Bin 1: {', '.join(i.item_code for i in bin1_items)}\"\n                )\n            )\n            \n            # Save the comment\n            target.save(ignore_permissions=True)\n\n            logger.info(\n                f\"Successfully completed Modbus Action {doc.name} \"\n                f\"for Stock Entry {target.name}\"\n            )\n        else:\n            logger.debug(\n                f\"No items from Bin 1 found in Stock Entry {target.name}, \"\n                f\"skipping action {doc.name}\"\n            )\n    else:\n        logger.debug(\n            f\"Stock Entry {target.name} not submitted (status={target.docstatus}), \"\n            f\"skipping action {doc.name}\"\n        )\n\nexcept Exception as e:\n    # Log the full error with traceback\n    error_msg = (\n        f\"Error executing Modbus Action {doc.name} \"\n        f\"on Stock Entry {target.name}: {str(e)}\"\n    )\n    logger.error(error_msg)\n    \n    # Also log to Frappe error log for admin visibility\n    frappe.log_error(\n        frappe.get_traceback(),\n        f\"Modbus Action Script Error - {doc.name}\"\n    )\n    \n    # Re-raise the exception to be handled by the calling code\n    raise",
+   "description": "Python script executed when the signal changes or action is triggered.",
+   "fieldname": "trigger_script",
+   "fieldtype": "Code",
+   "label": "Trigger Script",
+   "options": "Python"
+  },
+  {
+   "fieldname": "trigger_doctype",
+   "fieldtype": "Link",
+   "label": "Monitor Doctype",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "action_name",
+   "fieldtype": "Data",
+   "label": "Action Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_qqht",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_ebhf",
+   "fieldtype": "Section Break",
+   "label": "Event Monitor"
+  },
+  {
+   "fieldname": "column_break_ehlf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_nsdj",
+   "fieldtype": "Section Break"
+  },
+  {
    "fieldname": "device",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "label": "Device",
-   "options": "Modbus Connection",
+   "options": "Modbus Device",
    "reqd": 1
+  },
+  {
+   "fieldname": "signal_type",
+   "fieldtype": "Data",
+   "label": "Signal Type"
+  },
+  {
+   "fieldname": "events_section",
+   "fieldtype": "Section Break",
+   "label": "Events"
+  },
+  {
+   "fieldname": "column_break_nibk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "test_document",
+   "fieldtype": "Dynamic Link",
+   "label": "Test Document",
+   "options": "trigger_doctype"
+  },
+  {
+   "default": "0",
+   "fieldname": "handle_validate",
+   "fieldtype": "Check",
+   "label": "On Validate"
+  },
+  {
+   "default": "0",
+   "fieldname": "handle_before_insert",
+   "fieldtype": "Check",
+   "label": "Before Insert"
+  },
+  {
+   "default": "0",
+   "fieldname": "handle_after_insert",
+   "fieldtype": "Check",
+   "label": "After Insert"
+  },
+  {
+   "default": "0",
+   "fieldname": "handle_before_save",
+   "fieldtype": "Check",
+   "label": "Before Save"
+  },
+  {
+   "default": "0",
+   "fieldname": "handle_before_update_after_submit",
+   "fieldtype": "Check",
+   "label": "Before Update After Submit"
+  },
+  {
+   "default": "0",
+   "fieldname": "handle_on_update_after_submit",
+   "fieldtype": "Check",
+   "label": "On Update After Submit"
+  },
+  {
+   "default": "0",
+   "fieldname": "handle_on_update",
+   "fieldtype": "Check",
+   "label": "On Update"
+  },
+  {
+   "default": "0",
+   "fieldname": "handle_on_restore",
+   "fieldtype": "Check",
+   "label": "On Restore"
+  },
+  {
+   "default": "0",
+   "fieldname": "handle_on_submit",
+   "fieldtype": "Check",
+   "label": "On Submit"
+  },
+  {
+   "default": "0",
+   "fieldname": "handle_on_cancel",
+   "fieldtype": "Check",
+   "label": "On Cancel"
+  },
+  {
+   "default": "0",
+   "fieldname": "handle_on_trash",
+   "fieldtype": "Check",
+   "label": "On Trash"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-01 18:05:15.163408",
+ "modified": "2025-01-02 16:19:57.066508",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Action",
@@ -103,7 +239,6 @@
   },
   {
    "create": 1,
-   "delete": 1,
    "email": 1,
    "export": 1,
    "print": 1,
@@ -114,9 +249,10 @@
    "write": 1
   }
  ],
+ "show_preview_popup": 1,
  "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "signal"
+ "title_field": "action_name"
 }
