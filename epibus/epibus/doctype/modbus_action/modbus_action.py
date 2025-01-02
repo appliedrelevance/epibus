@@ -8,13 +8,6 @@ from epibus.epibus.utils.epinomy_logger import get_logger
 
 logger = get_logger(__name__)
 
-EVENT_FIELDS = [
-    'handle_validate', 'handle_before_insert', 'handle_after_insert', 
-    'handle_before_save', 'handle_before_update_after_submit',
-    'handle_on_update_after_submit', 'handle_on_update', 'handle_on_restore',
-    'handle_on_submit', 'handle_on_cancel', 'handle_on_trash'
-]
-
 class ModbusAction(Document):
     # begin: auto-generated types
     # This code is auto-generated. Do not modify anything in this block.
@@ -47,36 +40,6 @@ class ModbusAction(Document):
         trigger_doctype: DF.Link | None
         trigger_script: DF.Code | None
     # end: auto-generated types
-    def on_trash(self):
-        """Clean up event handlers when document is deleted"""
-        try:
-            # Clean up document event handlers
-            if self.trigger_doctype:
-                doctype = frappe.get_doc("DocType", self.trigger_doctype)
-                
-                # Remove handlers for each event
-                for event_field in EVENT_FIELDS:
-                    if getattr(self, event_field):
-                        event_name = event_field.replace('handle_', '')
-                        doctype.remove_handler(event_name, self.name)
-                        logger.debug(f"Removed {event_name} handler for {self.name}")
-
-            # Clean up signal monitoring
-            if self.monitor_signal:
-                try:
-                    signal = frappe.get_doc("Modbus Signal", self.signal)
-                    signal.remove_handler('value_change', self.name)
-                    logger.debug(f"Removed signal monitor for {self.name}")
-                except Exception as e:
-                    logger.warning(
-                        f"Could not remove signal handler for {self.name}: {str(e)}"
-                    )
-
-            logger.info(f"Cleaned up event handlers for {self.name}")
-
-        except Exception as e:
-            logger.error(f"Error cleaning up handlers for {self.name}: {str(e)}")
-            # Don't re-raise - we want deletion to proceed even if cleanup fails
 
     def validate(self):
         """Validate action configuration"""
@@ -98,50 +61,37 @@ class ModbusAction(Document):
                 frappe.throw(_("Cannot set digital value for analog signal"))
 
         # Validate event handling
-        if not any([self.monitor_signal] + [getattr(self, event) for event in EVENT_FIELDS]):
+        if not any([
+            self.monitor_signal, 
+            self.handle_validate,
+            self.handle_before_insert,
+            self.handle_after_insert,
+            self.handle_before_save,
+            self.handle_before_update_after_submit,
+            self.handle_on_update_after_submit,
+            self.handle_on_update,
+            self.handle_on_restore,
+            self.handle_on_submit,
+            self.handle_on_cancel,
+            self.handle_on_trash
+        ]):
             frappe.throw(_("At least one event or signal monitoring must be enabled"))
-
-    def after_insert(self):
-        """Setup event handlers after creation"""
-        self.setup_handlers()
-
-    def on_update(self):
-        """Update event handlers if configuration changes"""
-        self.setup_handlers()
-        
-    def setup_handlers(self):
-        """Setup event handlers for monitored events"""
-        # Setup document event handlers if doctype specified
-        if self.trigger_doctype:
-            doctype = frappe.get_doc("DocType", self.trigger_doctype)
             
-            # Setup handlers for each enabled event
-            for event_field in EVENT_FIELDS:
-                if getattr(self, event_field):
-                    # Convert handle_on_submit to on_submit etc.
-                    event_name = event_field.replace('handle_', '')
-                    handler = self.create_handler(event_name)
-                    doctype.on_change(event_name, handler, self.name)  # Include handler ID
-                    logger.debug(f"Setup {event_name} handler for {self.name}")
-
-        # Setup signal monitoring if enabled
-        if self.monitor_signal:
-            signal = frappe.get_doc("Modbus Signal", self.signal)
-            signal.on_change('value_change', self.handle_signal_change, self.name)  # Include handler ID
-            logger.debug(f"Setup signal monitor for {self.name} on {signal.name}")
-                
-        logger.info(f"Setup event handlers for {self.name}")
-
-    def create_handler(self, event):
-        """Create an event handler function for document events"""
-        def handler(target_doc):
-            try:
-                self.execute_script(target_doc)
-            except Exception as e:
-                logger.error(f"Error in {event} handler for {self.name}: {str(e)}")
-                frappe.log_error(frappe.get_traceback(), 
-                               f"Modbus Action Handler Error - {self.name}")
-        return handler
+        # Validate that we have a trigger doctype if any events are enabled
+        if any([
+            self.handle_validate,
+            self.handle_before_insert,
+            self.handle_after_insert,
+            self.handle_before_save,
+            self.handle_before_update_after_submit,
+            self.handle_on_update_after_submit,
+            self.handle_on_update,
+            self.handle_on_restore,
+            self.handle_on_submit,
+            self.handle_on_cancel,
+            self.handle_on_trash
+        ]) and not self.trigger_doctype:
+            frappe.throw(_("Trigger DocType is required when events are enabled"))
 
     def handle_signal_change(self, old_value, new_value):
         """Handle signal value changes"""
@@ -181,12 +131,20 @@ class ModbusAction(Document):
             context = {
                 "doc": self,  # The Modbus Action doc
                 "signal": frappe.get_doc("Modbus Signal", self.signal),
-                "event": event_doc,  # Either a document or signal change event
-                "logger": logger
+                "target": event_doc,  # The document that triggered the event
+                "event_doc": event_doc,  # Alias for target for compatibility
+                "logger": logger,
+                "frappe": frappe,  # Allow frappe API access
+                "_": _  # Allow translation function
             }
             
             # Execute the script
-            frappe.safe_eval(self.trigger_script, None, context)
+            frappe.utils.safe_exec.safe_exec(
+                self.trigger_script,
+                _globals=context,
+                _locals=None,
+                restrict_commit_rollback=True
+            )
             return _("Script executed successfully")
             
         except Exception as e:

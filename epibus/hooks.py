@@ -9,16 +9,23 @@ app_description = (
 app_email = "geveritt@appliedrelevance.com"
 app_license = "MIT"
 
-
 # Document Events
 # ---------------
 # Hook on document methods and events
-# hooks.py
 
 doc_events = {
-    "Stock Entry": {
-        "on_submit": "epibus.epibus.doctype.modbus_action.modbus_action.handle_submit"
-    },
+    "*": {
+        "validate": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+        "before_insert": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+        "after_insert": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+        "before_save": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+        "before_update_after_submit": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+        "on_update_after_submit": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+        "on_update": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+        "on_submit": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+        "on_cancel": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+        "on_trash": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+    }
 }
 
 

@@ -1,29 +1,5 @@
 [
  {
-  "device_name": "Simulator",
-  "device_type": "PLC",
-  "docstatus": 0,
-  "doctype": "Modbus Device",
-  "enabled": 1,
-  "host": "epinomy_dev_devcontainer-openplc-1",
-  "modified": "2025-01-01 19:02:20.226785",
-  "name": "Simulator",
-  "port": 502,
-  "signals": [
-   {
-    "boolean_value": "1",
-    "float_value": null,
-    "modbus_address": 0,
-    "parent": "Simulator",
-    "parentfield": "signals",
-    "parenttype": "Modbus Device",
-    "plc_address": "%QX0.0",
-    "signal_name": "LED00",
-    "signal_type": "Digital Output Coil"
-   }
-  ]
- },
- {
   "device_name": "OpenPLC",
   "device_type": "PLC",
   "docstatus": 0,
