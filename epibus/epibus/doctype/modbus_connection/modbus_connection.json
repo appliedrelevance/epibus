@@ -11,8 +11,7 @@
   "port",
   "device_name",
   "unit",
-  "locations",
-  "route"
+  "locations"
  ],
  "fields": [
   {
@@ -45,15 +44,10 @@
    "fieldtype": "Table",
    "label": "Locations",
    "options": "Modbus Signal"
-  },
-  {
-   "fieldname": "route",
-   "fieldtype": "Data",
-   "label": "route"
   }
  ],
  "links": [],
- "modified": "2024-12-19 16:29:04.791060",
+ "modified": "2025-01-02 18:07:43.022836",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Connection",
