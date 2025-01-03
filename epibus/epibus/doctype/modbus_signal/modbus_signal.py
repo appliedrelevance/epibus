@@ -5,6 +5,7 @@ import frappe
 from frappe.model.document import Document
 from frappe import _
 from epibus.epibus.utils.epinomy_logger import get_logger
+from epibus.epibus.utils.signal_handler import SignalHandler
 
 logger = get_logger(__name__)
 
@@ -50,53 +51,12 @@ SIGNAL_TYPE_MAPPINGS = {
 }
 
 class ModbusSignal(Document):
-    # begin: auto-generated types
-    # This code is auto-generated. Do not modify anything in this block.
-
-    from typing import TYPE_CHECKING
-
-    if TYPE_CHECKING:
-        from frappe.types import DF
-
-        boolean_value: DF.Literal["HIGH", "LOW"]
-        float_value: DF.Data | None
-        modbus_address: DF.Int
-        parent: DF.Data
-        parentfield: DF.Data
-        parenttype: DF.Data
-        plc_address: DF.Data | None
-        signal_name: DF.Data
-        signal_type: DF.Literal["Digital Output Coil", "Digital Input Contact", "Analog Input Register", "Analog Output Register", "Holding Register"]
-    # end: auto-generated types
-
-    def autoname(self):
-        """
-        Generate unique name for Modbus Signal based on signal name and modbus address
-        Format: <signal_name>_<modbus_address>
-        """
-        if not self.signal_name:
-            frappe.throw(_("Signal Name is required"))
-            
-        # Clean the signal name - remove special chars and convert to uppercase
-        clean_name = frappe.scrub(self.signal_name).upper()
-        
-        # Create the full name
-        self.name = f"{clean_name}_{self.modbus_address}"
-        
-        # Check for duplicates
-        if frappe.db.exists("Modbus Signal", self.name):
-            count = 1
-            while frappe.db.exists("Modbus Signal", f"{self.name}_{count}"):
-                count += 1
-            self.name = f"{self.name}_{count}"
-            
-        logger.debug(f"Generated signal name: {self.name}")
-
     def validate(self):
         """Validate the signal configuration"""
         try:
             self.validate_signal_type()
             self.validate_modbus_address()
+            self.set_plc_address()
         except Exception as e:
             logger.error(f"Validation error for ModbusSignal {self.name}: {str(e)}")
             raise
@@ -115,65 +75,134 @@ class ModbusSignal(Document):
             frappe.throw(_("Modbus address {0} out of range ({1}-{2}) for signal type {3}").format(
                 self.modbus_address, modbus_start, modbus_end, self.signal_type))
 
-    @property
-    def plc_address(self):
-        """Calculate and return PLC address based on signal type and Modbus address"""
-        try:
-            signal_config = SIGNAL_TYPE_MAPPINGS[self.signal_type]
+    def set_plc_address(self):
+        """Calculate and set the PLC address based on signal type and Modbus address"""
+        signal_config = SIGNAL_TYPE_MAPPINGS[self.signal_type]
+        
+        if signal_config['bit_addressed']:
+            # For bit-addressed signals (Digital I/O)
+            plc_major = signal_config['plc_major_start'] + (self.modbus_address // 8)
+            plc_minor = self.modbus_address % 8
             
-            if signal_config['bit_addressed']:
-                # For bit-addressed signals (Digital I/O)
-                plc_major = signal_config['plc_major_start'] + (self.modbus_address // 8)
-                plc_minor = self.modbus_address % 8
+            if plc_minor > signal_config['plc_minor_max']:
+                frappe.throw(_("Invalid bit address calculated"))
                 
-                if plc_minor > signal_config['plc_minor_max']:
-                    frappe.throw(_("Invalid bit address calculated"))
-                    
-                return f"%{signal_config['prefix']}{plc_major}.{plc_minor}"
-            else:
-                # For word-addressed signals (Analog and Holding Registers)
-                plc_major = signal_config['plc_major_start'] + self.modbus_address
-                return f"%{signal_config['prefix']}{plc_major}"
-        except Exception as e:
-            logger.error(f"Error calculating PLC address for signal {self.name}: {str(e)}")
-            return ""
+            self.plc_address = f"%{signal_config['prefix']}{plc_major}.{plc_minor}"
+        else:
+            # For word-addressed signals (Analog and Holding Registers)
+            plc_major = signal_config['plc_major_start'] + self.modbus_address
+            self.plc_address = f"%{signal_config['prefix']}{plc_major}"
 
     @frappe.whitelist()
-    def toggle_location_pin(self):
-        """Toggle the value of a location pin"""
-        logger.info(f"Toggling location pin for {self.name}")
+    def read_signal(self):
+        """Read the current value of the signal
+        
+        Returns:
+            bool|float: Current value of the signal depending on type
+        """
+        logger.debug(f"Reading signal {self.signal_name}")
+        
+        try:
+            # Get the parent device document
+            device_doc = frappe.get_doc("Modbus Device", self.parent)
+            
+            # Read the value using the device's client
+            with device_doc.get_client() as client:
+                handler = SignalHandler(client)
+                value = handler.read(self.signal_type, self.modbus_address)
+                
+                # Update the appropriate field based on signal type
+                if isinstance(value, bool):
+                    self.boolean_value = value
+                else:
+                    self.value = value
+                self.save()
+                
+                logger.debug(f"Successfully read {self.signal_name}: {value}")
+                return value
+
+        except Exception as e:
+            logger.error(f"Error reading signal {self.signal_name}: {str(e)}")
+            raise
+
+    @frappe.whitelist()
+    def write_signal(self, value):
+        """Write a value to the signal
+        
+        Args:
+            value (bool|float): Value to write, type must match signal type
+            
+        Returns:
+            bool|float: Value read back from signal after write
+        """
+        logger.debug(f"Writing value {value} to signal {self.signal_name}")
         
         try:
             # Verify this is a writable signal
             signal_config = SIGNAL_TYPE_MAPPINGS[self.signal_type]
             if signal_config['access'] != 'RW':
                 frappe.throw(_("Cannot write to read-only signal"))
+                
+            # Validate value type
+            is_digital = signal_config['bit_addressed']
+            if is_digital and not isinstance(value, bool):
+                frappe.throw(_("Digital signals require boolean values"))
+            elif not is_digital and not isinstance(value, (int, float)):
+                frappe.throw(_("Analog signals require numeric values"))
 
-            # Fetch the corresponding Modbus Connection document
-            connection_doc = frappe.get_doc("Modbus Connection", self.connection_name)
-
-            # Determine the value to write based on the 'toggle' field
-            value_to_write = 1 if self.toggle else 0
+            # Get the parent device document
+            device_doc = frappe.get_doc("Modbus Device", self.parent)
             
-            logger.debug(f"Writing value {value_to_write} to {self.location_name}")
-
-            # Write the value to the corresponding pin
-            write_status = connection_doc.write_location_value(self, value_to_write)
-
-            if write_status:
-                # Read the value back from the pin
-                current_value = connection_doc.read_location_value(self)
-
-                # Update the 'value' field with the read value
-                self.value = current_value
+            # Write the value using the device's client
+            with device_doc.get_client() as client:
+                handler = SignalHandler(client)
+                handler.write(self.signal_type, self.modbus_address, value)
+                
+                # Read back the value to confirm
+                current_value = handler.read(self.signal_type, self.modbus_address)
+                
+                # Update the appropriate field based on signal type
+                if isinstance(current_value, bool):
+                    # Convert boolean to "HIGH"/"LOW" for saving
+                    self.boolean_value = "HIGH" if current_value else "LOW"
+                else:
+                    self.value = current_value
                 self.save()
                 
-                logger.info(f"Successfully toggled {self.location_name} to {current_value}")
+                logger.info(f"Successfully wrote {current_value} to {self.signal_name}")
                 return current_value
-            else:
-                logger.error(f"Failed to write value to {self.location_name}")
-                raise frappe.ValidationError(_("Failed to write value to location"))
 
         except Exception as e:
-            logger.error(f"Error toggling location pin: {str(e)}")
+            logger.error(f"Error writing to signal {self.signal_name}: {str(e)}")
             raise
+
+    @frappe.whitelist()
+    def toggle_signal(self):
+        """Toggle a digital signal between True/False
+        
+        Returns:
+            bool: New value of the signal after toggle
+        """
+        if not SIGNAL_TYPE_MAPPINGS[self.signal_type]['bit_addressed']:
+            frappe.throw(_("Can only toggle digital signals"))
+            
+        try:
+            current_value = self.read_signal()
+            if not isinstance(current_value, bool):
+                frappe.throw(_("Invalid signal state - expected boolean value"))
+                
+            new_value = not current_value
+            return self.write_signal(new_value)
+            
+        except Exception as e:
+            logger.error(f"Error toggling signal {self.signal_name}: {str(e)}")
+            raise
+
+    @frappe.whitelist()
+    def toggle_location_pin(self):
+        """DEPRECATED: Use toggle_signal() instead"""
+        frappe.log_error(
+            "toggle_location_pin() is deprecated, use toggle_signal() instead",
+            "Deprecated Method Used"
+        )
+        return self.toggle_signal()

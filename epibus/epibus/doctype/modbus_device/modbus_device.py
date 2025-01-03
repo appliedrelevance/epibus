@@ -1,63 +1,16 @@
+# Copyright (c) 2024, Applied Relevance and contributors
+# For license information, please see license.txt
+
 import frappe
 from frappe.model.document import Document
 from pymodbus.client import ModbusTcpClient
 from pymodbus.framer import FramerType
 from epibus.epibus.utils.epinomy_logger import get_logger
+from epibus.epibus.utils.signal_handler import SignalHandler
 import asyncio
 from contextlib import contextmanager
-from typing import Optional, Any, Callable
-from enum import Enum
 
 logger = get_logger(__name__)
-
-class SignalType(Enum):
-    DIGITAL_OUTPUT = "Digital Output Coil"
-    DIGITAL_INPUT = "Digital Input Contact" 
-    ANALOG_INPUT = "Analog Input Register"
-    HOLDING_REGISTER = "Holding Register"
-
-class SignalHandler:
-    def __init__(self, client: ModbusTcpClient):
-        self.client = client
-        self.handlers = {
-            SignalType.DIGITAL_OUTPUT: (
-                lambda addr: self.client.read_coils(address=addr, count=1), 
-                lambda addr, val: self.client.write_coil(address=addr, value=val),
-                bool
-            ),
-            SignalType.DIGITAL_INPUT: (
-                lambda addr: self.client.read_discrete_inputs(address=addr, count=1),
-                None,
-                bool
-            ),
-            SignalType.ANALOG_INPUT: (
-                lambda addr: self.client.read_input_registers(address=addr, count=1),
-                None,
-                float
-            ),
-            SignalType.HOLDING_REGISTER: (
-                lambda addr: self.client.read_holding_registers(address=addr, count=1),
-                lambda addr, val: self.client.write_register(address=addr, value=val),
-                float
-            )
-        }
-
-    def get_handler(self, signal_type: str) -> tuple[Callable, Optional[Callable], type]:
-        for sig_type in SignalType:
-            if sig_type.value in signal_type:
-                return self.handlers[sig_type]
-        raise ValueError(f"Unsupported signal type: {signal_type}")
-
-    def read(self, signal_type: str, address: int) -> Any:
-        read_fn, _, conv_fn = self.get_handler(signal_type)
-        response = read_fn(address)
-        return conv_fn(response.bits[0] if hasattr(response, 'bits') else response.registers[0])
-
-    def write(self, signal_type: str, address: int, value: Any) -> None:
-        _, write_fn, conv_fn = self.get_handler(signal_type)
-        if not write_fn:
-            raise ValueError(f"Cannot write to signal type: {signal_type}")
-        write_fn(address, conv_fn(value))
 
 class ModbusDevice(Document):
     # begin: auto-generated types
@@ -76,6 +29,7 @@ class ModbusDevice(Document):
         port: DF.Int
         signals: DF.Table[ModbusSignal]
     # end: auto-generated types
+    
     def validate(self):
         self.validate_connection_settings()
         
@@ -85,6 +39,14 @@ class ModbusDevice(Document):
 
     @contextmanager
     def get_client(self):
+        """Get a connected ModbusTcpClient instance
+        
+        Yields:
+            ModbusTcpClient: Connected client instance
+            
+        Raises:
+            ConnectionError: If connection fails
+        """
         try:
             asyncio.get_event_loop()
         except RuntimeError:
@@ -155,7 +117,7 @@ class ModbusDevice(Document):
 
     @frappe.whitelist()
     def test_connection(self):
-        """Test connection to device"""
+        """Test connection to device and read all signals"""
         logger.info(f"Testing connection to device {self.device_name} at {self.host}:{self.port}")
         
         try:
@@ -173,7 +135,7 @@ class ModbusDevice(Document):
                             state = "HIGH" if value else "LOW"
                             indicator_color = "green" if value else "gray"
                         else:
-                            signal.current_value = value
+                            signal.value = value
                             state = str(value)
                             indicator_color = "blue"
                             
@@ -208,26 +170,57 @@ class ModbusDevice(Document):
         
     @frappe.whitelist()
     def read_signal(self, signal):
-        """Read value from a signal"""
+        """Read value from a signal
+        
+        Args:
+            signal: ModbusSignal document
+            
+        Returns:
+            bool|float: Current value of the signal
+        """
         logger.debug(f"Reading signal {signal.signal_name} from {self.device_name}")
         
         try:
             with self.get_client() as client:
                 handler = SignalHandler(client)
-                return handler.read(signal.signal_type, signal.modbus_address)
+                value = handler.read(signal.signal_type, signal.modbus_address)
+                
+                # Update signal's stored value
+                if isinstance(value, bool):
+                    signal.boolean_value = value
+                else:
+                    signal.value = value
+                signal.save()
+                
+                return value
+                
         except Exception as e:
             logger.error(f"Error reading signal: {str(e)}")
             raise
 
     @frappe.whitelist()
     def write_signal(self, signal, value):
-        """Write value to a signal"""
+        """Write value to a signal
+        
+        Args:
+            signal: ModbusSignal document
+            value: bool|float value to write
+        """
         logger.debug(f"Writing value {value} to signal {signal.signal_name} on {self.device_name}")
         
         try:
             with self.get_client() as client:
                 handler = SignalHandler(client)
                 handler.write(signal.signal_type, signal.modbus_address, value)
+                
+                # Read back and update stored value
+                current_value = handler.read(signal.signal_type, signal.modbus_address)
+                if isinstance(current_value, bool):
+                    signal.boolean_value = current_value
+                else:
+                    signal.value = current_value
+                signal.save()
+                
         except Exception as e:
             logger.error(f"Error writing signal: {str(e)}")
             raise

@@ -115,7 +115,7 @@ class ModbusAction(Document):
         
         Args:
             event_doc: Either a Document for document events or
-                      a dict for signal change events with event_type='signal_change'
+                    a dict for signal change events with event_type='signal_change'
         """
         if not self.trigger_script:
             return
@@ -134,11 +134,35 @@ class ModbusAction(Document):
                 "target": event_doc,  # The document that triggered the event
                 "event_doc": event_doc,  # Alias for target for compatibility
                 "logger": logger,
-                "frappe": frappe,  # Allow frappe API access
-                "_": _  # Allow translation function
+                "frappe": frappe._dict(
+                    # Only expose safe operations
+                    get_doc=frappe.get_doc,
+                    new_doc=frappe.new_doc,
+                    get_list=frappe.get_list,
+                    get_all=frappe.get_all,
+                    get_value=frappe.db.get_value,  # Note: from db
+                    get_single_value=frappe.db.get_single_value,  # Note: from db
+                    get_meta=frappe.get_meta,
+                    get_cached_doc=frappe.get_cached_doc,
+                    log_error=frappe.log_error,
+                    get_traceback=frappe.get_traceback,
+                    msgprint=frappe.msgprint,
+                    throw=frappe.throw,
+                    _=frappe._,
+                    scrub=frappe.scrub,
+                    db=frappe._dict(
+                        get_value=frappe.db.get_value,
+                        get_list=frappe.db.get_list,
+                        get_all=frappe.db.get_all, 
+                        exists=frappe.db.exists,
+                        escape=frappe.db.escape,
+                        sql=frappe.db.sql,
+                        get_single_value=frappe.db.get_single_value
+                    )
+                ),
             }
             
-            # Execute the script
+            # Execute the script with restricted context
             frappe.utils.safe_exec.safe_exec(
                 self.trigger_script,
                 _globals=context,

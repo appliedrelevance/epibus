@@ -13,20 +13,20 @@ app_license = "MIT"
 # ---------------
 # Hook on document methods and events
 
-doc_events = {
-    "*": {
-        "validate": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-        "before_insert": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-        "after_insert": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-        "before_save": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-        "before_update_after_submit": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-        "on_update_after_submit": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-        "on_update": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-        "on_submit": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-        "on_cancel": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-        "on_trash": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-    }
-}
+# doc_events = {
+#     "*": {
+#         "validate": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+#         "before_insert": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+#         "after_insert": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+#         "before_save": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+#         "before_update_after_submit": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+#         "on_update_after_submit": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+#         "on_update": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+#         "on_submit": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+#         "on_cancel": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+#         "on_trash": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
+#     }
+# }
 
 
 fixtures = [
