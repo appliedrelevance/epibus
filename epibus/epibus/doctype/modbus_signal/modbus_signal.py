@@ -51,6 +51,24 @@ SIGNAL_TYPE_MAPPINGS = {
 }
 
 class ModbusSignal(Document):
+    # begin: auto-generated types
+    # This code is auto-generated. Do not modify anything in this block.
+
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from frappe.types import DF
+
+        digital_value: DF.Check
+        float_value: DF.Data | None
+        modbus_address: DF.Int
+        parent: DF.Data
+        parentfield: DF.Data
+        parenttype: DF.Data
+        plc_address: DF.Data | None
+        signal_name: DF.Data
+        signal_type: DF.Literal["Digital Output Coil", "Digital Input Contact", "Analog Input Register", "Analog Output Register", "Holding Register"]
+    # end: auto-generated types
     def validate(self):
         """Validate the signal configuration"""
         try:
@@ -113,7 +131,7 @@ class ModbusSignal(Document):
                 
                 # Update the appropriate field based on signal type
                 if isinstance(value, bool):
-                    self.boolean_value = value
+                    self.digital_value = value
                 else:
                     self.value = value
                 self.save()
@@ -161,12 +179,7 @@ class ModbusSignal(Document):
                 # Read back the value to confirm
                 current_value = handler.read(self.signal_type, self.modbus_address)
                 
-                # Update the appropriate field based on signal type
-                if isinstance(current_value, bool):
-                    # Convert boolean to "HIGH"/"LOW" for saving
-                    self.boolean_value = "HIGH" if current_value else "LOW"
-                else:
-                    self.value = current_value
+                self.value = current_value
                 self.save()
                 
                 logger.info(f"Successfully wrote {current_value} to {self.signal_name}")

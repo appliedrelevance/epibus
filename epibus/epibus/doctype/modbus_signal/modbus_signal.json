@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:{parent}-{signal_name}",
  "creation": "2022-10-17 18:32:17.320067",
  "default_view": "List",
  "description": "Modbus Signal is a single Input, Output, or Register address on PLC Hardware.  It uses IEC 61131-3 nomenclature.\n",
@@ -14,8 +15,8 @@
   "modbus_address",
   "column_break_actx",
   "float_value",
-  "boolean_value",
-  "plc_address"
+  "plc_address",
+  "digital_value"
  ],
  "fields": [
   {
@@ -53,15 +54,6 @@
    "reqd": 1
   },
   {
-   "default": "HIGH",
-   "fieldname": "boolean_value",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Digital Value",
-   "options": "HIGH\nLOW"
-  },
-  {
    "fieldname": "column_break_actx",
    "fieldtype": "Column Break"
   },
@@ -71,15 +63,21 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Analog Value"
+  },
+  {
+   "default": "0",
+   "fieldname": "digital_value",
+   "fieldtype": "Check",
+   "label": "Digital Value"
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2025-01-02 11:16:00.624431",
+ "modified": "2025-01-04 20:45:14.877884",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Signal",
- "naming_rule": "By script",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [],
  "sort_field": "modified",

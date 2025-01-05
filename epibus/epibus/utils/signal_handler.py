@@ -107,22 +107,19 @@ class SignalHandler:
             raise ValueError(f"Cannot write to read-only signal type: {signal_type}")
         write_fn(address, conv_fn(value))
 
+# In modbus_handlers.py
+
 def handle_doc_event(doc, method):
-    """Handle document events and execute relevant Modbus Actions
-    
-    Args:
-        doc: The document that triggered the event
-        method: The event method name (e.g. 'on_submit', 'validate', etc.)
-    """
+    """Handle document events and execute relevant Modbus Actions"""
     try:
         # Find all Modbus Actions configured for this doctype and event
         actions = frappe.get_all(
             "Modbus Action",
             filters={
                 "trigger_doctype": doc.doctype,
-                f"handle_{method}": 1,
                 "docstatus": 1  # Only consider submitted actions
-            }
+            },
+            fields=["name", "server_script"]
         )
         
         if not actions:
@@ -134,23 +131,33 @@ def handle_doc_event(doc, method):
         )
         
         # Execute each matching action
-        for action_name in actions:
+        for action in actions:
             try:
-                action = frappe.get_doc("Modbus Action", action_name)
-                action.execute_script(doc)
+                action_doc = frappe.get_doc("Modbus Action", action.name)
+                script = frappe.get_doc("Server Script", action.server_script)
+                
+                if script.script_type == "API":
+                    result = action_doc.execute_script(doc)
+                    if result.get("status") != "success":
+                        logger.error(
+                            f"Modbus Action {action.name} failed: "
+                            f"{result.get('error', 'Unknown error')}"
+                        )
+                else:
+                    action_doc.execute_script(doc)
+                    
             except Exception as e:
                 logger.error(
-                    f"Error executing Modbus Action {action_name} for "
-                    f"{doc.doctype} {doc.name} event {method}: {str(e)}"
+                    f"Error executing Modbus Action {action.name}: {str(e)}"
                 )
                 frappe.log_error(
                     frappe.get_traceback(),
-                    f"Modbus Action Event Handler Error - {action_name}"
+                    f"Modbus Action Event Handler Error - {action.name}"
                 )
                 
     except Exception as e:
         logger.error(
-            f"Error handling {method} event for {doc.doctype} {doc.name}: {str(e)}"
+            f"Error handling {method} event for {doc.doctype}: {str(e)}"
         )
         frappe.log_error(
             frappe.get_traceback(),

@@ -1,21 +1,55 @@
+// In modbus_action.js
+
 frappe.ui.form.on('Modbus Action', {
     refresh: function(frm) {
-        if (frm.doc.signal) {
-            frm.trigger('update_field_visibility');
-        }
-
-        // Add test script button for saved docs with test document
-        if (!frm.is_new() && frm.doc.test_document) {
+        if (!frm.is_new() && frm.doc.server_script) {
             frm.add_custom_button(__('Test Script'), () => {
-                frm.call('execute_script')
-                    .then(r => {
-                        if (r.message) {
-                            frappe.show_alert({
-                                message: r.message,
-                                indicator: 'green'
-                            });
+                frm.call({
+                    method: "execute_script",
+                    doc: frm.doc,
+                    freeze: true, 
+                    freeze_message: __('Executing Script...'),
+                }).then(r => {
+                    // Handle the response more carefully
+                    if (r && r.message) {
+                        let indicator, msg;
+                        
+                        // Convert response to string if it's not already
+                        if (typeof r.message === 'object') {
+                            if (r.message.status === 'success') {
+                                indicator = 'green';
+                                msg = `Value: ${r.message.value}`;
+                            } else {
+                                indicator = 'red';
+                                msg = `Error: ${r.message.error || 'Unknown error'}`;
+                            }
+                        } else {
+                            // Handle string response
+                            indicator = 'blue';
+                            msg = r.message;
                         }
+
+                        frappe.msgprint({
+                            title: __('Script Execution Result'),
+                            message: msg,
+                            indicator: indicator
+                        });
+                    } else {
+                        frappe.msgprint({
+                            title: __('Script Execution Result'),
+                            message: __('No response from script'),
+                            indicator: 'orange'
+                        });
+                    }
+                }).catch(err => {
+                    // Improved error handling
+                    const errorMsg = err.message || err.toString() || 'Unknown error occurred';
+                    frappe.msgprint({
+                        title: __('Script Execution Failed'),
+                        message: errorMsg,
+                        indicator: 'red'
                     });
+                });
             }, __('Actions'));
         }
     },
@@ -29,50 +63,15 @@ frappe.ui.form.on('Modbus Action', {
                 }
             };
         });
-    },
 
-    device: function(frm) {
-        // Clear signal when device changes
-        frm.set_value('signal', '');
-    },
-
-    signal: function(frm) {
-        if (!frm.doc.signal) return;
-        frm.trigger('update_field_visibility');
-    },
-
-    update_field_visibility: function(frm) {
-        if (!frm.doc.signal) return;
-
-        frappe.model.with_doc('Modbus Signal', frm.doc.signal, function() {
-            const signal = frappe.get_doc('Modbus Signal', frm.doc.signal);
-            const isDigital = signal.signal_type.includes('Digital');
-            const isInput = signal.signal_type.includes('Input');
-
-            // Toggle value fields
-            frm.toggle_display('boolean_value', isDigital);
-            frm.toggle_display('float_value', !isDigital);
-
-            // Clear inappropriate values
-            if (isDigital) {
-                frm.set_value('float_value', null);
-            } else {
-                frm.set_value('boolean_value', null);
-            }
-
-            // Handle action type
-            if (isInput && frm.doc.action_type === 'Write') {
-                frm.set_value('action_type', 'Read');
-            }
-            frm.set_df_property('action_type', 'options', 
-                isInput ? 'Read' : 'Read\nWrite');
+        // Update script filter to include API type
+        frm.set_query('server_script', function() {
+            return {
+                filters: {
+                    'script_type': ['in', ['DocType Event', 'Scheduler Event', 'API']],
+                    'disabled': 0
+                }
+            };
         });
-    },
-
-    trigger_doctype: function(frm) {
-        // Clear test document when doctype changes
-        if (frm.doc.test_document) {
-            frm.set_value('test_document', null);
-        }
     }
 });

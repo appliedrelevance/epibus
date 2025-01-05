@@ -131,7 +131,7 @@ class ModbusDevice(Document):
                         value = handler.read(signal.signal_type, signal.modbus_address)
                         
                         if isinstance(value, bool):
-                            signal.boolean_value = value
+                            signal.digital_value = value
                             state = "HIGH" if value else "LOW"
                             indicator_color = "green" if value else "gray"
                         else:
@@ -187,7 +187,7 @@ class ModbusDevice(Document):
                 
                 # Update signal's stored value
                 if isinstance(value, bool):
-                    signal.boolean_value = value
+                    signal.digital_value = value
                 else:
                     signal.value = value
                 signal.save()
@@ -216,7 +216,7 @@ class ModbusDevice(Document):
                 # Read back and update stored value
                 current_value = handler.read(signal.signal_type, signal.modbus_address)
                 if isinstance(current_value, bool):
-                    signal.boolean_value = current_value
+                    signal.digital_value = current_value
                 else:
                     signal.value = current_value
                 signal.save()

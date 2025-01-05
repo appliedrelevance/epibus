@@ -10,33 +10,13 @@
  "engine": "InnoDB",
  "field_order": [
   "action_name",
+  "description",
+  "column_break_drsf",
   "device",
   "signal",
-  "signal_type",
-  "column_break_qqht",
-  "action_type",
-  "boolean_value",
-  "float_value",
-  "section_break_ebhf",
-  "trigger_doctype",
-  "test_document",
-  "column_break_ehlf",
-  "monitor_signal",
-  "events_section",
-  "handle_validate",
-  "handle_before_insert",
-  "handle_after_insert",
-  "handle_before_save",
-  "handle_before_update_after_submit",
-  "handle_on_update_after_submit",
-  "column_break_nibk",
-  "handle_on_update",
-  "handle_on_restore",
-  "handle_on_submit",
-  "handle_on_cancel",
-  "handle_on_trash",
-  "section_break_nsdj",
-  "trigger_script"
+  "server_script",
+  "script_parameters_section",
+  "parameters"
  ],
  "fields": [
   {
@@ -48,67 +28,10 @@
    "reqd": 1
   },
   {
-   "fieldname": "boolean_value",
-   "fieldtype": "Select",
-   "label": "Digital Value",
-   "options": "HIGH\nLOW"
-  },
-  {
-   "fieldname": "float_value",
-   "fieldtype": "Float",
-   "label": "Analog Value"
-  },
-  {
-   "fieldname": "action_type",
-   "fieldtype": "Select",
-   "label": "Action Type",
-   "options": "Read\nWrite",
-   "reqd": 1
-  },
-  {
-   "default": "0",
-   "depends_on": "eval:doc.action_type == 'Read'",
-   "description": "Enable to monitor this signal for changes.",
-   "fieldname": "monitor_signal",
-   "fieldtype": "Check",
-   "label": "Monitor Signal"
-  },
-  {
-   "default": "# This script is executed when a Stock Entry document's state changes\n# Context variables available:\n#   doc: The current ModbusAction document\n#   target: The Stock Entry document being monitored\n#   signal: The Modbus Signal document being controlled\n#   logger: The epinomy logger instance\ntry:\n    # First check if this is actually a submission\n    # This prevents the script from running during other events\n    if target.docstatus == 1:  # 1 = Submitted\n        # Log the start of our processing\n        logger.info(\n            f\"Processing Stock Entry {target.name} for Modbus Action {doc.name} \"\n            f\"on signal {signal.name}\"\n        )\n        \n        # Log all items in the Stock Entry\n        logger.info(f\"Stock Entry {target.name} contains {len(target.items)} items:\")\n        for item in target.items:\n            logger.info(\n                f\"Item: {item.item_code}\"\n                f\"\\n  - Quantity: {item.qty} {item.uom}\"\n                f\"\\n  - From: {item.s_warehouse or 'None'}\"\n                f\"\\n  - To: {item.t_warehouse or 'consumed'}\"\n                f\"\\n  - Basic Rate: {item.basic_rate}\"\n                f\"\\n  - Amount: {item.amount}\"\n            )\n        \n        # Check if any items are being moved from Bin 001\n        bin1_items = [\n            item for item in target.items \n            if item.s_warehouse == \"Bin 001 - EPI\"\n        ]\n        \n        if bin1_items:\n            # Log what we found from Bin 001\n            logger.info(\n                f\"Found {len(bin1_items)} items being moved from Bin 001 in \"\n                f\"Stock Entry {target.name}:\"\n            )\n            for item in bin1_items:\n                logger.info(\n                    f\"- {item.item_code}: {item.qty} {item.uom} \"\n                    f\"to {item.t_warehouse or 'consumed'}\"\n                )\n\n            # Determine the appropriate action based on signal type and configured value\n            if doc.action_type == \"Write\":\n                if \"Digital\" in signal.signal_type:\n                    # For digital signals, convert HIGH/LOW to True/False\n                    value = True if doc.boolean_value == \"HIGH\" else False\n                    logger.info(\n                        f\"Writing digital value {doc.boolean_value} to signal {signal.name}\"\n                    )\n                    signal.write_signal(value)\n                else:\n                    # For analog signals, write the configured float value\n                    logger.info(\n                        f\"Writing analog value {doc.float_value} to signal {signal.name}\"\n                    )\n                    signal.write_signal(doc.float_value)\n            else:  # Read action\n                value = signal.read_signal()\n                # Convert boolean values to HIGH/LOW for display\n                if isinstance(value, bool):\n                    value_display = \"HIGH\" if value else \"LOW\"\n                else:\n                    value_display = str(value)\n                logger.info(f\"Read value {value_display} from signal {signal.name}\")\n\n            # Add a comment to the Stock Entry for audit trail\n            target.add_comment(\n                'Comment',  # Built-in comment type\n                text=(\n                    f\"Modbus Action {doc.name} triggered:\\n\"\n                    f\"- Signal: {signal.name}\\n\"\n                    f\"- Action: {doc.action_type}\\n\"\n                    f\"- Value: {value_display}\\n\"\n                    f\"- Items from Bin 001: {', '.join(i.item_code for i in bin1_items)}\"\n                )\n            )\n            # Save the comment\n            target.save(ignore_permissions=True)\n\n            logger.info(\n                f\"Successfully completed Modbus Action {doc.name} \"\n                f\"for Stock Entry {target.name}\"\n            )\n        else:\n            logger.debug(\n                f\"No items from Bin 001 found in Stock Entry {target.name}, \"\n                f\"skipping action {doc.name}\"\n            )\n    else:\n        logger.debug(\n            f\"Stock Entry {target.name} not submitted (status={target.docstatus}), \"\n            f\"skipping action {doc.name}\"\n        )\n\nexcept Exception as e:\n    # Log the full error with traceback\n    error_msg = (\n        f\"Error executing Modbus Action {doc.name} \"\n        f\"on Stock Entry {target.name}: {str(e)}\"\n    )\n    logger.error(error_msg)\n    \n    # Also log to Frappe error log for admin visibility\n    frappe.log_error(\n        frappe.get_traceback(),\n        f\"Modbus Action Script Error - {doc.name}\"\n    )\n    \n    # Re-raise the exception to be handled by the calling code\n    raise# Context variables available:\n#   doc: The current ModbusAction document\n#   target: The Stock Entry document being monitored\n#   signal: The Modbus Signal document being controlled\n#   logger: The epinomy logger instance\ntry:\n    # First check if this is actually a submission\n    # This prevents the script from running during other events\n    if target.docstatus == 1:  # 1 = Submitted\n        # Log the start of our processing\n        logger.info(\n            f\"Processing Stock Entry {target.name} for Modbus Action {doc.name} \"\n            f\"on signal {signal.name}\"\n        )\n        \n        # Log all items in the Stock Entry\n        logger.info(f\"Stock Entry {target.name} contains {len(target.items)} items:\")\n        for item in target.items:\n            logger.info(\n                f\"Item: {item.item_code}\"\n                f\"\\n  - Quantity: {item.qty} {item.uom}\"\n                f\"\\n  - From: {item.s_warehouse or 'None'}\"\n                f\"\\n  - To: {item.t_warehouse or 'consumed'}\"\n                f\"\\n  - Basic Rate: {item.basic_rate}\"\n                f\"\\n  - Amount: {item.amount}\"\n            )\n        \n        # Check if any items are being moved from Bin 001\n        bin1_items = [\n            item for item in target.items \n            if item.s_warehouse == \"Bin 001 - EPI\"\n        ]\n        \n        if bin1_items:\n            # Log what we found from Bin 001\n            logger.info(\n                f\"Found {len(bin1_items)} items being moved from Bin 001 in \"\n                f\"Stock Entry {target.name}:\"\n            )\n            for item in bin1_items:\n                logger.info(\n                    f\"- {item.item_code}: {item.qty} {item.uom} \"\n                    f\"to {item.t_warehouse or 'consumed'}\"\n                )\n\n            # Determine the appropriate action based on signal type and configured value\n            if doc.action_type == \"Write\":\n                if \"Digital\" in signal.signal_type:\n                    # For digital signals, write the configured boolean value\n                    value = doc.boolean_value == \"HIGH\"\n                    logger.info(\n                        f\"Writing digital value {value} to signal {signal.name}\"\n                    )\n                    signal.write_signal(value)\n                else:\n                    # For analog signals, write the configured float value\n                    logger.info(\n                        f\"Writing analog value {doc.float_value} to signal {signal.name}\"\n                    )\n                    signal.write_signal(doc.float_value)\n            else:  # Read action\n                value = signal.read_signal()\n                logger.info(f\"Read value {value} from signal {signal.name}\")\n\n            # Add a comment to the Stock Entry for audit trail\n            target.add_comment(\n                'Comment',  # Built-in comment type\n                text=(\n                    f\"Modbus Action {doc.name} triggered:\\n\"\n                    f\"- Signal: {signal.name}\\n\"\n                    f\"- Action: {doc.action_type}\\n\"\n                    f\"- Value: {value}\\n\"\n                    f\"- Items from Bin 001: {', '.join(i.item_code for i in bin1_items)}\"\n                )\n            )\n            \n            # Save the comment\n            target.save(ignore_permissions=True)\n\n            logger.info(\n                f\"Successfully completed Modbus Action {doc.name} \"\n                f\"for Stock Entry {target.name}\"\n            )\n        else:\n            logger.debug(\n                f\"No items from Bin 001 found in Stock Entry {target.name}, \"\n                f\"skipping action {doc.name}\"\n            )\n    else:\n        logger.debug(\n            f\"Stock Entry {target.name} not submitted (status={target.docstatus}), \"\n            f\"skipping action {doc.name}\"\n        )\n\nexcept Exception as e:\n    # Log the full error with traceback\n    error_msg = (\n        f\"Error executing Modbus Action {doc.name} \"\n        f\"on Stock Entry {target.name}: {str(e)}\"\n    )\n    logger.error(error_msg)\n    \n    # Also log to Frappe error log for admin visibility\n    frappe.log_error(\n        frappe.get_traceback(),\n        f\"Modbus Action Script Error - {doc.name}\"\n    )\n    \n    # Re-raise the exception to be handled by the calling code\n    raise# Context variables available:\n#   doc: The current ModbusAction document\n#   target: The Stock Entry document being monitored\n#   signal: The Modbus Signal document being controlled\n#   logger: The epinomy logger instance\ntry:\n    # First check if this is actually a submission\n    # This prevents the script from running during other events\n    if target.docstatus == 1:  # 1 = Submitted\n        # Log the start of our processing\n        logger.info(\n            f\"Processing Stock Entry {target.name} for Modbus Action {doc.name} \"\n            f\"on signal {signal.name}\"\n        )\n        \n        # Log all items in the Stock Entry\n        logger.info(f\"Stock Entry {target.name} contains {len(target.items)} items:\")\n        for item in target.items:\n            logger.info(\n                f\"Item: {item.item_code}\"\n                f\"\\n  - Quantity: {item.qty} {item.uom}\"\n                f\"\\n  - From: {item.s_warehouse or 'None'}\"\n                f\"\\n  - To: {item.t_warehouse or 'consumed'}\"\n                f\"\\n  - Basic Rate: {item.basic_rate}\"\n                f\"\\n  - Amount: {item.amount}\"\n            )\n        \n        # Check if any items are being moved from Bin 001\n        bin1_items = [\n            item for item in target.items \n            if item.s_warehouse == \"Bin 001\"\n        ]\n        \n        if bin1_items:\n            # Log what we found from Bin 001\n            logger.info(\n                f\"Found {len(bin1_items)} items being moved from Bin 001 in \"\n                f\"Stock Entry {target.name}:\"\n            )\n            for item in bin1_items:\n                logger.info(\n                    f\"- {item.item_code}: {item.qty} {item.uom} \"\n                    f\"to {item.t_warehouse or 'consumed'}\"\n                )\n\n            # Toggle our signal\n            # Note: signal was passed to us in the context and is already\n            # a loaded Modbus Signal document\n            logger.info(\n                f\"Triggering signal {signal.name} via toggle_location_pin()\"\n            )\n            signal.toggle_location_pin()\n\n            # Add a comment to the Stock Entry for audit trail\n            target.add_comment(\n                'Comment',  # Built-in comment type\n                text=(\n                    f\"Modbus Action {doc.name} triggered:\\n\"\n                    f\"- Signal: {signal.name}\\n\"\n                    f\"- Items from Bin 001: {', '.join(i.item_code for i in bin1_items)}\"\n                )\n            )\n            \n            # Save the comment\n            target.save(ignore_permissions=True)\n\n            logger.info(\n                f\"Successfully completed Modbus Action {doc.name} \"\n                f\"for Stock Entry {target.name}\"\n            )\n        else:\n            logger.debug(\n                f\"No items from Bin 001 found in Stock Entry {target.name}, \"\n                f\"skipping action {doc.name}\"\n            )\n    else:\n        logger.debug(\n            f\"Stock Entry {target.name} not submitted (status={target.docstatus}), \"\n            f\"skipping action {doc.name}\"\n        )\n\nexcept Exception as e:\n    # Log the full error with traceback\n    error_msg = (\n        f\"Error executing Modbus Action {doc.name} \"\n        f\"on Stock Entry {target.name}: {str(e)}\"\n    )\n    logger.error(error_msg)\n    \n    # Also log to Frappe error log for admin visibility\n    frappe.log_error(\n        frappe.get_traceback(),\n        f\"Modbus Action Script Error - {doc.name}\"\n    )\n    \n    # Re-raise the exception to be handled by the calling code\n    raise# Context variables available:\n#   doc: The current ModbusAction document\n#   target: The Stock Entry document being monitored\n#   signal: The Modbus Signal document being controlled\n#   logger: The epinomy logger instance\n\ntry:\n    # First check if this is actually a submission\n    # This prevents the script from running during other events\n    if target.docstatus == 1:  # 1 = Submitted\n        # Log the start of our processing\n        logger.info(\n            f\"Processing Stock Entry {target.name} for Modbus Action {doc.name} \"\n            f\"on signal {signal.name}\"\n        )\n\n        # Check if any items are being moved from Bin 1\n        # items is a table field in Stock Entry containing Stock Entry Detail records\n        bin1_items = [\n            item for item in target.items \n            if item.s_warehouse == \"Bin 1\"\n        ]\n\n        if bin1_items:\n            # Log what we found\n            logger.info(\n                f\"Found {len(bin1_items)} items being moved from Bin 1 in \"\n                f\"Stock Entry {target.name}:\"\n            )\n            for item in bin1_items:\n                logger.info(\n                    f\"- {item.item_code}: {item.qty} {item.uom} \"\n                    f\"to {item.t_warehouse or 'consumed'}\"\n                )\n\n            # Toggle our signal\n            # Note: signal was passed to us in the context and is already\n            # a loaded Modbus Signal document\n            logger.info(\n                f\"Triggering signal {signal.name} via toggle_location_pin()\"\n            )\n            signal.toggle_location_pin()\n\n            # Add a comment to the Stock Entry for audit trail\n            target.add_comment(\n                'Comment',  # Built-in comment type\n                text=(\n                    f\"Modbus Action {doc.name} triggered:\\n\"\n                    f\"- Signal: {signal.name}\\n\"\n                    f\"- Items from Bin 1: {', '.join(i.item_code for i in bin1_items)}\"\n                )\n            )\n            \n            # Save the comment\n            target.save(ignore_permissions=True)\n\n            logger.info(\n                f\"Successfully completed Modbus Action {doc.name} \"\n                f\"for Stock Entry {target.name}\"\n            )\n        else:\n            logger.debug(\n                f\"No items from Bin 1 found in Stock Entry {target.name}, \"\n                f\"skipping action {doc.name}\"\n            )\n    else:\n        logger.debug(\n            f\"Stock Entry {target.name} not submitted (status={target.docstatus}), \"\n            f\"skipping action {doc.name}\"\n        )\n\nexcept Exception as e:\n    # Log the full error with traceback\n    error_msg = (\n        f\"Error executing Modbus Action {doc.name} \"\n        f\"on Stock Entry {target.name}: {str(e)}\"\n    )\n    logger.error(error_msg)\n    \n    # Also log to Frappe error log for admin visibility\n    frappe.log_error(\n        frappe.get_traceback(),\n        f\"Modbus Action Script Error - {doc.name}\"\n    )\n    \n    # Re-raise the exception to be handled by the calling code\n    raise",
-   "description": "Python script executed when the signal changes or action is triggered.",
-   "fieldname": "trigger_script",
-   "fieldtype": "Code",
-   "label": "Trigger Script",
-   "options": "Python"
-  },
-  {
-   "fieldname": "trigger_doctype",
-   "fieldtype": "Link",
-   "label": "Monitor Doctype",
-   "options": "DocType"
-  },
-  {
    "fieldname": "action_name",
    "fieldtype": "Data",
    "label": "Action Name",
    "reqd": 1
-  },
-  {
-   "fieldname": "column_break_qqht",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "section_break_ebhf",
-   "fieldtype": "Section Break",
-   "label": "Event Monitor"
-  },
-  {
-   "fieldname": "column_break_ehlf",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "section_break_nsdj",
-   "fieldtype": "Section Break"
   },
   {
    "fieldname": "device",
@@ -118,95 +41,37 @@
    "reqd": 1
   },
   {
-   "fieldname": "signal_type",
-   "fieldtype": "Data",
-   "label": "Signal Type"
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
   },
   {
-   "fieldname": "events_section",
-   "fieldtype": "Section Break",
-   "label": "Events"
-  },
-  {
-   "fieldname": "column_break_nibk",
+   "fieldname": "column_break_drsf",
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "test_document",
-   "fieldtype": "Dynamic Link",
-   "label": "Test Document",
-   "options": "trigger_doctype"
+   "description": "Link to the Server Script to execute.  ",
+   "fieldname": "server_script",
+   "fieldtype": "Link",
+   "label": "Server Script",
+   "options": "Server Script",
+   "reqd": 1
   },
   {
-   "default": "0",
-   "fieldname": "handle_validate",
-   "fieldtype": "Check",
-   "label": "On Validate"
+   "fieldname": "script_parameters_section",
+   "fieldtype": "Section Break",
+   "label": "Script Parameters"
   },
   {
-   "default": "0",
-   "fieldname": "handle_before_insert",
-   "fieldtype": "Check",
-   "label": "Before Insert"
-  },
-  {
-   "default": "0",
-   "fieldname": "handle_after_insert",
-   "fieldtype": "Check",
-   "label": "After Insert"
-  },
-  {
-   "default": "0",
-   "fieldname": "handle_before_save",
-   "fieldtype": "Check",
-   "label": "Before Save"
-  },
-  {
-   "default": "0",
-   "fieldname": "handle_before_update_after_submit",
-   "fieldtype": "Check",
-   "label": "Before Update After Submit"
-  },
-  {
-   "default": "0",
-   "fieldname": "handle_on_update_after_submit",
-   "fieldtype": "Check",
-   "label": "On Update After Submit"
-  },
-  {
-   "default": "0",
-   "fieldname": "handle_on_update",
-   "fieldtype": "Check",
-   "label": "On Update"
-  },
-  {
-   "default": "0",
-   "fieldname": "handle_on_restore",
-   "fieldtype": "Check",
-   "label": "On Restore"
-  },
-  {
-   "default": "0",
-   "fieldname": "handle_on_submit",
-   "fieldtype": "Check",
-   "label": "On Submit"
-  },
-  {
-   "default": "0",
-   "fieldname": "handle_on_cancel",
-   "fieldtype": "Check",
-   "label": "On Cancel"
-  },
-  {
-   "default": "0",
-   "fieldname": "handle_on_trash",
-   "fieldtype": "Check",
-   "label": "On Trash"
+   "fieldname": "parameters",
+   "fieldtype": "Table",
+   "label": "Parameters",
+   "options": "Modbus Parameter"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-02 20:00:13.015610",
+ "modified": "2025-01-03 14:45:05.648600",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Action",
