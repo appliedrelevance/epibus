@@ -11,12 +11,19 @@
  "field_order": [
   "action_name",
   "description",
+  "enabled",
   "column_break_drsf",
   "device",
   "signal",
   "server_script",
   "script_parameters_section",
-  "parameters"
+  "parameters",
+  "trigger_settings_section",
+  "trigger_type",
+  "column_break_hbxc",
+  "trigger_doctype",
+  "trigger_event",
+  "interval_seconds"
  ],
  "fields": [
   {
@@ -67,11 +74,54 @@
    "fieldtype": "Table",
    "label": "Parameters",
    "options": "Modbus Parameter"
+  },
+  {
+   "fieldname": "trigger_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Trigger Settings"
+  },
+  {
+   "default": "API",
+   "fieldname": "trigger_type",
+   "fieldtype": "Select",
+   "label": "Trigger Type",
+   "options": "API\nDocType Event\nScheduler Event"
+  },
+  {
+   "depends_on": "eval:doc.trigger_type=='DocType Event'",
+   "fieldname": "trigger_doctype",
+   "fieldtype": "Link",
+   "label": "Trigger Doctype",
+   "options": "DocType"
+  },
+  {
+   "depends_on": "eval:doc.trigger_type=='DocType Event'",
+   "fieldname": "trigger_event",
+   "fieldtype": "Select",
+   "label": "Trigger Event",
+   "options": "Before Insert\nAfter Insert\nBefore Save\nAfter Save\nBefore Submit\nAfter Submit\nBefore Cancel\nAfter Cancel\nBefore Delete\nAfter Delete\nBefore Save (Submitted Document)\nAfter Save (Submitted Document)"
+  },
+  {
+   "fieldname": "column_break_hbxc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.trigger_type=='Scheduler Event'",
+   "fieldname": "interval_seconds",
+   "fieldtype": "Int",
+   "label": "Interval Seconds"
+  },
+  {
+   "default": "1",
+   "description": "Enable/disable this action",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-03 14:45:05.648600",
+ "modified": "2025-01-05 17:26:49.642460",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Action",

@@ -21,9 +21,14 @@ class ModbusAction(Document):
         action_name: DF.Data
         description: DF.SmallText | None
         device: DF.Link
+        enabled: DF.Check
+        interval_seconds: DF.Int
         parameters: DF.Table[ModbusParameter]
         server_script: DF.Link
         signal: DF.Link
+        trigger_doctype: DF.Link | None
+        trigger_event: DF.Literal["Before Insert", "After Insert", "Before Save", "After Save", "Before Submit", "After Submit", "Before Cancel", "After Cancel", "Before Delete", "After Delete", "Before Save (Submitted Document)", "After Save (Submitted Document)"]
+        trigger_type: DF.Literal["API", "DocType Event", "Scheduler Event"]
     # end: auto-generated types
     def validate(self):
         if not self.device:

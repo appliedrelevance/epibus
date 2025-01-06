@@ -9,26 +9,17 @@ app_description = (
 app_email = "geveritt@appliedrelevance.com"
 app_license = "MIT"
 
-# Document Events
-# ---------------
-# Hook on document methods and events
+# After app startup
+after_install = "epibus.epibus.utils.signal_monitor.setup_scheduler_job"
 
-# doc_events = {
-#     "*": {
-#         "validate": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-#         "before_insert": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-#         "after_insert": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-#         "before_save": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-#         "before_update_after_submit": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-#         "on_update_after_submit": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-#         "on_update": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-#         "on_submit": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-#         "on_cancel": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-#         "on_trash": "epibus.epibus.utils.modbus_handlers.handle_doc_event",
-#     }
-# }
-
-
+# Scheduler jobs
+scheduler_jobs = [
+    {
+        "doctype": "Scheduled Job Type",
+        "method": "epibus.epibus.utils.signal_monitor.check_signals",
+        "frequency": "All"
+    }
+]
 fixtures = [
     {
         "dt": "Role",
