@@ -1,7 +1,7 @@
 {
  "charts": [],
- "content": "[{\"id\":\"boPg_-oQOX\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">EpiBus</span>\",\"col\":12}},{\"id\":\"LEfpIArEmD\",\"type\":\"paragraph\",\"data\":{\"text\":\"EpiBus is a MODBUS Integration for Epinomy and ERPNext.&nbsp; It allows you to control manufacturing hardware like Programmable Logic Controllers (PLCs), Robots and other devices that support the MODBUS protocol.&nbsp;\",\"col\":12}},{\"id\":\"caExZmdfT9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Modbus Settings\",\"col\":5}},{\"id\":\"DqK8wkoHQF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Modbus Documents</span>\",\"col\":12}},{\"id\":\"OlilxW5QK5\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Actions\",\"col\":6}},{\"id\":\"KPT1S3MuK0\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Devices\",\"col\":6}}]",
- "creation": "2025-01-02 16:23:49.999304",
+ "content": "[{\"id\":\"boPg_-oQOX\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">EpiBus</span>\",\"col\":12}},{\"id\":\"LEfpIArEmD\",\"type\":\"paragraph\",\"data\":{\"text\":\"EpiBus is a MODBUS Integration for Epinomy and ERPNext.&nbsp; It allows you to control manufacturing hardware like Programmable Logic Controllers (PLCs), Robots and other devices that support the MODBUS protocol.&nbsp;\",\"col\":12}},{\"id\":\"caExZmdfT9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Modbus Settings\",\"col\":5}},{\"id\":\"DqK8wkoHQF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Modbus Documents</span>\",\"col\":12}},{\"id\":\"OlilxW5QK5\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Actions\",\"col\":4}},{\"id\":\"KPT1S3MuK0\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Devices\",\"col\":4}},{\"id\":\"kkvByfQTsm\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Simulators\",\"col\":4}}]",
+ "creation": "2025-01-13 14:59:44.939029",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -12,7 +12,7 @@
  "is_hidden": 0,
  "label": "EpiBus",
  "links": [],
- "modified": "2025-01-02 16:26:13.557820",
+ "modified": "2025-01-14 11:35:20.012277",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "EpiBus",
@@ -21,6 +21,11 @@
  "parent_page": "",
  "public": 1,
  "quick_lists": [
+  {
+   "document_type": "Modbus Simulator",
+   "label": "Simulators",
+   "quick_list_filter": "[]"
+  },
   {
    "document_type": "Modbus Device",
    "label": "Modbus Devices",

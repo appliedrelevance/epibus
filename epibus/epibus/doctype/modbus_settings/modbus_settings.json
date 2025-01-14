@@ -63,7 +63,6 @@
    "label": "Enable Simulator"
   },
   {
-   "depends_on": "eval:enable_simulator\n",
    "fieldname": "simulator_host",
    "fieldtype": "Data",
    "label": "Simulator Host"
@@ -97,7 +96,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-12-18 17:09:32.409719",
+ "modified": "2025-01-14 10:05:48.701052",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Settings",

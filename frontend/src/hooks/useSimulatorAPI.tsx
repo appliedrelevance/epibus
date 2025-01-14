@@ -4,13 +4,13 @@ import type { Simulator, SimulatorResponse } from '../types/simulator';
 
 export function useSimulatorAPI() {
     const { data: rawSimulators, error: simulatorsError, mutate: refetchSimulators } =
-        useFrappeGetCall<{ message: any[] }>('epibus.epibus.simulator.simulator.get_simulators');
+        useFrappeGetCall<{ message: any[] }>('epibus.epibus.api.simulator.get_simulators');
 
     const { call: startSimulatorCall } =
-        useFrappePostCall<SimulatorResponse>('epibus.epibus.simulator.simulator.start_simulator');
+        useFrappePostCall<SimulatorResponse>('epibus.epibus.api.simulator.start_simulator');
 
     const { call: stopSimulatorCall } =
-        useFrappePostCall<SimulatorResponse>('epibus.epibus.simulator.simulator.stop_simulator');
+        useFrappePostCall<SimulatorResponse>('epibus.epibus.api.simulator.stop_simulator');
 
     // Map raw simulator data to the expected format
     const simulators: Simulator[] = rawSimulators?.message.map((sim) => ({
