@@ -1,23 +1,34 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:simulator_name",
+ "autoname": "format:SIM-{#####}",
  "creation": "2024-12-18 17:17:32.404153",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "simulator_name",
-  "description",
-  "equipment_type",
-  "status_section",
-  "connection_status",
-  "last_status_update",
-  "column_break_mljz",
   "enabled",
+  "description",
+  "column_break_xtiq",
   "server_port",
   "server_script",
+  "equipment_type",
   "io_configuration_section",
-  "io_points"
+  "io_points",
+  "advanced_tab",
+  "auto_start",
+  "debug_mode",
+  "column_break_sjlf",
+  "response_timeout",
+  "reconnect_delay",
+  "status_tab",
+  "status_section",
+  "server_status",
+  "last_status_update",
+  "error_message",
+  "column_break_jssu",
+  "server_uptime",
+  "active_connections"
  ],
  "fields": [
   {
@@ -35,6 +46,7 @@
   },
   {
    "default": "PLC",
+   "description": "What kind of equipment is being  emulated.",
    "fieldname": "equipment_type",
    "fieldtype": "Select",
    "label": "Equipment Type",
@@ -46,22 +58,9 @@
    "label": "Status"
   },
   {
-   "fieldname": "connection_status",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Connection Status",
-   "options": "Disconnected\nConnecting\nConnected\nError",
-   "read_only": 1
-  },
-  {
    "fieldname": "last_status_update",
    "fieldtype": "Datetime",
-   "label": "Last Status Update",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_mljz",
-   "fieldtype": "Column Break"
+   "label": "Last status Update"
   },
   {
    "default": "0",
@@ -72,6 +71,7 @@
   },
   {
    "default": "502",
+   "description": "TCP/IP port to listen to.   Simulator is always on localhost.  ",
    "fieldname": "server_port",
    "fieldtype": "Int",
    "label": "Server Port"
@@ -93,15 +93,88 @@
    "fieldtype": "Link",
    "label": "Server Script",
    "options": "Server Script"
+  },
+  {
+   "fieldname": "column_break_xtiq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "server_status",
+   "fieldtype": "Select",
+   "label": "Server Status",
+   "options": "Stopped\nStarting\nRunning\nStopping\nError"
+  },
+  {
+   "depends_on": "eval:doc.server_status==='Error'",
+   "fieldname": "error_message",
+   "fieldtype": "Small Text",
+   "label": "Error Message"
+  },
+  {
+   "fieldname": "column_break_jssu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.server_status==='Running'\n",
+   "fieldname": "server_uptime",
+   "fieldtype": "Duration",
+   "is_virtual": 1,
+   "label": "Server Uptime",
+   "read_only": 1
+  },
+  {
+   "fieldname": "active_connections",
+   "fieldtype": "Int",
+   "label": "Active Connections"
+  },
+  {
+   "fieldname": "advanced_tab",
+   "fieldtype": "Tab Break",
+   "label": "Advanced"
+  },
+  {
+   "default": "0",
+   "fieldname": "debug_mode",
+   "fieldtype": "Check",
+   "label": "Debug Mode"
+  },
+  {
+   "fieldname": "column_break_sjlf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "10",
+   "description": "Timeout in seconds for Modbus responses",
+   "fieldname": "response_timeout",
+   "fieldtype": "Int",
+   "label": "Response Timeout"
+  },
+  {
+   "default": "5",
+   "description": "Delay in seconds before attempting reconnection",
+   "fieldname": "reconnect_delay",
+   "fieldtype": "Int",
+   "label": "Reconnect Delay"
+  },
+  {
+   "fieldname": "status_tab",
+   "fieldtype": "Tab Break",
+   "label": "Status"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_start",
+   "fieldtype": "Check",
+   "label": "Autostart with System"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-14 10:57:24.926212",
+ "modified": "2025-01-15 20:10:35.140620",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Simulator",
- "naming_rule": "By fieldname",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -115,9 +188,35 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Modbus Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Modbus User",
+   "share": 1,
+   "write": 1
   }
  ],
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "simulator_name"
 }
