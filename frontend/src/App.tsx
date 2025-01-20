@@ -13,12 +13,11 @@ export default function App() {
     <FrappeProvider {...frappeConfig}>
       <UserProvider>
         <ProtectedRoute>
-          <div className="min-h-screen bg-background">
-            <div className="container py-8">
-              <h1 className="text-2xl font-bold mb-4">PLC Simulator</h1>
+          <main className="min-h-screen bg-background">
+            <div className="container mx-auto p-8">
               <PLCSimulator />
             </div>
-          </div>
+          </main>
         </ProtectedRoute>
       </UserProvider>
     </FrappeProvider>

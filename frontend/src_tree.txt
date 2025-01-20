@@ -4,12 +4,10 @@ src
 ├── assets
 │   └── react.svg
 ├── components
-│   ├── APITest.tsx
 │   ├── PLCSimulator.tsx
 │   ├── ProtectedRoute.tsx
-│   ├── providers
-│   │   └── FrappeProvider.tsx
 │   └── ui
+│       ├── alert.tsx
 │       ├── button.tsx
 │       ├── card.tsx
 │       ├── slider.tsx
@@ -19,17 +17,14 @@ src
 ├── contexts
 │   └── UserContext.tsx
 ├── hooks
-│   ├── useSession.tsx
-│   ├── useSignalMonitor.tsx
-│   ├── useSimulatorAPI.tsx
-│   └── useSimulator.tsx
-├── index.css
+│   └── useSimulatorAPI.tsx
 ├── lib
 │   └── utils.ts
 ├── main.tsx
+├── styles
+│   └── globals.css
 ├── types
-│   ├── frappe.d.ts
 │   └── simulator.ts
 └── vite-env.d.ts
 
-9 directories, 24 files
+9 directories, 19 files

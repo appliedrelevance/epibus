@@ -1,8 +1,8 @@
 import React from 'react';
-import { Power, RotateCw } from 'lucide-react';
+import { RefreshCw, Power } from 'lucide-react';
 import { useSimulatorAPI } from '../hooks/useSimulatorAPI';
 import { useUser } from '../contexts/UserContext';
-import type { ModbusSimulator, ServerStatus } from '../types/simulator';
+
 import {
   Table,
   TableBody,
@@ -12,14 +12,14 @@ import {
   TableRow,
 } from './ui/table';
 import { Button } from './ui/button';
-import { Card, CardContent } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
-const statusColors: Record<ServerStatus, string> = {
+const statusColors: Record<string, string> = {
   'Running': 'text-green-500',
   'Stopped': 'text-gray-500',
+  'Error': 'text-red-500',
   'Starting': 'text-yellow-500',
-  'Stopping': 'text-yellow-500',
-  'Error': 'text-red-500'
+  'Stopping': 'text-yellow-500'
 };
 
 export const PLCSimulator: React.FC = () => {
@@ -32,47 +32,52 @@ export const PLCSimulator: React.FC = () => {
     refetchSimulators
   } = useSimulatorAPI();
 
-  const handleAction = (simulator: ModbusSimulator) => {
-    console.log(`🎮 Processing action for ${simulator.simulator_name}`);
-    const isRunning = simulator.server_status === 'Running';
+  console.log('📊 Current simulators:', simulators);
 
-    const actionFn = isRunning ? stopSimulator : startSimulator;
-    actionFn(simulator.name)
+  if (userLoading) {
+    return <div className="flex justify-center p-8">Loading...</div>;
+  }
+
+  if (!user) {
+    return <div className="text-red-500 p-8">Please log in to view PLC simulators</div>;
+  }
+
+  if (simulatorsError) {
+    return <div className="text-red-500 p-8">{simulatorsError.message}</div>;
+  }
+
+  const handleSimulatorAction = (name: string, status: string) => {
+    console.log(`🎮 ${status === 'Running' ? 'Stopping' : 'Starting'} simulator:`, name);
+
+    const action = status === 'Running' ? stopSimulator : startSimulator;
+    action(name)
       .then(() => {
-        console.log(`✅ ${isRunning ? 'Stop' : 'Start'} successful for ${simulator.name}`);
+        console.log(`✅ Action successful for ${name}`);
         refetchSimulators();
       })
       .catch((err) => {
-        console.error(`❌ Action failed:`, err);
+        console.error(`❌ Error with simulator action:`, err);
       });
   };
 
-  if (userLoading) return <div>Loading...</div>;
-  if (!user) return <div>Please log in to view simulators</div>;
-  if (simulatorsError) return <div>Error: {simulatorsError instanceof Error ? simulatorsError.message : String(simulatorsError)}</div>;
-
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">PLC Simulators</h1>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              console.log('🔄 Refreshing simulators');
-              refetchSimulators();
-            }}
-          >
-            <RotateCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
-
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>PLC Simulators</CardTitle>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => refetchSimulators()}
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </CardHeader>
+      <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead>ID</TableHead>
+              <TableHead>Simulator Name</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Port</TableHead>
               <TableHead>Equipment Type</TableHead>
@@ -81,28 +86,29 @@ export const PLCSimulator: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!simulators?.length ? (
+            {simulators.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center">
+                <TableCell
+                  colSpan={6}
+                  className="text-center text-muted-foreground"
+                >
                   No simulators configured
                 </TableCell>
               </TableRow>
             ) : (
               simulators.map((simulator) => (
                 <TableRow key={simulator.name}>
-                  <TableCell>{simulator.simulator_name}</TableCell>
+                  <TableCell>{simulator.name}</TableCell>
+                  <TableCell className="font-medium">
+                    {simulator.simulator_name}
+                  </TableCell>
                   <TableCell>
                     <span className={statusColors[simulator.server_status]}>
                       {simulator.server_status}
-                      {simulator.error_message && (
-                        <span className="ml-2 text-xs text-red-500">
-                          ({simulator.error_message})
-                        </span>
-                      )}
                     </span>
                   </TableCell>
                   <TableCell>{simulator.server_port}</TableCell>
-                  <TableCell>{simulator.equipment_type || 'Unknown'}</TableCell>
+                  <TableCell>{simulator.equipment_type}</TableCell>
                   <TableCell>
                     {new Date(simulator.last_status_update).toLocaleString()}
                   </TableCell>
@@ -110,10 +116,13 @@ export const PLCSimulator: React.FC = () => {
                     <Button
                       size="sm"
                       variant={simulator.server_status === 'Running' ? 'destructive' : 'default'}
-                      onClick={() => handleAction(simulator)}
+                      onClick={() => handleSimulatorAction(
+                        simulator.name,
+                        simulator.server_status
+                      )}
                       disabled={!simulator.enabled}
                     >
-                      <Power className="h-4 w-4 mr-2" />
+                      <Power className="h-4 w-4 mr-1" />
                       {simulator.server_status === 'Running' ? 'Stop' : 'Start'}
                     </Button>
                   </TableCell>

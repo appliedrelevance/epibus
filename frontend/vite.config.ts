@@ -1,10 +1,12 @@
-// vite.config.ts
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  css: {
+    postcss: './postcss.config.js'
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
@@ -12,7 +14,7 @@ export default defineConfig({
   },
   server: {
     port: 8888,
-    host: '0.0.0.0', // Allow external access
+    host: '0.0.0.0',
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
@@ -24,22 +26,15 @@ export default defineConfig({
       },
     },
     hmr: {
-      clientPort: 8888 // Ensure HMR works through Docker
+      clientPort: 8888
     },
     watch: {
-      usePolling: true // Better file watching in Docker
+      usePolling: true
     }
   },
   build: {
     outDir: '../epibus/public/frontend',
     emptyOutDir: true,
-    sourcemap: true,
-    rollupOptions: {
-      output: {
-        entryFileNames: `assets/[name].js`,
-        chunkFileNames: `assets/[name].js`,
-        assetFileNames: `assets/[name].[ext]`
-      }
-    }
+    sourcemap: true
   }
 })
