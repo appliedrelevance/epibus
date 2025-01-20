@@ -1,52 +1,72 @@
-// src/lib/api.ts
-import { useFrappeGetCall, useFrappePostCall } from 'frappe-react-sdk';
-import type { Simulator, SimulatorResponse } from '../types/simulator';
+import { useFrappeGetCall, useFrappePostCall, FrappeError } from 'frappe-react-sdk';
+import type { ModbusSimulator } from '../types/simulator';
 
 export function useSimulatorAPI() {
     const { data: rawSimulators, error: simulatorsError, mutate: refetchSimulators } =
-        useFrappeGetCall<{ message: any[] }>('epibus.epibus.api.simulator.get_simulators');
+        useFrappeGetCall<{ message: ModbusSimulator[] }>(
+            'epibus.epibus.api.simulator.get_simulators'
+        );
 
     const { call: startSimulatorCall } =
-        useFrappePostCall<SimulatorResponse>('epibus.epibus.api.simulator.start_simulator');
+        useFrappePostCall('epibus.epibus.api.simulator.start_simulator');
 
     const { call: stopSimulatorCall } =
-        useFrappePostCall<SimulatorResponse>('epibus.epibus.api.simulator.stop_simulator');
+        useFrappePostCall('epibus.epibus.api.simulator.stop_simulator');
 
-    // Map raw simulator data to the expected format
-    const simulators: Simulator[] = rawSimulators?.message.map((sim) => ({
-        name: sim.name,
-        connection_status: sim.status || 'Unknown', // Fallback if `status` is missing
-        server_port: sim.port,
-        enabled: true, // Assume enabled unless explicitly returned
-        last_status_update: sim.last_status_update || new Date().toISOString(), // Mock value if not provided
-    })) || [];
+    // No mapping needed - just pass through the data
+    const simulators = rawSimulators?.message || [];
+
+    console.log('📊 Raw simulator data:', simulators);
 
     const startSimulator = (simulatorName: string) => {
-        return startSimulatorCall({ simulator_name: simulatorName })
+        console.log('🚀 Starting simulator:', simulatorName);
+
+        return startSimulatorCall({
+            simulator_name: simulatorName
+        })
             .then((response) => {
-                refetchSimulators(); // Refresh simulator data after the action
+                console.log('✅ Start response:', response);
+                if (response?.message?.error) {
+                    throw new Error(response.message.error);
+                }
+                refetchSimulators();
                 return response;
             })
-            .catch((error) => {
-                console.error('Error starting simulator:', error);
+            .catch((error: FrappeError) => {
+                console.error('❌ Start error:', error);
+                if (error.httpStatus === 403) {
+                    console.error('🔐 CSRF Token error - trying to refresh');
+                    window.location.reload();
+                    return;
+                }
                 throw error;
             });
     };
 
     const stopSimulator = (simulatorName: string) => {
-        return stopSimulatorCall({ simulator_name: simulatorName })
+        console.log('🛑 Stopping simulator:', simulatorName);
+
+        return stopSimulatorCall({
+            simulator_name: simulatorName
+        })
             .then((response) => {
-                refetchSimulators(); // Refresh simulator data after the action
+                console.log('✅ Stop response:', response);
+                if (response?.message?.error) {
+                    throw new Error(response.message.error);
+                }
+                refetchSimulators();
                 return response;
             })
-            .catch((error) => {
-                console.error('Error stopping simulator:', error);
+            .catch((error: FrappeError) => {
+                console.error('❌ Stop error:', error);
+                if (error.httpStatus === 403) {
+                    console.error('🔐 CSRF Token error - trying to refresh');
+                    window.location.reload();
+                    return;
+                }
                 throw error;
             });
     };
-
-    console.log('Processed Simulators:', simulators);
-    console.log('Simulators Error:', simulatorsError);
 
     return {
         simulators,
