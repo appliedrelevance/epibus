@@ -1,22 +1,18 @@
 // src/hooks/useSimulatorAPI.tsx
-import { useFrappeGetDocList, useFrappePostCall, FrappeError } from 'frappe-react-sdk';
+import { useFrappeGetCall, useFrappePostCall, FrappeError } from 'frappe-react-sdk';
 import type { ModbusSimulator, SimulatorResponse } from '../types/simulator';
 
 export function useSimulatorAPI() {
-
-
-    // Use standard hook for getting simulator list with error handling
-    const { data: rawSimulators, error: simulatorsError, mutate: refetchSimulators } =
-        useFrappeGetDocList<ModbusSimulator>(
-            'Modbus Simulator',
-            {
-                fields: ['*'],
-                orderBy: {
-                    field: 'modified',
-                    order: 'desc'
-                }
-            }
+    // Use our custom API endpoint to get simulators with signals
+    const { data, error: simulatorsError, mutate: refetchSimulators } =
+        useFrappeGetCall<{
+            message: ModbusSimulator[]
+        }>(
+            'epibus.epibus.api.simulator.list_simulators'
         );
+
+    // Log the response for debugging
+    console.log('🔍 API Response:', data);
 
     // Use dedicated hooks for start/stop operations
     const { call: startSimulatorCall } =
@@ -25,10 +21,8 @@ export function useSimulatorAPI() {
     const { call: stopSimulatorCall } =
         useFrappePostCall<SimulatorResponse>('epibus.epibus.api.simulator.stop_simulator');
 
-    // No mapping needed - just pass through the data
-    const simulators = rawSimulators || [];
-
-    console.log('📊 Raw simulator data:', simulators);
+    // Extract simulators from response
+    const simulators = (data?.message || []) as ModbusSimulator[];
 
     const startSimulator = (simulatorName: string) => {
         console.log('🚀 Starting simulator:', simulatorName);

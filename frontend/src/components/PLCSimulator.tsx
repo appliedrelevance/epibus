@@ -1,7 +1,9 @@
-import React from 'react';
-import { RefreshCw, Power } from 'lucide-react';
+import React, { useState } from 'react';
+import { RefreshCw, Power, ChevronDown, ChevronRight } from 'lucide-react';
 import { useSimulatorAPI } from '../hooks/useSimulatorAPI';
 import { useUser } from '../contexts/UserContext';
+import { SignalGrid } from './signals';
+import type { ModbusSimulator } from '../types/simulator';
 
 import {
   Table,
@@ -32,13 +34,28 @@ export const PLCSimulator: React.FC = () => {
     refetchSimulators
   } = useSimulatorAPI();
 
-  console.log('📊 Current simulators:', simulators);
+  // Track expanded rows
+  const [expandedRows, setExpandedRows] = useState<string[]>([]);
+
+  // Toggle row expansion
+  const toggleRow = (simulatorId: string) => {
+    setExpandedRows(current =>
+      current.includes(simulatorId)
+        ? current.filter(id => id !== simulatorId)
+        : [...current, simulatorId]
+    );
+  };
+
+  // Handle signal value changes
+  const handleSignalChange = (simulator: ModbusSimulator, signalName: string, value: number | boolean) => {
+    console.log(`🎛️ Signal change on ${simulator.name}: ${signalName} = ${value}`);
+    // TODO: Implement signal value update via API
+  };
 
   if (userLoading) {
     return <div className="flex justify-center p-8">Loading...</div>;
   }
 
-  // Make sure we handle the case when user might be null
   if (!user) {
     return (
       <div className="text-red-500 p-8">
@@ -88,6 +105,7 @@ export const PLCSimulator: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8"></TableHead>
               <TableHead>ID</TableHead>
               <TableHead>Simulator Name</TableHead>
               <TableHead>Status</TableHead>
@@ -101,7 +119,7 @@ export const PLCSimulator: React.FC = () => {
             {simulators.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={8}
                   className="text-center text-muted-foreground"
                 >
                   No simulators configured
@@ -109,36 +127,65 @@ export const PLCSimulator: React.FC = () => {
               </TableRow>
             ) : (
               simulators.map((simulator) => (
-                <TableRow key={simulator.name}>
-                  <TableCell>{simulator.name}</TableCell>
-                  <TableCell className="font-medium">
-                    {simulator.simulator_name}
-                  </TableCell>
-                  <TableCell>
-                    <span className={statusColors[simulator.server_status]}>
-                      {simulator.server_status}
-                    </span>
-                  </TableCell>
-                  <TableCell>{simulator.server_port}</TableCell>
-                  <TableCell>{simulator.equipment_type}</TableCell>
-                  <TableCell>
-                    {new Date(simulator.last_status_update).toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant={simulator.server_status === 'Running' ? 'destructive' : 'default'}
-                      onClick={() => handleSimulatorAction(
-                        simulator.name,
-                        simulator.server_status
-                      )}
-                      disabled={!simulator.enabled}
-                    >
-                      <Power className="h-4 w-4 mr-1" />
-                      {simulator.server_status === 'Running' ? 'Stop' : 'Start'}
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                <React.Fragment key={simulator.name}>
+                  <TableRow>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleRow(simulator.name)}
+                      >
+                        {expandedRows.includes(simulator.name) ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TableCell>
+                    <TableCell>{simulator.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {simulator.simulator_name}
+                    </TableCell>
+                    <TableCell>
+                      <span className={statusColors[simulator.server_status]}>
+                        {simulator.server_status}
+                      </span>
+                    </TableCell>
+                    <TableCell>{simulator.server_port}</TableCell>
+                    <TableCell>{simulator.equipment_type}</TableCell>
+                    <TableCell>
+                      {new Date(simulator.last_status_update).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant={simulator.server_status === 'Running' ? 'destructive' : 'default'}
+                        onClick={() => handleSimulatorAction(
+                          simulator.name,
+                          simulator.server_status
+                        )}
+                        disabled={!simulator.enabled}
+                      >
+                        <Power className="h-4 w-4 mr-1" />
+                        {simulator.server_status === 'Running' ? 'Stop' : 'Start'}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                  {expandedRows.includes(simulator.name) && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="p-0">
+                        <div className="bg-muted/50 border-y">
+                          <SignalGrid
+                            signals={simulator.io_points}
+                            onSignalChange={(signalName, value) =>
+                              handleSignalChange(simulator, signalName, value)
+                            }
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
               ))
             )}
           </TableBody>

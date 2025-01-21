@@ -21,6 +21,41 @@ def get_csrf_token():
     return {"csrf_token": frappe.session.data.csrf_token}
 
 
+# epibus/epibus/api/simulator.py
+
+import frappe
+from frappe import _
+from epibus.epibus.utils.epinomy_logger import get_logger
+
+logger = get_logger(__name__)
+
+
+@frappe.whitelist()
+def list_simulators():
+    """Get all simulators with their signals"""
+    try:
+        # Get base simulator documents
+        simulators = frappe.get_all(
+            "Modbus Simulator",
+            filters={},
+            fields=["*"],  # Get all fields from main doctype
+            order_by="modified desc",
+        )
+
+        # Fetch child table data for each simulator
+        for simulator in simulators:
+            simulator.io_points = frappe.get_all(
+                "Modbus Signal", filters={"parent": simulator.name}, fields=["*"]
+            )
+
+        logger.debug(f"Retrieved {len(simulators)} simulators with signals")
+        return simulators
+
+    except Exception as e:
+        logger.error(f"Error listing simulators: {str(e)}")
+        frappe.throw(_("Error retrieving simulators"))
+
+
 @frappe.whitelist()
 def get_simulators():
     """Get all configured simulators with their current status"""
