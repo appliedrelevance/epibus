@@ -6,6 +6,21 @@ from epibus.epibus.utils.epinomy_logger import get_logger
 logger = get_logger(__name__)
 
 
+@frappe.whitelist(allow_guest=True)
+def check_session():
+    logger.debug(f"Session CSRF token: {frappe.session.csrf_token}")
+    logger.debug(f"Full session info: {frappe.session.__dict__}")
+    return {"csrf_token": frappe.session.csrf_token, "user": frappe.session.user}
+
+
+@frappe.whitelist(allow_guest=True)
+def get_csrf_token():
+    """Get CSRF token for frontend API calls"""
+    logger = get_logger(__name__)
+    logger.debug("Getting CSRF token")
+    return {"csrf_token": frappe.session.data.csrf_token}
+
+
 @frappe.whitelist()
 def get_simulators():
     """Get all configured simulators with their current status"""

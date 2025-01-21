@@ -5,26 +5,27 @@ interface FrappeCall {
     args?: Record<string, any>
     freeze?: boolean
     freeze_message?: string
-  }
-  
-  interface FrappeResponse {
+}
+
+interface FrappeResponse {
     exc: boolean
     message?: any
-  }
-  
-  interface FrappeRealtime {
+}
+
+interface FrappeRealtime {
     on: (event: string, callback: () => void) => void
     off: (event: string, callback: () => void) => void
-  }
-  
-  interface Frappe {
+}
+
+interface Frappe {
     call: (opts: FrappeCall) => Promise<FrappeResponse>
     realtime: FrappeRealtime
-  }
-  
-  declare global {
+}
+
+declare global {
     const frappe: Frappe
     interface Window {
-      frappe: Frappe
+        frappe: Frappe
+        csrf_token: string  // Add this line to extend Window interface
     }
-  }
+}

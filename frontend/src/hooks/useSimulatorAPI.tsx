@@ -1,20 +1,32 @@
-import { useFrappeGetCall, useFrappePostCall, FrappeError } from 'frappe-react-sdk';
-import type { ModbusSimulator } from '../types/simulator';
+// src/hooks/useSimulatorAPI.tsx
+import { useFrappeGetDocList, useFrappePostCall, FrappeError } from 'frappe-react-sdk';
+import type { ModbusSimulator, SimulatorResponse } from '../types/simulator';
 
 export function useSimulatorAPI() {
+
+
+    // Use standard hook for getting simulator list with error handling
     const { data: rawSimulators, error: simulatorsError, mutate: refetchSimulators } =
-        useFrappeGetCall<{ message: ModbusSimulator[] }>(
-            'epibus.epibus.api.simulator.get_simulators'
+        useFrappeGetDocList<ModbusSimulator>(
+            'Modbus Simulator',
+            {
+                fields: ['*'],
+                orderBy: {
+                    field: 'modified',
+                    order: 'desc'
+                }
+            }
         );
 
+    // Use dedicated hooks for start/stop operations
     const { call: startSimulatorCall } =
-        useFrappePostCall('epibus.epibus.api.simulator.start_simulator');
+        useFrappePostCall<SimulatorResponse>('epibus.epibus.api.simulator.start_simulator');
 
     const { call: stopSimulatorCall } =
-        useFrappePostCall('epibus.epibus.api.simulator.stop_simulator');
+        useFrappePostCall<SimulatorResponse>('epibus.epibus.api.simulator.stop_simulator');
 
     // No mapping needed - just pass through the data
-    const simulators = rawSimulators?.message || [];
+    const simulators = rawSimulators || [];
 
     console.log('📊 Raw simulator data:', simulators);
 
@@ -34,7 +46,7 @@ export function useSimulatorAPI() {
             })
             .catch((error: FrappeError) => {
                 console.error('❌ Start error:', error);
-                if (error.httpStatus === 403) {
+                if (error.httpStatus === 400 && error.message?.includes('CSRF')) {
                     console.error('🔐 CSRF Token error - trying to refresh');
                     window.location.reload();
                     return;

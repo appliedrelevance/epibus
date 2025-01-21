@@ -2,8 +2,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useFrappeGetCall } from 'frappe-react-sdk';
 
+interface User {
+  full_name: string;
+  email: string;
+  // Add other user properties as needed
+}
+
 interface UserContextProps {
-  user: string | null;
+  user: User | null;
   isLoading: boolean;
   hasError: boolean;
 }
@@ -11,11 +17,11 @@ interface UserContextProps {
 const UserContext = createContext<UserContextProps | undefined>(undefined);
 
 export const UserProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [user, setUser] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  const { data, error } = useFrappeGetCall<{ message: string }>('frappe.auth.get_logged_user');
+  const { data, error } = useFrappeGetCall<{ message: User }>('frappe.auth.get_logged_user');
 
   useEffect(() => {
     if (data?.message) {

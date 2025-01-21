@@ -38,12 +38,21 @@ export const PLCSimulator: React.FC = () => {
     return <div className="flex justify-center p-8">Loading...</div>;
   }
 
+  // Make sure we handle the case when user might be null
   if (!user) {
-    return <div className="text-red-500 p-8">Please log in to view PLC simulators</div>;
+    return (
+      <div className="text-red-500 p-8">
+        Please log in to view PLC simulators
+      </div>
+    );
   }
 
   if (simulatorsError) {
-    return <div className="text-red-500 p-8">{simulatorsError.message}</div>;
+    return (
+      <div className="text-red-500 p-8">
+        {simulatorsError.message || 'An error occurred loading simulators'}
+      </div>
+    );
   }
 
   const handleSimulatorAction = (name: string, status: string) => {
@@ -73,6 +82,9 @@ export const PLCSimulator: React.FC = () => {
         </Button>
       </CardHeader>
       <CardContent>
+        <div className="text-sm text-muted-foreground mb-4">
+          Logged in as: <span className="font-medium">{String(user)}</span>
+        </div>
         <Table>
           <TableHeader>
             <TableRow>
