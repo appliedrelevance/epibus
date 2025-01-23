@@ -13,14 +13,18 @@ logger = get_logger(__name__)
 
 
 async def run_server(context, identity, port):
-    """Async function to run the server"""
-    try:
-        await StartAsyncTcpServer(
+    # Create task with timeout
+    task = asyncio.create_task(
+        StartAsyncTcpServer(
             context=context, identity=identity, address=("127.0.0.1", port)
         )
-    except Exception as e:
-        logger.error(f"Server error: {str(e)}")
-        raise
+    )
+    try:
+        result = await asyncio.wait_for(task, timeout=5.0)
+        return result
+    except asyncio.TimeoutError:
+        task.cancel()
+        raise ServerException("Server failed to start - timed out")
 
 
 def run_async_server(context, identity, port, ready_event):
