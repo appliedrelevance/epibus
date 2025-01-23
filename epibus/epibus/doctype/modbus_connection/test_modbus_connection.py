@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestModbusDevice(FrappeTestCase):
+class TestModbusConnection(FrappeTestCase):
 	pass

@@ -3,6 +3,8 @@
  "allow_rename": 1,
  "autoname": "format:SIM-{#####}",
  "creation": "2024-12-18 17:17:32.404153",
+ "default_view": "Image",
+ "description": "A lightweight MODBUS TCP simulator for emulating industrial control devices, supporting configurable I/O points, server-side scripting, and real-time monitoring of digital and analog signals across various equipment types like PLCs, robots, and conveyors.",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -11,8 +13,8 @@
   "description",
   "column_break_xtiq",
   "server_port",
-  "server_script",
   "equipment_type",
+  "thumbnail",
   "io_configuration_section",
   "io_points",
   "advanced_tab",
@@ -21,6 +23,8 @@
   "column_break_sjlf",
   "response_timeout",
   "reconnect_delay",
+  "simulation_section",
+  "simulator_script",
   "status_tab",
   "status_section",
   "server_status",
@@ -86,13 +90,6 @@
    "fieldtype": "Table",
    "label": "I/O Points",
    "options": "Modbus Signal"
-  },
-  {
-   "description": "Link to an API custom Server Script to execute for the simulator.  ",
-   "fieldname": "server_script",
-   "fieldtype": "Link",
-   "label": "Server Script",
-   "options": "Server Script"
   },
   {
    "fieldname": "column_break_xtiq",
@@ -166,11 +163,29 @@
    "fieldname": "auto_start",
    "fieldtype": "Check",
    "label": "Autostart with System"
+  },
+  {
+   "fieldname": "simulation_section",
+   "fieldtype": "Section Break",
+   "label": "Simulation"
+  },
+  {
+   "fieldname": "simulator_script",
+   "fieldtype": "Code",
+   "label": "Simulator Script",
+   "options": "Python"
+  },
+  {
+   "fieldname": "thumbnail",
+   "fieldtype": "Attach Image",
+   "hidden": 1,
+   "label": "Thumbnail"
   }
  ],
+ "image_field": "thumbnail",
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-15 20:10:35.140620",
+ "modified": "2025-01-22 14:51:57.266796",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Simulator",

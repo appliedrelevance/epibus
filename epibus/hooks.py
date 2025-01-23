@@ -26,7 +26,6 @@ fixtures = [
         "filters": [["name", "in", ["Modbus Administrator", "Modbus User"]]],
     },
     {"dt": "Workspace", "filters": [["name", "in", ["EpiBus"]]]},
-    {"dt": "Modbus Device"},
 ]
 
 page_js = {"modbus-monitor": "public/js/modbus_monitor.js"}

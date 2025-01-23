@@ -1,7 +1,7 @@
 // Copyright (c) 2024, Applied Relevance and contributors
 // For license information, please see license.txt
 
-frappe.ui.form.on("Modbus Device", {
+frappe.ui.form.on("Modbus Connection", {
     refresh: function(frm) {
         // Add test connection button if the form is not new
         if (!frm.is_new()) {

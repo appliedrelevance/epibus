@@ -44,7 +44,7 @@
    "fieldname": "device",
    "fieldtype": "Link",
    "label": "Device",
-   "options": "Modbus Device",
+   "options": "Modbus Connection",
    "reqd": 1
   },
   {
@@ -121,7 +121,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-05 17:26:49.642460",
+ "modified": "2025-01-22 15:04:12.698227",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Action",

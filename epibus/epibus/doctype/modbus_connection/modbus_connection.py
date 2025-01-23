@@ -12,7 +12,7 @@ from contextlib import contextmanager
 
 logger = get_logger(__name__)
 
-class ModbusDevice(Document):
+class ModbusConnection(Document):
     # begin: auto-generated types
     # This code is auto-generated. Do not modify anything in this block.
 
@@ -28,6 +28,7 @@ class ModbusDevice(Document):
         host: DF.Data
         port: DF.Int
         signals: DF.Table[ModbusSignal]
+        thumbnail: DF.AttachImage | None
     # end: auto-generated types
     
     def validate(self):

@@ -1,5 +1,7 @@
 {
  "actions": [],
+ "allow_events_in_timeline": 1,
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "field:device_name",
  "creation": "2024-12-24 18:18:01.099799",
@@ -12,6 +14,7 @@
   "column_break_qtfq",
   "host",
   "port",
+  "thumbnail",
   "signals_section",
   "signals"
  ],
@@ -66,14 +69,20 @@
   {
    "fieldname": "column_break_qtfq",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "thumbnail",
+   "fieldtype": "Attach Image",
+   "label": "Thumbnail"
   }
  ],
+ "image_field": "thumbnail",
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-02 16:13:57.564959",
+ "modified": "2025-01-22 15:02:34.639259",
  "modified_by": "Administrator",
  "module": "EpiBus",
- "name": "Modbus Device",
+ "name": "Modbus Connection",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
