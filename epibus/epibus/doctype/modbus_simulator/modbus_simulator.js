@@ -18,6 +18,7 @@ frappe.ui.form.on('Modbus Simulator', {
             frm.add_custom_button(__('Stop Server'), () => handleStopServer(frm), __('Actions'));
             frm.add_custom_button(__('Test Connection'), () => handleTestConnection(frm), __('Actions'));
             frm.add_custom_button(__('Test Modbus Signals'), () => handleTestSignals(frm), __('Actions'));
+            frm.add_custom_button(__('Verify Simulator Status'), () => handleVerifySimulatorStatus(frm), __('Actions'));
         } else if (frm.doc.enabled) {
             frm.add_custom_button(__('Start Server'), () => handleStartServer(frm), __('Actions'));
         }
@@ -240,6 +241,26 @@ const handleTestSignals = (frm) => {
         .catch((err) => {
             console.error('❌ Error testing Modbus signals:', err);
             frappe.throw(__('Error testing Modbus signals: ') + err.message);
+        });
+};
+
+const handleVerifySimulatorStatus = (frm) => {
+    console.log('🔍 Verifying simulator status');
+    return frappe.call({
+        method: 'epibus.epibus.doctype.modbus_simulator.modbus_simulator.verify_simulator_status',
+        args: { simulator_name: frm.doc.name }
+    })
+        .then((r) => {
+            console.log('📨 Received verification response:', r);
+            if (r.message?.success) {
+                showAlert('Simulator status verified successfully', 'green');
+            } else {
+                throw new Error(r.message?.error || 'Unknown error');
+            }
+        })
+        .catch((err) => {
+            console.error('❌ Error verifying simulator status:', err);
+            frappe.throw(__('Error verifying simulator status: ') + err.message);
         });
 };
 

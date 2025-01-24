@@ -18,8 +18,21 @@ scheduler_jobs = [
         "doctype": "Scheduled Job Type",
         "method": "epibus.epibus.utils.signal_monitor.check_signals",
         "frequency": "All",
-    }
+    },
+    {
+        "doctype": "Scheduled Job Type",
+        "method": "epibus.epibus.doctype.modbus_simulator.modbus_simulator.verify_simulator_status",
+        "frequency": "All",
+    },
 ]
+
+scheduler_events = {
+    "all": [
+        "epibus.epibus.utils.signal_monitor.check_signals",
+        "epibus.epibus.doctype.modbus_simulator.modbus_simulator.verify_simulator_status",
+    ]
+}
+
 fixtures = [
     {
         "dt": "Role",
@@ -32,7 +45,6 @@ page_js = {"modbus-monitor": "public/js/modbus_monitor.js"}
 
 export_python_type_annotations = True
 
+app_include_js = ["/assets/js/epibus.min.js"]
 
-app_include_js = ["/assets/js/epibus.min.js"]  # Your bundled frontend
-
-website_context = {"no_cache": 1, "include_session_info": True}  # This is important!
+website_context = {"no_cache": 1, "include_session_info": True}

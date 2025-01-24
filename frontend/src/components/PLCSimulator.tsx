@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCw, Power, ChevronDown, ChevronRight } from 'lucide-react';
 import { useSimulatorAPI } from '../hooks/useSimulatorAPI';
 import { useUser } from '../contexts/UserContext';
 import { SignalGrid } from './signals';
 import type { ModbusSimulator } from '../types/simulator';
+import { useFrappeEventListener } from 'frappe-react-sdk';
 
 import {
   Table,
@@ -36,6 +37,21 @@ export const PLCSimulator: React.FC = () => {
 
   // Track expanded rows
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
+
+  // Listen for realtime status updates
+  useFrappeEventListener('simulator_status_update', (data) => {
+    console.log('🔄 Realtime status update:', data);
+    refetchSimulators();
+  });
+
+  // Check status periodically
+  useEffect(() => {
+    console.log('⏰ Setting up status check interval');
+    const interval = setInterval(() => {
+      refetchSimulators();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Toggle row expansion
   const toggleRow = (simulatorId: string) => {
@@ -86,6 +102,11 @@ export const PLCSimulator: React.FC = () => {
       });
   };
 
+  const handleRefresh = () => {
+    console.log('🔄 Manual refresh triggered');
+    refetchSimulators();
+  };
+
   return (
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -93,7 +114,7 @@ export const PLCSimulator: React.FC = () => {
         <Button
           variant="outline"
           size="icon"
-          onClick={() => refetchSimulators()}
+          onClick={handleRefresh}
         >
           <RefreshCw className="h-4 w-4" />
         </Button>
