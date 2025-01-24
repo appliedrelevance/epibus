@@ -10,8 +10,6 @@ dynamic = ["version"]
 dependencies = [
     # Core dependencies
     "pymodbus>=3.8.0",
-    "pyserial-asyncio",
-    "pygments"
 ]
 
 [build-system]
