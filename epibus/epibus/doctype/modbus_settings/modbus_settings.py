@@ -13,14 +13,9 @@ class ModbusSettings(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		auto_fluctuate_input_values: DF.Int
-		connection_status: DF.Literal["Disconnecting", "Connecting", "Connected", "Error"]
 		default_coil_prefix: DF.Data | None
 		default_contact_prefix: DF.Data | None
 		default_register_prefix: DF.Data | None
-		enable_simulator: DF.Check
 		enable_triggers: DF.Check
-		last_status_update: DF.Datetime | None
-		simulator_host: DF.Data | None
 	# end: auto-generated types
 	pass

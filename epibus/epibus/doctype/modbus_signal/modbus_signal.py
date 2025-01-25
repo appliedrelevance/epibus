@@ -68,14 +68,7 @@ class ModbusSignal(Document):
         parenttype: DF.Data
         plc_address: DF.Data | None
         signal_name: DF.Data
-        signal_type: DF.Literal[
-            "Digital Output Coil",
-            "Digital Input Contact",
-            "Analog Input Register",
-            "Analog Output Register",
-            "Holding Register",
-        ]
-
+        signal_type: DF.Literal["Digital Output Coil", "Digital Input Contact", "Analog Input Register", "Analog Output Register", "Holding Register"]
     # end: auto-generated types
     def validate(self):
         """Validate the signal configuration"""

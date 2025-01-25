@@ -11,14 +11,7 @@
   "enable_triggers",
   "default_coil_prefix",
   "default_contact_prefix",
-  "default_register_prefix",
-  "plc_simulator_tab",
-  "enable_simulator",
-  "simulator_host",
-  "auto_fluctuate_input_values",
-  "simulator_status_section",
-  "connection_status",
-  "last_status_update"
+  "default_register_prefix"
  ],
  "fields": [
   {
@@ -50,53 +43,12 @@
    "fieldname": "modbus_tab",
    "fieldtype": "Tab Break",
    "label": "ModBus"
-  },
-  {
-   "fieldname": "plc_simulator_tab",
-   "fieldtype": "Tab Break",
-   "label": "PLC Simulator"
-  },
-  {
-   "default": "0",
-   "fieldname": "enable_simulator",
-   "fieldtype": "Check",
-   "label": "Enable Simulator"
-  },
-  {
-   "fieldname": "simulator_host",
-   "fieldtype": "Data",
-   "label": "Simulator Host"
-  },
-  {
-   "default": "1000",
-   "fieldname": "auto_fluctuate_input_values",
-   "fieldtype": "Int",
-   "label": "Auto Fluctuate Input Values"
-  },
-  {
-   "fieldname": "simulator_status_section",
-   "fieldtype": "Section Break",
-   "label": "Simulator Status"
-  },
-  {
-   "fieldname": "connection_status",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Connection Status",
-   "options": "Disconnecting\nConnecting\nConnected\nError",
-   "read_only": 1
-  },
-  {
-   "fieldname": "last_status_update",
-   "fieldtype": "Datetime",
-   "label": "Last Status Update",
-   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-01-14 10:05:48.701052",
+ "modified": "2025-01-24 15:45:22.465110",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Settings",

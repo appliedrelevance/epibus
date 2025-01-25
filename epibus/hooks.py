@@ -9,30 +9,6 @@ app_description = (
 app_email = "geveritt@appliedrelevance.com"
 app_license = "MIT"
 
-# After app startup
-after_install = "epibus.epibus.utils.signal_monitor.setup_scheduler_job"
-
-# Scheduler jobs
-scheduler_jobs = [
-    {
-        "doctype": "Scheduled Job Type",
-        "method": "epibus.epibus.utils.signal_monitor.check_signals",
-        "frequency": "All",
-    },
-    {
-        "doctype": "Scheduled Job Type",
-        "method": "epibus.epibus.doctype.modbus_simulator.modbus_simulator.verify_simulator_status",
-        "frequency": "All",
-    },
-]
-
-scheduler_events = {
-    "all": [
-        "epibus.epibus.utils.signal_monitor.check_signals",
-        "epibus.epibus.doctype.modbus_simulator.modbus_simulator.verify_simulator_status",
-    ]
-}
-
 fixtures = [
     {
         "dt": "Role",
@@ -41,10 +17,4 @@ fixtures = [
     {"dt": "Workspace", "filters": [["name", "in", ["EpiBus"]]]},
 ]
 
-page_js = {"modbus-monitor": "public/js/modbus_monitor.js"}
-
 export_python_type_annotations = True
-
-app_include_js = ["/assets/js/epibus.min.js"]
-
-website_context = {"no_cache": 1, "include_session_info": True}
