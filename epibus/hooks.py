@@ -25,28 +25,16 @@ doc_events = {
 fixtures = [
     {
         "dt": "Role",
-        "filters": [["name", "in", ["Modbus Administrator", "Modbus User"]]]
+        "filters": [["name", "in", ["Modbus Administrator", "Modbus User"]]],
     },
-    {
-        "dt": "Workspace",
-        "filters": [["name", "in", ["EpiBus"]]]
-    },
-    {
-        "dt": "PLC Simulator",
-        "filters": [["simulator_name", "=", "UR Sim"]]
-    },
-    {
-        "dt": "Modbus Signal",
-        "filters": [["parent", "=", "UR Sim"]]
-    }
+    {"dt": "Workspace", "filters": [["name", "in", ["EpiBus"]]]},
+    {"dt": "Modbus Signal", "filters": [["parent", "=", "UR Sim"]]},
 ]
 
 # epibus/hooks.py
 
 # Add to the existing hooks.py
-page_js = {
-    "modbus-monitor": "public/js/modbus_monitor.js"
-}
+page_js = {"modbus-monitor": "public/js/modbus_monitor.js"}
 
 # Includes in <head>
 # ------------------
