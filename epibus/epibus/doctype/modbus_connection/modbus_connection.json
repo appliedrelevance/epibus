@@ -1,25 +1,43 @@
 {
  "actions": [],
+ "allow_events_in_timeline": 1,
+ "allow_import": 1,
  "allow_rename": 1,
- "autoname": "prompt",
- "creation": "2022-10-17 15:47:21.666413",
+ "autoname": "field:device_name",
+ "creation": "2024-12-24 18:18:01.099799",
  "doctype": "DocType",
- "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "device_name",
+  "device_type",
+  "enabled",
+  "column_break_qtfq",
   "host",
   "port",
-  "device_name",
-  "unit",
-  "locations",
-  "route"
+  "thumbnail",
+  "signals_section",
+  "signals"
  ],
  "fields": [
   {
-   "default": "0.0.0.0",
-   "fieldname": "host",
+   "fieldname": "device_name",
    "fieldtype": "Data",
    "in_list_view": 1,
+   "label": "Device Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "device_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Device Type",
+   "options": "PLC\nRobot\nSimulator\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "host",
+   "fieldtype": "Data",
    "label": "Host",
    "reqd": 1
   },
@@ -27,37 +45,45 @@
    "default": "502",
    "fieldname": "port",
    "fieldtype": "Int",
-   "in_list_view": 1,
-   "label": "Port"
+   "label": "Port",
+   "non_negative": 1,
+   "reqd": 1
   },
   {
-   "fieldname": "device_name",
-   "fieldtype": "Data",
-   "label": "Device Name"
+   "default": "0",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
   },
   {
-   "fieldname": "unit",
-   "fieldtype": "Int",
-   "label": "Unit"
+   "fieldname": "signals_section",
+   "fieldtype": "Section Break",
+   "label": "Signals"
   },
   {
-   "fieldname": "locations",
+   "fieldname": "signals",
    "fieldtype": "Table",
-   "label": "Locations",
+   "label": "Signals",
    "options": "Modbus Signal"
   },
   {
-   "fieldname": "route",
-   "fieldtype": "Data",
-   "label": "route"
+   "fieldname": "column_break_qtfq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "thumbnail",
+   "fieldtype": "Attach Image",
+   "label": "Thumbnail"
   }
  ],
+ "image_field": "thumbnail",
+ "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-12-19 16:29:04.791060",
+ "modified": "2025-01-22 15:02:34.639259",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Connection",
- "naming_rule": "Set by user",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
@@ -85,8 +111,6 @@
    "write": 1
   },
   {
-   "create": 1,
-   "delete": 1,
    "email": 1,
    "export": 1,
    "print": 1,
@@ -99,6 +123,5 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": [],
- "track_changes": 1
+ "states": []
 }

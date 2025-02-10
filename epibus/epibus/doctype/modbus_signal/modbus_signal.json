@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:{location_name}-{modbus_address}",
+ "autoname": "format:{parent}-{signal_name}",
  "creation": "2022-10-17 18:32:17.320067",
  "default_view": "List",
  "description": "Modbus Signal is a single Input, Output, or Register address on PLC Hardware.  It uses IEC 61131-3 nomenclature.\n",
@@ -10,24 +10,22 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "location_name",
-  "plc_address",
-  "modbus_address",
+  "signal_name",
   "signal_type",
-  "value",
-  "toggle"
+  "modbus_address",
+  "column_break_actx",
+  "float_value",
+  "digital_value",
+  "plc_address"
  ],
  "fields": [
   {
-   "default": "%QX0.0",
-   "description": "PLC Nomenclature address, e.g., %IX0.0 or %QX0.0",
    "fieldname": "plc_address",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "in_standard_filter": 1,
+   "is_virtual": 1,
    "label": "PLC Address",
-   "reqd": 1,
-   "search_index": 1
+   "read_only": 1
   },
   {
    "fieldname": "modbus_address",
@@ -35,42 +33,51 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Modbus Address",
+   "non_negative": 1,
    "reqd": 1
   },
   {
-   "fieldname": "value",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Value"
-  },
-  {
-   "default": "0",
-   "fieldname": "toggle",
-   "fieldtype": "Check",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Toggle"
-  },
-  {
-   "fieldname": "location_name",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Location Name",
-   "reqd": 1
-  },
-  {
+   "default": "Digital Output Coil",
    "fieldname": "signal_type",
    "fieldtype": "Select",
    "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "Signal Type",
-   "options": "Digital Output Coil\nDigital Output Slave Coil\nDigital Input Contact\nDigital Input Slave Contact\nAnalog Input Register\nAnalog Output Holding Register\nMemory Register (16 bit)\nMemory Register (32 bit)\nMemory Register (64 bit)"
+   "options": "Digital Output Coil\nDigital Input Contact\nAnalog Input Register\nAnalog Output Register\nHolding Register",
+   "reqd": 1
+  },
+  {
+   "fieldname": "signal_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Signal Name",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_actx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0.0",
+   "depends_on": "eval:doc.signal_type.includes('Register')",
+   "fieldname": "float_value",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Analog Value",
+   "precision": "3"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.signal_type.includes('Digital')",
+   "fieldname": "digital_value",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Digital Value"
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2024-12-19 16:29:41.971319",
+ "modified": "2025-01-24 20:01:13.578871",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Signal",

@@ -1,205 +1,227 @@
-# Copyright (c) 2022, Applied Relevance and contributors
+# Copyright (c) 2024, Applied Relevance and contributors
 # For license information, please see license.txt
 
 import frappe
-from frappe import _
-import asyncio
-from pymodbus.client import ModbusTcpClient
 from frappe.model.document import Document
+from pymodbus.client import ModbusTcpClient
+from pymodbus.framer import FramerType
 from epibus.epibus.utils.epinomy_logger import get_logger
-
+from epibus.epibus.utils.signal_handler import SignalHandler
+import asyncio
+from contextlib import contextmanager
 
 logger = get_logger(__name__)
 
 class ModbusConnection(Document):
+    # begin: auto-generated types
+    # This code is auto-generated. Do not modify anything in this block.
 
-    @frappe.whitelist()
-    def test_connection(self, host, port):
-        """Test connection to Modbus server"""
-        logger.info(f"Testing Modbus Connection {self.name}")
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from epibus.epibus.doctype.modbus_signal.modbus_signal import ModbusSignal
+        from frappe.types import DF
+
+        device_name: DF.Data
+        device_type: DF.Literal["PLC", "Robot", "Simulator", "Other"]
+        enabled: DF.Check
+        host: DF.Data
+        port: DF.Int
+        signals: DF.Table[ModbusSignal]
+        thumbnail: DF.AttachImage | None
+    # end: auto-generated types
+    
+    def validate(self):
+        self.validate_connection_settings()
+        
+    def validate_connection_settings(self):
+        if not (1 <= self.port <= 65535):
+            frappe.throw("Port must be between 1 and 65535")
+
+    @contextmanager
+    def get_client(self):
+        """Get a connected ModbusTcpClient instance
+        
+        Yields:
+            ModbusTcpClient: Connected client instance
+            
+        Raises:
+            ConnectionError: If connection fails
+        """
         try:
-            # Ensure there is an active event loop for the current thread
-            try:
-                asyncio.get_event_loop()
-            except RuntimeError:
-                asyncio.set_event_loop(asyncio.new_event_loop())
+            asyncio.get_event_loop()
+        except RuntimeError:
+            asyncio.set_event_loop(asyncio.new_event_loop())
 
-            client = ModbusTcpClient(
-                host=host,
-                port=int(port),
-                timeout=10
-            )
-            
-            logger.info(f"Connecting to {host}:{port}")
-            
-            # Connect using PyModbus 3.x syntax
+        client = ModbusTcpClient(
+            host=self.host,
+            port=self.port,
+            framer=FramerType.SOCKET,
+            timeout=10
+        )
+        
+        try:
             if not client.connect():
-                logger.error("Connection failed")
-                return "Connection failed"
-
-            locs = "Locations: "
-            for d in self.get("locations"):
-                if not isinstance(d.modbus_address, int) or not d.plc_address:
-                    locs += "Not Configured, "
-                    continue
-
-                try:
-                    addr = int(d.modbus_address)
-                    # Read value based on signal type using PyModbus 3.x methods
-                    if "Digital Output Coil" in d.signal_type:
-                        response = client.read_coils(addr)
-                        state = "On" if response.bits[0] else "Off"
-                        d.toggle = response.bits[0]
-                    elif "Digital Input Contact" in d.signal_type:
-                        response = client.read_discrete_inputs(addr)
-                        state = "On" if response.bits[0] else "Off"
-                        d.toggle = response.bits[0]
-                    elif "Analog Input Register" in d.signal_type:
-                        response = client.read_input_registers(addr)
-                        state = str(response.registers[0])
-                    elif "Analog Output" in d.signal_type or "Memory Register" in d.signal_type:
-                        response = client.read_holding_registers(addr)
-                        state = str(response.registers[0])
-                    else:
-                        state = "Unknown Type"
-
-                    d.value = state
-                    locs += f"{d.location_name}: {d.plc_address} ({state}), "
-
-                except Exception as e:
-                    logger.error(f"Error reading location {d.location_name}: {str(e)}")
-                    locs += f"{d.location_name}: Error ({str(e)}), "
-            
-            # Close the connection
-            client.close()
-            
-            logger.info("Connection test successful")
-            return "Connection successful " + locs
-
-        except Exception as e:
-            logger.error(f"Connection failed: {str(e)}")
-            if 'client' in locals() and client:
+                raise ConnectionError(f"Failed to connect to {self.host}:{self.port}")
+            yield client
+        finally:
+            if client:
                 try:
                     client.close()
                 except:
                     pass
-            return f"Connection failed: {str(e)}"
+
+    def _build_results_table(self, results: list) -> str:
+        """Build HTML table for connection test results
+        
+        Args:
+            results: List of dicts with signal test results
+            
+        Returns:
+            Formatted HTML table string
+        """
+        html = """
+        <div style="margin: 10px 0;">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Signal Name</th>
+                        <th>Type</th> 
+                        <th>Address</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """
+        
+        for result in results:
+            html += f"""
+                <tr>
+                    <td>{result['signal_name']}</td>
+                    <td>{result['type']}</td>
+                    <td>{result['address']}</td>
+                    <td>
+                        <span class="indicator {result['indicator']}">
+                            {result['state']}
+                        </span>
+                    </td>
+                </tr>
+            """
+        
+        html += """
+                </tbody>
+            </table>
+        </div>
+        """
+        
+        return html
 
     @frappe.whitelist()
-    def import_from_simulator(self, simulator_name):
-        """Import locations from a PLC Simulator"""
+    def test_connection(self):
+        """Test connection to device and read all signals"""
+        logger.info(f"Testing connection to device {self.device_name} at {self.host}:{self.port}")
+        
         try:
-            # Get the simulator document
-            simulator = frappe.get_doc("PLC Simulator", simulator_name)
-            
-            if not simulator.enabled:
-                frappe.throw(_("Selected simulator is not enabled"))
+            with self.get_client() as client:
+                handler = SignalHandler(client)
+                results = []
                 
-            # Update connection details to match simulator
-            self.host = simulator.get("server_address", "localhost")
-            self.port = simulator.server_port
-            
-            # Clear existing locations
-            self.locations = []
-            
-            # Copy locations from simulator
-            for io_point in simulator.io_points:
-                self.append("locations", {
-                    "location_name": io_point.location_name,
-                    "signal_type": io_point.signal_type,
-                    "plc_address": io_point.plc_address,
-                    "modbus_address": io_point.modbus_address,
-                    "value": io_point.value
-                })
-            
-            # Save the document
-            self.save()
-            
-            # Return the number of locations imported
-            return len(simulator.io_points)
-            
+                # Collect results
+                for signal in self.signals:
+                    try:
+                        value = handler.read(signal.signal_type, signal.modbus_address)
+                        
+                        if isinstance(value, bool):
+                            signal.digital_value = value
+                            state = "HIGH" if value else "LOW"
+                            indicator_color = "green" if value else "gray"
+                        else:
+                            signal.value = value
+                            state = str(value)
+                            indicator_color = "blue"
+                            
+                        results.append({
+                            "signal_name": signal.signal_name,
+                            "type": signal.signal_type,
+                            "address": signal.modbus_address,
+                            "state": state,
+                            "status": "success",
+                            "indicator": indicator_color
+                        })
+                        logger.debug(f"Successfully read signal {signal.signal_name}: {state}")
+                        
+                    except Exception as e:
+                        results.append({
+                            "signal_name": signal.signal_name,
+                            "type": signal.signal_type,
+                            "address": signal.modbus_address,
+                            "state": f"Error: {str(e)}",
+                            "status": "error", 
+                            "indicator": "red"
+                        })
+                        logger.error(f"Error reading signal {signal.signal_name}: {str(e)}")
+
+                logger.info("Connection test completed successfully")
+                return f"Connection successful - {self._build_results_table(results)}"
+
         except Exception as e:
-            frappe.log_error(frappe.get_traceback(), _("Failed to import from simulator"))
-            frappe.throw(_("Failed to import from simulator: {0}").format(str(e)))
-
+            error_msg = f"Connection failed: {str(e)}"
+            logger.error(error_msg)
+            return frappe.msgprint(error_msg, title="Connection Failed", indicator='red')
+        
     @frappe.whitelist()
-    def toggle_location(self, host, port, modbus_address, signal_type):
-        print("Toggling " + str(modbus_address))
-        client = ModbusTcpClient(host, port)
-        res = client.connect()
-        if res:
-            state = client.read_coils(modbus_address).bits[0]
-            print("Current state: " + str(state))
-            client.write_coil(modbus_address, not state)
-            client.close()
-            print("Toggled from " + str(state) + " to " + str(not state))
-        else:
-            return "Connection Failed"
-
-    @frappe.whitelist()
-    def get_current_values(self):
-        # Initialize an empty list to store the values
-        plc_pin_values = []
-
-        # Iterate through the locations table in this Modbus Connection document
-        for location_entry in self.locations:
-            # Fetch the corresponding Modbus Signal document
-            location_doc = frappe.get_doc(
-                "Modbus Signal", location_entry.location_name
-            )
-
-            # Assume we have a method 'read_location_value' to read the actual value from the Modbus device
-            current_value = self.read_location_value(location_doc)
-
-            # Update the 'value' field in the Modbus Signal document
-            location_doc.value = current_value
-            location_doc.save()
-
-            # Store the current value of the PLC Pin/Register Address
-            value_entry = {
-                "PLC Pin Name": location_doc.location_name,
-                "Current Value": current_value,
-            }
-            plc_pin_values.append(value_entry)
-
-        return plc_pin_values
-
-    def read_location_value(self, location_doc):
-        host = self.host
-        port = self.port
-        unit = self.unit  # Unit ID (Slave ID)
-
-        client = ModbusTcpClient(host, port)
-
-        # Connect to the Modbus server
-        if client.connect():
-            try:
-                # Read based on the location type
-                if location_doc.signal_type == "Digital Output Coil":
-                    response = client.read_coils(location_doc.modbus_address)
-                elif location_doc.signal_type == "Digital Input Contact":
-                    response = client.read_discrete_inputs(
-                        location_doc.modbus_address, unit=unit
-                    )
-                elif location_doc.signal_type == "Analog Input Register":
-                    response = client.read_input_registers(
-                        location_doc.modbus_address, unit=unit
-                    )
-                elif location_doc.signal_type == "Analog Output Holding Register":
-                    response = client.read_holding_registers(
-                        location_doc.modbus_address, unit=unit
-                    )
-                else:
-                    return "Unsupported Location Type"
-
-                # Return the value if successful
-                if response.isError():
-                    return "Error reading value"
-                else:
-                    return response.registers[0] if hasattr(response, 'registers') else response.bits[0]
+    def read_signal(self, signal):
+        """Read value from a signal
+        
+        Args:
+            signal: ModbusSignal document
             
-            finally:
-                # Always close the connection
-                client.close()
-        else:
-            return "Connection failed"
+        Returns:
+            bool|float: Current value of the signal
+        """
+        logger.debug(f"Reading signal {signal.signal_name} from {self.device_name}")
+        
+        try:
+            with self.get_client() as client:
+                handler = SignalHandler(client)
+                value = handler.read(signal.signal_type, signal.modbus_address)
+                
+                # Update signal's stored value
+                if isinstance(value, bool):
+                    signal.digital_value = value
+                else:
+                    signal.value = value
+                signal.save()
+                
+                return value
+                
+        except Exception as e:
+            logger.error(f"Error reading signal: {str(e)}")
+            raise
+
+    @frappe.whitelist()
+    def write_signal(self, signal, value):
+        """Write value to a signal
+        
+        Args:
+            signal: ModbusSignal document
+            value: bool|float value to write
+        """
+        logger.debug(f"Writing value {value} to signal {signal.signal_name} on {self.device_name}")
+        
+        try:
+            with self.get_client() as client:
+                handler = SignalHandler(client)
+                handler.write(signal.signal_type, signal.modbus_address, value)
+                
+                # Read back and update stored value
+                current_value = handler.read(signal.signal_type, signal.modbus_address)
+                if isinstance(current_value, bool):
+                    signal.digital_value = current_value
+                else:
+                    signal.value = current_value
+                signal.save()
+                
+        except Exception as e:
+            logger.error(f"Error writing signal: {str(e)}")
+            raise
