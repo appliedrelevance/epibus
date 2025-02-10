@@ -1,7 +1,7 @@
 [
  {
   "charts": [],
-  "content": "[{\"id\":\"boPg_-oQOX\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">EpiBus</span>\",\"col\":12}},{\"id\":\"LEfpIArEmD\",\"type\":\"paragraph\",\"data\":{\"text\":\"EpiBus is a MODBUS Integration for Epinomy and ERPNext.&nbsp; It allows you to control manufacturing hardware like Programmable Logic Controllers (PLCs), Robots and other devices that support the MODBUS protocol.&nbsp;\",\"col\":12}},{\"id\":\"caExZmdfT9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Modbus Settings\",\"col\":5}},{\"id\":\"DqK8wkoHQF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Modbus Documents</span>\",\"col\":12}},{\"id\":\"OlilxW5QK5\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Actions\",\"col\":6}},{\"id\":\"KPT1S3MuK0\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Connections\",\"col\":6}}]",
+  "content": "[{\"id\":\"boPg_-oQOX\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">EpiBus</span>\",\"col\":12}},{\"id\":\"LEfpIArEmD\",\"type\":\"paragraph\",\"data\":{\"text\":\"EpiBus is a MODBUS Integration for Epinomy and ERPNext.&nbsp; It allows you to control manufacturing hardware like Programmable Logic Controllers (PLCs), Robots and other devices that support the MODBUS protocol.&nbsp;\",\"col\":12}},{\"id\":\"caExZmdfT9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Modbus Settings\",\"col\":5}},{\"id\":\"DqK8wkoHQF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Modbus Documents</span>\",\"col\":12}},{\"id\":\"KPT1S3MuK0\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Connections\",\"col\":6}},{\"id\":\"OlilxW5QK5\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Actions\",\"col\":6}}]",
   "custom_blocks": [],
   "docstatus": 0,
   "doctype": "Workspace",
@@ -12,7 +12,7 @@
   "is_hidden": 0,
   "label": "EpiBus",
   "links": [],
-  "modified": "2025-01-24 15:36:22.913117",
+  "modified": "2025-02-10 12:39:56.827717",
   "module": "EpiBus",
   "name": "EpiBus",
   "number_cards": [],
