@@ -1,0 +1,264 @@
+{%- extends "templates/web.html" -%}
+
+{%- block title -%}{{ title }}{%- endblock -%}
+
+{%- block page_head_tags -%}
+<!-- Custom dashboard CSS -->
+<link rel="stylesheet" href="/assets/epibus/css/modbus_dashboard.css">
+{%- endblock -%}
+
+{%- block page_content -%}
+<!-- Dashboard Content -->
+<div class="container-fluid">
+    <div class="row mt-4 mb-4">
+        <div class="col">
+            <h1>Modbus Signal Dashboard</h1>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary" id="refresh-data">
+                    <i class="fa fa-refresh"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="loading" class="text-center" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Error message -->
+    <div id="error-message" class="alert alert-danger" style="display: none;">
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <select class="form-control" id="device-type-filter">
+                <option value="">All Device Types</option>
+                <option value="PLC">PLC</option>
+                <option value="Robot">Robot</option>
+                <option value="Simulator">Simulator</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <select class="form-control" id="signal-type-filter">
+                <option value="">All Signal Types</option>
+                <option value="Digital Output Coil">Digital Output Coil</option>
+                <option value="Digital Input Contact">Digital Input Contact</option>
+                <option value="Analog Input Register">Analog Input Register</option>
+                <option value="Analog Output Register">Analog Output Register</option>
+                <option value="Holding Register">Holding Register</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="dashboard-grid" class="row">
+        <!-- Connection cards will be injected here -->
+    </div>
+</div>
+{%- endblock -%}
+
+{%- block script %}
+<script>
+    frappe.ready(function () {
+        // Get CSRF token from cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Show loading indicator
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        // Hide loading indicator
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Render the dashboard with connection and signal data
+        function renderDashboard(connections) {
+            const dashboardGrid = document.getElementById('dashboard-grid');
+            dashboardGrid.innerHTML = '';
+
+            connections.forEach(function (connection) {
+                const card = document.createElement('div');
+                card.className = 'col-md-6 mb-4';
+
+                // Create connection card HTML
+                let cardHtml = `
+                    <div class="connection-card ${connection.enabled ? 'active' : 'inactive'}">
+                        <div class="d-flex align-items-center mb-3">
+                            ${connection.thumbnail ?
+                        `<img src="${connection.thumbnail}" class="device-thumbnail mr-3" alt="${connection.device_name}">` :
+                        '<i class="fa fa-microchip fa-2x mr-3"></i>'
+                    }
+                            <div>
+                                <h3 class="mb-0">${connection.device_name}</h3>
+                                <span class="badge badge-${connection.enabled ? 'success' : 'danger'}">
+                                    ${connection.enabled ? 'Enabled' : 'Disabled'}
+                                </span>
+                                <span class="badge badge-info">${connection.device_type}</span>
+                            </div>
+                        </div>
+                        <div class="connection-details mb-3">
+                            <small class="text-muted">
+                                Host: ${connection.host}:${connection.port}
+                            </small>
+                        </div>
+                        <div class="signals-container">
+                `;
+
+                // Add signals if they exist
+                if (connection.signals && connection.signals.length > 0) {
+                    connection.signals.forEach(function (signal) {
+                        const value = signal.signal_type.includes('Digital') ?
+                            signal.digital_value ? 'ON' : 'OFF' :
+                            signal.float_value;
+
+                        cardHtml += `
+                            <div class="signal-card ${signal.signal_type.toLowerCase().replace(/\s+/g, '-')}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong>${signal.signal_name}</strong>
+                                    <span class="badge badge-primary">${signal.signal_type}</span>
+                                </div>
+                                <div class="mt-2">
+                                    <div>Value: ${value}</div>
+                                    <div class="text-muted">
+                                        <small>Modbus Address: ${signal.modbus_address}</small>
+                                        ${signal.plc_address ? `<br><small>PLC Address: ${signal.plc_address}</small>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    cardHtml += `
+                        <div class="text-muted text-center py-3">
+                            No signals configured
+                        </div>
+                    `;
+                }
+
+                cardHtml += `
+                        </div>
+                    </div>
+                `;
+
+                card.innerHTML = cardHtml;
+                dashboardGrid.appendChild(card);
+            });
+        }
+
+        // Function to fetch and update dashboard data
+        function updateDashboard() {
+            showLoading();
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '/api/method/epibus.www.modbus_dashboard.get_modbus_data', true);
+            xhr.setRequestHeader('X-Frappe-CSRF-Token', getCookie('csrf_token'));
+
+            xhr.onload = function () {
+                hideLoading();
+                if (xhr.status === 200) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            renderDashboard(response.message);
+                        } else {
+                            showError("Invalid response format");
+                        }
+                    } catch (e) {
+                        showError("Failed to parse response: " + e.message);
+                    }
+                } else {
+                    showError("Failed to fetch Modbus data: " + xhr.statusText);
+                }
+            };
+
+            xhr.onerror = function () {
+                hideLoading();
+                showError("Network error occurred");
+            };
+
+            xhr.send();
+        }
+
+        // Initial load
+        updateDashboard();
+
+        // Refresh button handler
+        document.getElementById('refresh-data').addEventListener('click', updateDashboard);
+
+        // Filter handlers
+        document.getElementById('device-type-filter').addEventListener('change', function () {
+            const selectedDeviceType = this.value;
+            const cards = document.querySelectorAll('.connection-card');
+
+            cards.forEach(function (card) {
+                const deviceType = card.querySelector('.badge-info').textContent;
+                const cardContainer = card.closest('.col-md-6');
+
+                if (!selectedDeviceType || deviceType === selectedDeviceType) {
+                    cardContainer.style.display = '';
+                } else {
+                    cardContainer.style.display = 'none';
+                }
+            });
+        });
+
+        document.getElementById('signal-type-filter').addEventListener('change', function () {
+            const selectedSignalType = this.value;
+            const signalCards = document.querySelectorAll('.signal-card');
+
+            signalCards.forEach(function (card) {
+                const signalType = card.querySelector('.badge-primary').textContent;
+
+                if (!selectedSignalType || signalType === selectedSignalType) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Hide connection cards that have no visible signals
+            document.querySelectorAll('.connection-card').forEach(function (connCard) {
+                const signalsContainer = connCard.querySelector('.signals-container');
+                const visibleSignals = signalsContainer.querySelectorAll('.signal-card[style="display: none;"]').length;
+                const totalSignals = signalsContainer.querySelectorAll('.signal-card').length;
+                const cardContainer = connCard.closest('.col-md-6');
+
+                if (selectedSignalType && visibleSignals === totalSignals) {
+                    cardContainer.style.display = 'none';
+                } else {
+                    cardContainer.style.display = '';
+                }
+            });
+        });
+    });
+</script>
+{%- endblock -%}

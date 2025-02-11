@@ -4,8 +4,11 @@
 import frappe
 from frappe.model.document import Document
 from frappe import _
+from typing import cast
 from epibus.epibus.utils.epinomy_logger import get_logger
 from epibus.epibus.utils.signal_handler import SignalHandler
+from epibus.epibus.doctype.modbus_event.modbus_event import ModbusEvent
+from epibus.epibus.doctype.modbus_connection.modbus_connection import ModbusConnection
 
 logger = get_logger(__name__)
 
@@ -68,22 +71,26 @@ class ModbusSignal(Document):
         parenttype: DF.Data
         plc_address: DF.Data | None
         signal_name: DF.Data
-        signal_type: DF.Literal["Digital Output Coil", "Digital Input Contact", "Analog Input Register", "Analog Output Register", "Holding Register"]
+        signal_type: DF.Literal["Digital Output Coil", "Digital Input Contact",
+                                "Analog Input Register", "Analog Output Register", "Holding Register"]
     # end: auto-generated types
+
     def validate(self):
         """Validate the signal configuration"""
         try:
             self.validate_signal_type()
             self.validate_modbus_address()
-            self.set_plc_address()
+            self.calculate_plc_address()
         except Exception as e:
-            logger.error(f"Validation error for ModbusSignal {self.name}: {str(e)}")
+            logger.error(
+                f"Validation error for ModbusSignal {self.name}: {str(e)}")
             raise
 
     def validate_signal_type(self):
         """Validate that the signal type is recognized"""
         if self.signal_type not in SIGNAL_TYPE_MAPPINGS:
-            frappe.throw(_("Invalid signal type: {0}").format(self.signal_type))
+            frappe.throw(
+                _("Invalid signal type: {0}").format(self.signal_type))
 
     def validate_modbus_address(self):
         """Validate Modbus address is within correct range for the signal type"""
@@ -106,7 +113,8 @@ class ModbusSignal(Document):
 
         if signal_config["bit_addressed"]:
             # For bit-addressed signals (Digital I/O)
-            plc_major = signal_config["plc_major_start"] + (self.modbus_address // 8)
+            plc_major = signal_config["plc_major_start"] + \
+                (self.modbus_address // 8)
             plc_minor = self.modbus_address % 8
 
             if plc_minor > signal_config["plc_minor_max"]:
@@ -120,80 +128,96 @@ class ModbusSignal(Document):
 
     @frappe.whitelist()
     def read_signal(self):
-        """Read the current value of the signal
-
-        Returns:
-            bool|float: Current value of the signal depending on type
-        """
+        """Read the current value of the signal"""
         logger.debug(f"Reading signal {self.signal_name}")
 
         try:
-            # Get the parent device document
-            device_doc = frappe.get_doc("Modbus Device", self.parent)
+            device_doc = cast(ModbusConnection, frappe.get_doc(
+                "Modbus Connection", self.parent))
 
-            # Read the value using the device's client
             with device_doc.get_client() as client:
                 handler = SignalHandler(client)
                 value = handler.read(self.signal_type, self.modbus_address)
 
-                # Update the appropriate field based on signal type
+                # Update stored value
                 if isinstance(value, bool):
                     self.digital_value = value
                 else:
                     self.value = value
                 self.save()
 
-                logger.debug(f"Successfully read {self.signal_name}: {value}")
+                # Log successful read event
+                ModbusEvent.log_event(
+                    event_type="Read",
+                    device=self.parent,
+                    signal=self.name,
+                    new_value=value
+                )
+
                 return value
 
         except Exception as e:
-            logger.error(f"Error reading signal {self.signal_name}: {str(e)}")
+            # Log failed read event
+            ModbusEvent.log_event(
+                event_type="Read",
+                device=self.parent,
+                signal=self.name,
+                status="Failed",
+                error=e
+            )
             raise
 
     @frappe.whitelist()
     def write_signal(self, value):
-        """Write a value to the signal
-
-        Args:
-            value (bool|float): Value to write, type must match signal type
-
-        Returns:
-            bool|float: Value read back from signal after write
-        """
+        """Write a value to the signal"""
         logger.debug(f"Writing value {value} to signal {self.signal_name}")
 
         try:
-            # Verify this is a writable signal
-            signal_config = SIGNAL_TYPE_MAPPINGS[self.signal_type]
-            if signal_config["access"] != "RW":
-                frappe.throw(_("Cannot write to read-only signal"))
+            # Get current value for event log
+            current_value = None
+            if isinstance(value, bool):
+                current_value = self.digital_value
+            else:
+                current_value = self.value
 
-            # Validate value type
-            is_digital = signal_config["bit_addressed"]
-            if is_digital and not isinstance(value, bool):
-                frappe.throw(_("Digital signals require boolean values"))
-            elif not is_digital and not isinstance(value, (int, float)):
-                frappe.throw(_("Analog signals require numeric values"))
+            device_doc = cast(ModbusConnection, frappe.get_doc(
+                "Modbus Connection", self.parent))
 
-            # Get the parent device document
-            device_doc = frappe.get_doc("Modbus Device", self.parent)
-
-            # Write the value using the device's client
             with device_doc.get_client() as client:
                 handler = SignalHandler(client)
                 handler.write(self.signal_type, self.modbus_address, value)
 
-                # Read back the value to confirm
-                current_value = handler.read(self.signal_type, self.modbus_address)
+                # Read back value
+                new_value = handler.read(self.signal_type, self.modbus_address)
 
-                self.value = current_value
+                # Update stored value
+                if isinstance(new_value, bool):
+                    self.digital_value = new_value
+                else:
+                    self.value = new_value
                 self.save()
 
-                logger.info(f"Successfully wrote {current_value} to {self.signal_name}")
-                return current_value
+                # Log successful write event
+                ModbusEvent.log_event(
+                    event_type="Write",
+                    device=self.parent,
+                    signal=self.name,
+                    previous_value=current_value,
+                    new_value=new_value
+                )
+
+                return new_value
 
         except Exception as e:
-            logger.error(f"Error writing to signal {self.signal_name}: {str(e)}")
+            # Log failed write event
+            ModbusEvent.log_event(
+                event_type="Write",
+                device=self.parent,
+                signal=self.name,
+                previous_value=current_value,
+                status="Failed",
+                error=e
+            )
             raise
 
     @frappe.whitelist()
@@ -209,7 +233,8 @@ class ModbusSignal(Document):
         try:
             current_value = self.read_signal()
             if not isinstance(current_value, bool):
-                frappe.throw(_("Invalid signal state - expected boolean value"))
+                frappe.throw(
+                    _("Invalid signal state - expected boolean value"))
 
             new_value = not current_value
             return self.write_signal(new_value)
