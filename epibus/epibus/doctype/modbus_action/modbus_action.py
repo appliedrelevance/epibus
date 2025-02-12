@@ -77,7 +77,7 @@ class ModbusAction(Document):
         frappe.flags.modbus_context = {
             "action": self,
             "signal": frappe.get_doc("Modbus Signal", self.signal),
-            "device": frappe.get_doc("Modbus Device", self.device),
+            "device": frappe.get_doc("Modbus Connection", self.device),
             "params": params
         }
 

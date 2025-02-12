@@ -74,5 +74,24 @@
   "reference_doctype": null,
   "script": "# Get context from the action\ncontext = frappe.flags.modbus_context\nif not context:\n    frappe.throw(\"No context provided\")\n    \ndevice = context.get('device')\n\n# Check for error signal\nerror_state = device.read_signal(\"PICK_ERROR\")\nif error_state:\n    frappe.log_error(\"Pick error detected\", \"Staging Robot Error\")\n    frappe.throw(\"Pick error detected\")\n    \n# Read completion signals\nto_receiving = device.read_signal(\"PICK_TO_RECEIVING_COMPLETE\")\nto_staging = device.read_signal(\"PICK_TO_STAGING_COMPLETE\")\nto_assembly = device.read_signal(\"PICK_TO_ASSEMBLY_COMPLETE\")\n\nif to_receiving:\n    status = \"Staging to receiving complete\"\nelif to_staging:\n    status = \"Movement to staging complete\"\nelif to_assembly:\n    status = \"Staging to assembly complete\"\nelse:\n    status = \"Sequence in progress\"\n    \nfrappe.logger().info(f\"🤖 Sequence status: {status}\")\n\nfrappe.response[\"message\"] = {\n    \"status\": \"success\",\n    \"value\": status\n}",
   "script_type": "API"
+ },
+ {
+  "allow_guest": 0,
+  "api_method": null,
+  "cron_format": null,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Server Script",
+  "doctype_event": "Before Insert",
+  "enable_rate_limit": 0,
+  "event_frequency": "All",
+  "modified": "2025-02-11 17:08:35.395175",
+  "module": "EpiBus",
+  "name": "Pick List to Assembly",
+  "rate_limit_count": 5,
+  "rate_limit_seconds": 86400,
+  "reference_doctype": null,
+  "script": "# Pick List to Assembly\n\n# Get context from the action\ncontext = frappe.flags.modbus_context\nif not context:\n    frappe.throw(\"No context provided\")\n    \ndevice = context.get('device')\nparams = context.get('params', {})\n\n# Get bin number from Pick List warehouse\npick_list = frappe.get_doc(\"Pick List\", frappe.form_dict.doc)\nif not pick_list.locations:\n    frappe.msgprint(\"❌ No locations found in Pick List\")\n    frappe.throw(\"No locations found in Pick List\")\n    \nwarehouse = pick_list.locations[0].warehouse\nbin_number = warehouse.replace(\"Pick Bin \", \"\")  # Extract \"01\" from \"Pick Bin 01\"\n\nfrappe.msgprint(f\"🤖 Starting assembly pick sequence for bin {bin_number}\")\n\n# Check cycle running\ncycle_running = device.read_signal(\"CYCLE_RUNNING\")\nif not cycle_running:\n    frappe.msgprint(\"❌ PLC cycle not running\")\n    frappe.throw(\"PLC cycle not running\")\n    \n# Start the sequence\ndevice.write_signal(f\"PICK_BIN_{bin_number}\", True)\ndevice.write_signal(\"TO_ASSEMBLY_STA_1\", True)\n\n# Monitor for in-process signal\nin_process = device.read_signal(\"PICK_TO_ASSEMBLY_IN_PROCESS\")\nif not in_process:\n    frappe.msgprint(\"❌ Pick sequence did not start\")\n    frappe.throw(\"Pick sequence did not start\")\n    \nfrappe.msgprint(\"✅ Pick sequence initiated successfully\")\n\nfrappe.response[\"message\"] = {\n    \"status\": \"success\",\n    \"value\": f\"Assembly pick sequence started for bin {bin_number}\"\n}",
+  "script_type": "API"
  }
 ]
