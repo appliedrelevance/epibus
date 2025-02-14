@@ -18,7 +18,7 @@ def get_context(context):
         "Digital Input Contact",
         "Analog Input Register",
         "Analog Output Register",
-        "Holding Register"
+        "Holding Register",
     ]
 
 
@@ -29,20 +29,38 @@ def get_modbus_data():
     connections = frappe.get_all(
         "Modbus Connection",
         fields=[
-            "name", "device_name", "device_type", "enabled",
-            "host", "port", "thumbnail"
-        ]
+            "name",
+            "device_name",
+            "device_type",
+            "enabled",
+            "host",
+            "port",
+            "thumbnail",
+        ],
     )
 
     # For each connection, fetch its associated signals
     for conn in connections:
-        signals = frappe.get_all(
-            "Modbus Signal",
-            filters={"parent": conn.name},
-            fields=[
-                "name", "signal_name", "signal_type", "modbus_address"
-            ]
+        # First get basic signal data
+        signal_refs = frappe.get_all(
+            "Modbus Signal", filters={"parent": conn.name}, fields=["name"]
         )
+
+        # Then load each signal as a document to get computed fields
+        signals = []
+        for signal_ref in signal_refs:
+            signal_doc = frappe.get_doc("Modbus Signal", signal_ref.name)
+            signals.append(
+                {
+                    "name": signal_doc.name,
+                    "signal_name": signal_doc.signal_name,
+                    "signal_type": signal_doc.signal_type,
+                    "modbus_address": signal_doc.modbus_address,
+                    "plc_address": signal_doc.get_plc_address(),
+                    "digital_value": signal_doc.digital_value,
+                    "float_value": signal_doc.float_value,
+                }
+            )
         conn["signals"] = signals
 
     return connections

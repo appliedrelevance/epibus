@@ -71,8 +71,13 @@ class ModbusSignal(Document):
         parenttype: DF.Data
         plc_address: DF.Data | None
         signal_name: DF.Data
-        signal_type: DF.Literal["Digital Output Coil", "Digital Input Contact",
-                                "Analog Input Register", "Analog Output Register", "Holding Register"]
+        signal_type: DF.Literal[
+            "Digital Output Coil",
+            "Digital Input Contact",
+            "Analog Input Register",
+            "Analog Output Register",
+            "Holding Register",
+        ]
     # end: auto-generated types
 
     def validate(self):
@@ -82,15 +87,13 @@ class ModbusSignal(Document):
             self.validate_modbus_address()
             self.calculate_plc_address()
         except Exception as e:
-            logger.error(
-                f"Validation error for ModbusSignal {self.name}: {str(e)}")
+            logger.error(f"Validation error for ModbusSignal {self.name}: {str(e)}")
             raise
 
     def validate_signal_type(self):
         """Validate that the signal type is recognized"""
         if self.signal_type not in SIGNAL_TYPE_MAPPINGS:
-            frappe.throw(
-                _("Invalid signal type: {0}").format(self.signal_type))
+            frappe.throw(_("Invalid signal type: {0}").format(self.signal_type))
 
     def validate_modbus_address(self):
         """Validate Modbus address is within correct range for the signal type"""
@@ -113,8 +116,7 @@ class ModbusSignal(Document):
 
         if signal_config["bit_addressed"]:
             # For bit-addressed signals (Digital I/O)
-            plc_major = signal_config["plc_major_start"] + \
-                (self.modbus_address // 8)
+            plc_major = signal_config["plc_major_start"] + (self.modbus_address // 8)
             plc_minor = self.modbus_address % 8
 
             if plc_minor > signal_config["plc_minor_max"]:
@@ -132,8 +134,9 @@ class ModbusSignal(Document):
         logger.debug(f"Reading signal {self.signal_name}")
 
         try:
-            device_doc = cast(ModbusConnection, frappe.get_doc(
-                "Modbus Connection", self.parent))
+            device_doc = cast(
+                ModbusConnection, frappe.get_doc("Modbus Connection", self.parent)
+            )
 
             with device_doc.get_client() as client:
                 handler = SignalHandler(client)
@@ -151,7 +154,7 @@ class ModbusSignal(Document):
                     event_type="Read",
                     device=self.parent,
                     signal=self.name,
-                    new_value=value
+                    new_value=value,
                 )
 
                 return value
@@ -163,7 +166,7 @@ class ModbusSignal(Document):
                 device=self.parent,
                 signal=self.name,
                 status="Failed",
-                error=e
+                error=e,
             )
             raise
 
@@ -180,8 +183,9 @@ class ModbusSignal(Document):
             else:
                 current_value = self.value
 
-            device_doc = cast(ModbusConnection, frappe.get_doc(
-                "Modbus Connection", self.parent))
+            device_doc = cast(
+                ModbusConnection, frappe.get_doc("Modbus Connection", self.parent)
+            )
 
             with device_doc.get_client() as client:
                 handler = SignalHandler(client)
@@ -203,7 +207,7 @@ class ModbusSignal(Document):
                     device=self.parent,
                     signal=self.name,
                     previous_value=current_value,
-                    new_value=new_value
+                    new_value=new_value,
                 )
 
                 return new_value
@@ -216,7 +220,7 @@ class ModbusSignal(Document):
                 signal=self.name,
                 previous_value=current_value,
                 status="Failed",
-                error=e
+                error=e,
             )
             raise
 
@@ -233,8 +237,7 @@ class ModbusSignal(Document):
         try:
             current_value = self.read_signal()
             if not isinstance(current_value, bool):
-                frappe.throw(
-                    _("Invalid signal state - expected boolean value"))
+                frappe.throw(_("Invalid signal state - expected boolean value"))
 
             new_value = not current_value
             return self.write_signal(new_value)
@@ -251,3 +254,24 @@ class ModbusSignal(Document):
             "Deprecated Method Used",
         )
         return self.toggle_signal()
+
+    def get_plc_address(self):
+        """Virtual field getter for PLC address"""
+        if not self.signal_type or self.modbus_address is None:
+            return None
+
+        signal_config = SIGNAL_TYPE_MAPPINGS[self.signal_type]
+
+        if signal_config["bit_addressed"]:
+            # For bit-addressed signals (Digital I/O)
+            plc_major = signal_config["plc_major_start"] + (self.modbus_address // 8)
+            plc_minor = self.modbus_address % 8
+
+            if plc_minor > signal_config["plc_minor_max"]:
+                return None
+
+            return f"%{signal_config['prefix']}{plc_major}.{plc_minor}"
+        else:
+            # For word-addressed signals (Analog and Holding Registers)
+            plc_major = signal_config["plc_major_start"] + self.modbus_address
+            return f"%{signal_config['prefix']}{plc_major}"

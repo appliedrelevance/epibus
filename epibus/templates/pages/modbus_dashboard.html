@@ -1,8 +1,10 @@
 {%- extends "templates/web.html" -%}
 
-{%- block title -%}{{ title }}{%- endblock -%}
+{%- block title -%}{{ title | striptags }}{%- endblock -%}
 
 {%- block page_head_tags -%}
+<!-- Font Awesome CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <!-- Custom dashboard CSS -->
 <link rel="stylesheet" href="/assets/epibus/css/modbus_dashboard.css">
 {%- endblock -%}
@@ -107,7 +109,7 @@
 
             connections.forEach(function (connection) {
                 const card = document.createElement('div');
-                card.className = 'col-md-6 mb-4';
+                card.className = 'col-12 mb-4';
 
                 // Create connection card HTML
                 let cardHtml = `
@@ -133,29 +135,63 @@
                         <div class="signals-container">
                 `;
 
-                // Add signals if they exist
+                // Add signals table if signals exist
                 if (connection.signals && connection.signals.length > 0) {
+                    cardHtml += `
+                        <div class="signal-table-wrapper">
+                            <table class="table signal-table">
+                                <thead>
+                                    <tr>
+                                        <th class="signal-status">Status</th>
+                                        <th class="signal-name">Signal Name</th>
+                                        <th class="signal-type">Type</th>
+                                        <th class="signal-value">Value</th>
+                                        <th class="signal-address">Modbus Address</th>
+                                        <th class="signal-plc-address">PLC Address</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
                     connection.signals.forEach(function (signal) {
                         const value = signal.signal_type.includes('Digital') ?
                             signal.digital_value ? 'ON' : 'OFF' :
-                            signal.float_value;
+                            signal.float_value !== null ? signal.float_value.toFixed(2) : 'N/A';
 
                         cardHtml += `
-                            <div class="signal-card ${signal.signal_type.toLowerCase().replace(/\s+/g, '-')}">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <strong>${signal.signal_name}</strong>
-                                    <span class="badge badge-primary">${signal.signal_type}</span>
-                                </div>
-                                <div class="mt-2">
-                                    <div>Value: ${value}</div>
-                                    <div class="text-muted">
-                                        <small>Modbus Address: ${signal.modbus_address}</small>
-                                        ${signal.plc_address ? `<br><small>PLC Address: ${signal.plc_address}</small>` : ''}
-                                    </div>
-                                </div>
-                            </div>
+                            <tr class="signal-row ${signal.signal_type.toLowerCase().replace(/\s+/g, '-')}">
+                                <td class="signal-status">
+                                    <i class="fa fa-circle ${signal.signal_type.includes('Digital') ?
+                                (signal.digital_value ? 'text-success' : 'text-muted') :
+                                'text-primary'}" aria-hidden="true"></i>
+                                </td>
+                                <td class="signal-name"><strong>${signal.signal_name}</strong></td>
+                                <td class="signal-type">
+                                    <span class="badge signal-type-badge ${signal.signal_type.toLowerCase().replace(/\s+/g, '-')}-badge">
+                                        ${signal.signal_type}
+                                    </span>
+                                </td>
+                                <td class="signal-value">
+                                    ${signal.signal_type.includes('Digital') ?
+                                `<i class="fa fa-power-off ${signal.digital_value ? 'text-success' : 'text-muted'}" aria-label="${signal.digital_value ? 'ON' : 'OFF'}"></i>` :
+                                value
+                            }
+                                </td>
+                                <td class="signal-address">
+                                    ${signal.modbus_address}
+                                </td>
+                                <td class="signal-plc-address">
+                                    ${signal.plc_address || ''}
+                                </td>
+                            </tr>
                         `;
                     });
+
+                    cardHtml += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
                 } else {
                     cardHtml += `
                         <div class="text-muted text-center py-3">
@@ -221,7 +257,7 @@
 
             cards.forEach(function (card) {
                 const deviceType = card.querySelector('.badge-info').textContent;
-                const cardContainer = card.closest('.col-md-6');
+                const cardContainer = card.closest('.col-12');
 
                 if (!selectedDeviceType || deviceType === selectedDeviceType) {
                     cardContainer.style.display = '';
@@ -233,30 +269,22 @@
 
         document.getElementById('signal-type-filter').addEventListener('change', function () {
             const selectedSignalType = this.value;
-            const signalCards = document.querySelectorAll('.signal-card');
+            document.querySelectorAll('.connection-card').forEach(function (card) {
+                const rows = card.querySelectorAll('.signal-row');
+                let hasVisibleSignals = false;
 
-            signalCards.forEach(function (card) {
-                const signalType = card.querySelector('.badge-primary').textContent;
+                rows.forEach(function (row) {
+                    const signalType = row.querySelector('.signal-type-badge').textContent.trim();
+                    if (!selectedSignalType || signalType === selectedSignalType) {
+                        row.style.display = '';
+                        hasVisibleSignals = true;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
 
-                if (!selectedSignalType || signalType === selectedSignalType) {
-                    card.style.display = '';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-
-            // Hide connection cards that have no visible signals
-            document.querySelectorAll('.connection-card').forEach(function (connCard) {
-                const signalsContainer = connCard.querySelector('.signals-container');
-                const visibleSignals = signalsContainer.querySelectorAll('.signal-card[style="display: none;"]').length;
-                const totalSignals = signalsContainer.querySelectorAll('.signal-card').length;
-                const cardContainer = connCard.closest('.col-md-6');
-
-                if (selectedSignalType && visibleSignals === totalSignals) {
-                    cardContainer.style.display = 'none';
-                } else {
-                    cardContainer.style.display = '';
-                }
+                const cardContainer = card.closest('.col-12');
+                cardContainer.style.display = hasVisibleSignals || !selectedSignalType ? '' : 'none';
             });
         });
     });
