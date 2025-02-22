@@ -28,7 +28,7 @@ class ModbusAction(Document):
         interval_seconds: DF.Int
         parameters: DF.Table[ModbusParameter]
         server_script: DF.Link
-        signal: DF.Link
+        signal: DF.Link | None
         trigger_doctype: DF.Link | None
         trigger_event: DF.Literal["Before Insert", "After Insert", "Before Save", "After Save", "Before Submit", "After Submit", "Before Cancel",
                                   "After Cancel", "Before Delete", "After Delete", "Before Save (Submitted Document)", "After Save (Submitted Document)"]
@@ -59,7 +59,7 @@ class ModbusAction(Document):
         if script.script_type not in ("API"):
             frappe.throw(_("Server Script must be of type API"))
 
-    @frappe.whitelist()
+    @frappe.whitelist(methods=['POST'])
     def execute_script(self, event_doc=None):
         """Execute the linked server script"""
         script: ServerScript = cast(ServerScript, frappe.get_doc(
@@ -76,8 +76,8 @@ class ModbusAction(Document):
         # Store context in flags for access during execution
         frappe.flags.modbus_context = {
             "action": self,
-            "signal": frappe.get_doc("Modbus Signal", self.signal),
-            "device": frappe.get_doc("Modbus Connection", self.device),
+            "signal": frappe.get_doc("Modbus Signal", str(self.signal)),
+            "device": frappe.get_doc("Modbus Connection", str(self.device)),
             "params": params
         }
 

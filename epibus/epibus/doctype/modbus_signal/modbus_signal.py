@@ -4,13 +4,16 @@
 import frappe
 from frappe.model.document import Document
 from frappe import _
-from typing import cast
+from typing import cast, Union, Optional, overload, TypeVar, Any, TypeGuard, Literal
 from epibus.epibus.utils.epinomy_logger import get_logger
 from epibus.epibus.utils.signal_handler import SignalHandler
 from epibus.epibus.doctype.modbus_event.modbus_event import ModbusEvent
 from epibus.epibus.doctype.modbus_connection.modbus_connection import ModbusConnection
 
 logger = get_logger(__name__)
+
+NumericValue = Union[float, int]
+SignalValue = Union[bool, NumericValue]
 
 # Define Signal Types and their corresponding PLC address configurations
 SIGNAL_TYPE_MAPPINGS = {
@@ -54,6 +57,77 @@ SIGNAL_TYPE_MAPPINGS = {
 }
 
 
+def is_bool(value: SignalValue) -> TypeGuard[bool]:
+    """Type guard to ensure a value is boolean"""
+    return isinstance(value, bool)
+
+
+def read_bool_signal(signal: 'ModbusSignal') -> bool:
+    """Read a digital signal value, ensuring boolean return type
+
+    Args:
+        signal: The ModbusSignal document to read from
+
+    Returns:
+        bool: The current value of the signal
+
+    Raises:
+        frappe.ValidationError: If the signal value is not boolean
+    """
+    if not SIGNAL_TYPE_MAPPINGS[signal.signal_type]["bit_addressed"]:
+        frappe.throw(_("Can only read boolean values from digital signals"))
+
+    value = signal.read_signal()
+    if not is_bool(value):
+        frappe.throw(_("Invalid signal state - expected boolean value"))
+    return value
+
+
+@frappe.whitelist(methods=['POST'])
+def toggle_signal(signal_name: str, value: Optional[bool] = None) -> bool:
+    """Toggle a digital signal between True/False or set to specific value
+
+    Args:
+        signal_name (str): The name of the ModbusSignal document to toggle
+        value (Optional[bool]): If provided, set to this specific boolean value instead of toggling
+
+    Returns:
+        bool: New value of the signal after toggle/set
+
+    Raises:
+        ValueError: If signal_name is None or empty
+        frappe.ValidationError: If signal is not a digital type or current value is not boolean
+    """
+    if not signal_name:
+        frappe.throw(_("Signal name cannot be empty"))
+
+    signal = cast(ModbusSignal, frappe.get_doc("Modbus Signal", signal_name))
+
+    if not SIGNAL_TYPE_MAPPINGS[signal.signal_type]["bit_addressed"]:
+        frappe.throw(_("Can only toggle digital signals"))
+
+    try:
+        if value is not None:
+            # Convert string "True"/"False" to boolean if needed
+            if isinstance(value, str):
+                value = value.lower() == "true"
+            new_value = bool(value)  # Ensure boolean type
+        else:
+            # Toggle current value if no specific value provided
+            current_value = read_bool_signal(signal)
+            new_value = not current_value
+
+        # Write the new value and ensure boolean return
+        result = signal.write_signal(new_value)
+        if not is_bool(result):
+            frappe.throw(_("Invalid toggle result - expected boolean value"))
+        return result
+
+    except Exception as e:
+        logger.error(f"Error toggling signal {signal.signal_name}: {str(e)}")
+        raise
+
+
 class ModbusSignal(Document):
     # begin: auto-generated types
     # This code is auto-generated. Do not modify anything in this block.
@@ -78,6 +152,7 @@ class ModbusSignal(Document):
             "Analog Output Register",
             "Holding Register",
         ]
+        value: NumericValue  # Added value field for non-boolean values
     # end: auto-generated types
 
     def validate(self):
@@ -87,13 +162,15 @@ class ModbusSignal(Document):
             self.validate_modbus_address()
             self.calculate_plc_address()
         except Exception as e:
-            logger.error(f"Validation error for ModbusSignal {self.name}: {str(e)}")
+            logger.error(
+                f"Validation error for ModbusSignal {self.name}: {str(e)}")
             raise
 
     def validate_signal_type(self):
         """Validate that the signal type is recognized"""
         if self.signal_type not in SIGNAL_TYPE_MAPPINGS:
-            frappe.throw(_("Invalid signal type: {0}").format(self.signal_type))
+            frappe.throw(
+                _("Invalid signal type: {0}").format(self.signal_type))
 
     def validate_modbus_address(self):
         """Validate Modbus address is within correct range for the signal type"""
@@ -109,14 +186,15 @@ class ModbusSignal(Document):
                 )
             )
 
-    @frappe.whitelist()
+    @frappe.whitelist(methods=['POST'])
     def calculate_plc_address(self):
         """Calculate and set the PLC address based on signal type and Modbus address"""
         signal_config = SIGNAL_TYPE_MAPPINGS[self.signal_type]
 
         if signal_config["bit_addressed"]:
             # For bit-addressed signals (Digital I/O)
-            plc_major = signal_config["plc_major_start"] + (self.modbus_address // 8)
+            plc_major = signal_config["plc_major_start"] + \
+                (self.modbus_address // 8)
             plc_minor = self.modbus_address % 8
 
             if plc_minor > signal_config["plc_minor_max"]:
@@ -128,14 +206,25 @@ class ModbusSignal(Document):
             plc_major = signal_config["plc_major_start"] + self.modbus_address
             self.plc_address = f"%{signal_config['prefix']}{plc_major}"
 
-    @frappe.whitelist()
-    def read_signal(self):
+    @overload
+    def read_signal(self) -> bool:
+        """Read a digital signal value"""
+        ...
+
+    @overload
+    def read_signal(self) -> NumericValue:
+        """Read an analog or holding register value"""
+        ...
+
+    @frappe.whitelist(methods=['GET'])
+    def read_signal(self) -> SignalValue:
         """Read the current value of the signal"""
         logger.debug(f"Reading signal {self.signal_name}")
 
         try:
             device_doc = cast(
-                ModbusConnection, frappe.get_doc("Modbus Connection", self.parent)
+                ModbusConnection, frappe.get_doc(
+                    "Modbus Connection", self.parent)
             )
 
             with device_doc.get_client() as client:
@@ -170,8 +259,18 @@ class ModbusSignal(Document):
             )
             raise
 
-    @frappe.whitelist()
-    def write_signal(self, value):
+    @overload
+    def write_signal(self, value: bool) -> bool:
+        """Write a boolean value to a digital signal"""
+        ...
+
+    @overload
+    def write_signal(self, value: NumericValue) -> NumericValue:
+        """Write a numeric value to an analog or holding register"""
+        ...
+
+    @frappe.whitelist(methods=['POST'])
+    def write_signal(self, value: SignalValue) -> SignalValue:
         """Write a value to the signal"""
         logger.debug(f"Writing value {value} to signal {self.signal_name}")
 
@@ -184,7 +283,8 @@ class ModbusSignal(Document):
                 current_value = self.value
 
             device_doc = cast(
-                ModbusConnection, frappe.get_doc("Modbus Connection", self.parent)
+                ModbusConnection, frappe.get_doc(
+                    "Modbus Connection", self.parent)
             )
 
             with device_doc.get_client() as client:
@@ -193,6 +293,14 @@ class ModbusSignal(Document):
 
                 # Read back value
                 new_value = handler.read(self.signal_type, self.modbus_address)
+
+                # Convert and validate read-back value
+                if isinstance(value, bool):
+                    # Convert numeric 0/1 to boolean
+                    new_value = bool(new_value)
+                elif isinstance(value, (int, float)) and isinstance(new_value, bool):
+                    frappe.throw(
+                        _("Expected numeric value from write operation"))
 
                 # Update stored value
                 if isinstance(new_value, bool):
@@ -224,30 +332,24 @@ class ModbusSignal(Document):
             )
             raise
 
-    @frappe.whitelist()
-    def toggle_signal(self):
-        """Toggle a digital signal between True/False
+    @frappe.whitelist(methods=['POST'])
+    def toggle_signal(self, value: Optional[bool] = None) -> bool:
+        """Toggle a digital signal between True/False or set to specific value
+
+        Args:
+            value (Optional[bool]): If provided, set to this specific boolean value instead of toggling
 
         Returns:
-            bool: New value of the signal after toggle
+            bool: New value of the signal after toggle/set
         """
-        if not SIGNAL_TYPE_MAPPINGS[self.signal_type]["bit_addressed"]:
-            frappe.throw(_("Can only toggle digital signals"))
+        if not self.name:
+            frappe.throw(_("Document must be saved before toggling"))
 
-        try:
-            current_value = self.read_signal()
-            if not isinstance(current_value, bool):
-                frappe.throw(_("Invalid signal state - expected boolean value"))
+        # Cast self.name to str since we've verified it's not None
+        return toggle_signal(str(self.name), value)
 
-            new_value = not current_value
-            return self.write_signal(new_value)
-
-        except Exception as e:
-            logger.error(f"Error toggling signal {self.signal_name}: {str(e)}")
-            raise
-
-    @frappe.whitelist()
-    def toggle_location_pin(self):
+    @frappe.whitelist(methods=['POST'])
+    def toggle_location_pin(self) -> bool:
         """DEPRECATED: Use toggle_signal() instead"""
         frappe.log_error(
             "toggle_location_pin() is deprecated, use toggle_signal() instead",
@@ -255,7 +357,7 @@ class ModbusSignal(Document):
         )
         return self.toggle_signal()
 
-    def get_plc_address(self):
+    def get_plc_address(self) -> Optional[str]:
         """Virtual field getter for PLC address"""
         if not self.signal_type or self.modbus_address is None:
             return None
@@ -264,7 +366,8 @@ class ModbusSignal(Document):
 
         if signal_config["bit_addressed"]:
             # For bit-addressed signals (Digital I/O)
-            plc_major = signal_config["plc_major_start"] + (self.modbus_address // 8)
+            plc_major = signal_config["plc_major_start"] + \
+                (self.modbus_address // 8)
             plc_minor = self.modbus_address % 8
 
             if plc_minor > signal_config["plc_minor_max"]:

@@ -1,5 +1,7 @@
 import frappe
 from frappe import _
+from typing import cast
+from epibus.epibus.doctype.modbus_signal.modbus_signal import ModbusSignal
 
 
 def get_context(context):
@@ -22,7 +24,7 @@ def get_context(context):
     ]
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=['GET'])
 def get_modbus_data():
     """Get comprehensive data about Modbus connections and their signals."""
     # Fetch Modbus Connection data with all relevant fields
@@ -49,7 +51,8 @@ def get_modbus_data():
         # Then load each signal as a document to get computed fields
         signals = []
         for signal_ref in signal_refs:
-            signal_doc = frappe.get_doc("Modbus Signal", signal_ref.name)
+            signal_doc = cast(ModbusSignal, frappe.get_doc(
+                "Modbus Signal", signal_ref.name))
             signals.append(
                 {
                     "name": signal_doc.name,

@@ -8,7 +8,7 @@ EpiBus provides integration between ERPNext's document events and MODBUS TCP dev
 
 ```mermaid
 classDiagram
-    class ModbusDevice {
+    class ModbusConnection {
         +String device_name
         +String device_type
         +String host
@@ -34,7 +34,7 @@ classDiagram
     class ModbusAction {
         +String action_name
         +String description
-        +Link~ModbusDevice~ device
+        +Link~ModbusConnection~ device
         +Link~ModbusSignal~ signal
         +Link~ServerScript~ server_script
         +List~ModbusParameter~ parameters
@@ -50,8 +50,8 @@ classDiagram
         +execute_scheduled_method()
     }
 
-    ModbusDevice "1" *-- "many" ModbusSignal : contains
-    ModbusAction "many" --> "1" ModbusDevice : references
+    ModbusConnection "1" *-- "many" ModbusSignal : contains
+    ModbusAction "many" --> "1" ModbusConnection : references
     ModbusAction "many" --> "1" ModbusSignal : controls
     ModbusAction "many" --> "1" ServerScript : executes
 ```
@@ -66,8 +66,8 @@ sequenceDiagram
     participant Script as Server Script
     participant Action as Modbus Action
     participant Signal as Modbus Signal
-    participant Device as Modbus Device
-    participant PLC as MODBUS Device
+    participant Device as Modbus Connection
+    participant PLC as Modbus Connection
 
     Doc->>Script: Document Event (e.g. on_submit)
     Script->>Action: execute_script()
@@ -91,8 +91,8 @@ sequenceDiagram
     participant Script as Server Script
     participant Action as Modbus Action
     participant Signal as Modbus Signal
-    participant Device as Modbus Device
-    participant PLC as MODBUS Device
+    participant Device as Modbus Connection
+    participant PLC as Modbus Connection
 
     Scheduler->>Script: execute_scheduled_method()
     Script->>Action: execute_script()
@@ -108,8 +108,8 @@ sequenceDiagram
 
 ## Key Concepts
 
-1. **ModbusDevice**: Represents a physical MODBUS TCP device with connection details and signal definitions
-2. **ModbusSignal**: Defines a specific I/O point on a MODBUS device with addressing and type information
+1. **ModbusConnection**: Represents a physical MODBUS TCP device with connection details and signal definitions
+2. **ModbusSignal**: Defines a specific I/O point on a Modbus Connection with addressing and type information
 3. **ModbusAction**: Links Frappe events to MODBUS operations through configurable server scripts
 4. **ServerScript**: Contains the Python code that defines the logic for how document events translate to MODBUS operations
 

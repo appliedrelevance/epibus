@@ -31,8 +31,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Signal",
-   "options": "Modbus Signal",
-   "reqd": 1
+   "options": "Modbus Signal"
   },
   {
    "fieldname": "action_name",
@@ -121,7 +120,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-22 15:04:12.698227",
+ "modified": "2025-02-21 09:39:45.097435",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Action",

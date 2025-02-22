@@ -7,6 +7,34 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <!-- Custom dashboard CSS -->
 <link rel="stylesheet" href="/assets/epibus/css/modbus_dashboard.css">
+<style>
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        padding-right: 25px !important;
+    }
+
+    .sort-indicator {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.5;
+    }
+
+    .sortable:hover .sort-indicator {
+        opacity: 1;
+    }
+
+    .fa-sort-alpha-asc,
+    .fa-sort-alpha-desc {
+        opacity: 1;
+        color: #2196F3;
+    }
+</style>
+<!-- Frappe Socket.IO -->
+<script src="/assets/frappe/js/lib/socket.io.min.js"></script>
 {%- endblock -%}
 
 {%- block page_content -%}
@@ -68,6 +96,81 @@
 {%- block script %}
 <script>
     frappe.ready(function () {
+        // Initialize variables for real-time updates
+        var connections = [];
+        var currentSort = {
+            column: 'signal_name', // Default sort column
+            ascending: true
+        };
+
+        // Helper function to sort signals
+        function sortSignals(signals) {
+            return signals.sort((a, b) => {
+                let aVal = a[currentSort.column];
+                let bVal = b[currentSort.column];
+
+                // Handle special cases for different columns
+                if (currentSort.column === 'signal_value') {
+                    aVal = a.signal_type.includes('Digital') ? a.digital_value : a.float_value;
+                    bVal = b.signal_type.includes('Digital') ? b.digital_value : b.float_value;
+                }
+
+                // Convert to strings for comparison if not numbers
+                if (typeof aVal !== 'number') {
+                    aVal = String(aVal).toLowerCase();
+                    bVal = String(bVal).toLowerCase();
+                }
+
+                if (aVal < bVal) return currentSort.ascending ? -1 : 1;
+                if (aVal > bVal) return currentSort.ascending ? 1 : -1;
+                return 0;
+            });
+        }
+
+        // Setup socket connection using Frappe's socketio
+        frappe.realtime.on("modbus_signal_update", function (data) {
+            // Find and update the signal
+            connections.forEach(function (connection) {
+                if (connection.signals) {
+                    connection.signals.forEach(function (signal) {
+                        if (signal.name === data.signal) {
+                            if (signal.signal_type.includes('Digital')) {
+                                signal.digital_value = data.value;
+                            } else {
+                                signal.float_value = data.value;
+                            }
+                            signal.timestamp = frappe.datetime.now_time();
+                        }
+                    });
+                }
+            });
+            // Re-render dashboard with updated data
+            renderDashboard(connections);
+        });
+
+        // Helper function to get signal status icon
+        function getSignalStatusIcon(signal) {
+            const value = signal.signal_type.includes('Digital') ?
+                signal.digital_value : signal.float_value;
+
+            // Digital Input Contact (uses circle icons)
+            if (signal.signal_type === "Digital Input Contact") {
+                return value ?
+                    '<i class="fa fa-dot-circle digital-input-true"></i> TRUE' :
+                    '<i class="fa fa-circle-o digital-input-false"></i> FALSE';
+            }
+
+            // Digital Output Coil (uses toggle icons)
+            if (signal.signal_type === "Digital Output Coil") {
+                return value ?
+                    '<i class="fa fa-toggle-on digital-output-true"></i> TRUE' :
+                    '<i class="fa fa-toggle-off digital-output-false"></i> FALSE';
+            }
+
+            // For analog signals, just return the value
+            return `<span class="value-display">${value !== null ? value.toFixed(2) : 'N/A'}</span>`;
+        }
+
         // Get CSRF token from cookie
         function getCookie(name) {
             let cookieValue = null;
@@ -143,17 +246,35 @@
                                 <thead>
                                     <tr>
                                         <th class="signal-status">Status</th>
-                                        <th class="signal-name">Signal Name</th>
-                                        <th class="signal-type">Type</th>
-                                        <th class="signal-value">Value</th>
-                                        <th class="signal-address">Modbus Address</th>
-                                        <th class="signal-plc-address">PLC Address</th>
+                                        <th class="signal-name sortable" data-column="signal_name">
+                                            Signal Name
+                                            <i class="fa fa-sort-alpha-asc sort-indicator"></i>
+                                        </th>
+                                        <th class="signal-type sortable" data-column="signal_type">
+                                            Type
+                                            <i class="fa fa-sort sort-indicator"></i>
+                                        </th>
+                                        <th class="signal-value sortable" data-column="signal_value">
+                                            Value
+                                            <i class="fa fa-sort sort-indicator"></i>
+                                        </th>
+                                        <th class="signal-address sortable" data-column="modbus_address">
+                                            Modbus Address
+                                            <i class="fa fa-sort sort-indicator"></i>
+                                        </th>
+                                        <th class="signal-plc-address sortable" data-column="plc_address">
+                                            PLC Address
+                                            <i class="fa fa-sort sort-indicator"></i>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
                     `;
 
-                    connection.signals.forEach(function (signal) {
+                    // Sort signals before rendering
+                    const sortedSignals = sortSignals([...connection.signals]);
+
+                    sortedSignals.forEach(function (signal) {
                         const value = signal.signal_type.includes('Digital') ?
                             signal.digital_value ? 'ON' : 'OFF' :
                             signal.float_value !== null ? signal.float_value.toFixed(2) : 'N/A';
@@ -172,9 +293,9 @@
                                     </span>
                                 </td>
                                 <td class="signal-value">
-                                    ${signal.signal_type.includes('Digital') ?
-                                `<i class="fa fa-power-off ${signal.digital_value ? 'text-success' : 'text-muted'}" aria-label="${signal.digital_value ? 'ON' : 'OFF'}"></i>` :
-                                value
+                                    ${getSignalStatusIcon(signal)}
+                                    ${signal.signal_type === "Digital Output Coil" ?
+                                `<button class="btn btn-sm btn-outline-primary toggle-digital ml-2" data-signal="${signal.name}">Toggle</button>` : ''
                             }
                                 </td>
                                 <td class="signal-address">
@@ -214,34 +335,44 @@
         function updateDashboard() {
             showLoading();
 
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', '/api/method/epibus.www.modbus_dashboard.get_modbus_data', true);
-            xhr.setRequestHeader('X-Frappe-CSRF-Token', getCookie('csrf_token'));
+            frappe.call({
+                type: 'GET',
+                url: '/api/method/epibus.www.modbus_dashboard.get_modbus_data',
+                callback: function (response) {
+                    hideLoading();
+                    if (response.message) {
+                        connections = response.message;
 
-            xhr.onload = function () {
-                hideLoading();
-                if (xhr.status === 200) {
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        if (response.message) {
-                            renderDashboard(response.message);
-                        } else {
-                            showError("Invalid response format");
-                        }
-                    } catch (e) {
-                        showError("Failed to parse response: " + e.message);
+                        // Initialize signal monitoring for each signal
+                        connections.forEach(function (connection) {
+                            if (connection.signals) {
+                                connection.signals.forEach(function (signal) {
+                                    frappe.call({
+                                        type: 'POST',
+                                        url: '/api/method/epibus.epibus.utils.signal_monitor.start_monitoring',
+                                        args: {
+                                            signal_name: signal.name
+                                        },
+                                        callback: function (r) {
+                                            if (r.message && r.message.success) {
+                                                console.log('Started monitoring:', signal.signal_name);
+                                            }
+                                        }
+                                    });
+                                });
+                            }
+                        });
+
+                        renderDashboard(connections);
+                    } else {
+                        showError("Invalid response format");
                     }
-                } else {
-                    showError("Failed to fetch Modbus data: " + xhr.statusText);
+                },
+                error: function (xhr, textStatus) {
+                    hideLoading();
+                    showError("Failed to fetch Modbus data: " + textStatus);
                 }
-            };
-
-            xhr.onerror = function () {
-                hideLoading();
-                showError("Network error occurred");
-            };
-
-            xhr.send();
+            });
         }
 
         // Initial load
@@ -250,6 +381,57 @@
         // Refresh button handler
         document.getElementById('refresh-data').addEventListener('click', updateDashboard);
 
+        // Add click handler for digital signal toggle buttons
+        document.addEventListener('click', function (e) {
+            if (e.target && e.target.classList.contains('toggle-digital')) {
+                var signalName = e.target.getAttribute('data-signal');
+                if (signalName) {
+                    frappe.call({
+                        type: 'POST',
+                        url: '/api/method/epibus.epibus.doctype.modbus_signal.modbus_signal.toggle_signal',
+                        args: {
+                            doctype: 'Modbus Signal',
+                            signal_name: signalName
+                        },
+                        callback: function (r) {
+                            if (r.message) {
+                                frappe.show_alert({
+                                    message: 'Signal toggled successfully',
+                                    indicator: 'green'
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+        });
+
+        // Update sort indicators
+        function updateSortIndicators() {
+            document.querySelectorAll('.sort-indicator').forEach(indicator => {
+                indicator.className = 'fa sort-indicator ' +
+                    (indicator.closest('th').dataset.column === currentSort.column ?
+                        (currentSort.ascending ? 'fa-sort-alpha-asc' : 'fa-sort-alpha-desc') :
+                        'fa-sort');
+            });
+        }
+
+        // Sort column click handler
+        document.addEventListener('click', function (e) {
+            const th = e.target.closest('th.sortable');
+            if (th) {
+                const column = th.dataset.column;
+                if (column === currentSort.column) {
+                    currentSort.ascending = !currentSort.ascending;
+                } else {
+                    currentSort.column = column;
+                    currentSort.ascending = true;
+                }
+                updateSortIndicators();
+                renderDashboard(connections);
+            }
+        });
+
         // Filter handlers
         document.getElementById('device-type-filter').addEventListener('change', function () {
             const selectedDeviceType = this.value;
@@ -257,34 +439,28 @@
 
             cards.forEach(function (card) {
                 const deviceType = card.querySelector('.badge-info').textContent;
-                const cardContainer = card.closest('.col-12');
+                const parentCol = card.closest('.col-12');
 
                 if (!selectedDeviceType || deviceType === selectedDeviceType) {
-                    cardContainer.style.display = '';
+                    parentCol.style.display = '';
                 } else {
-                    cardContainer.style.display = 'none';
+                    parentCol.style.display = 'none';
                 }
             });
         });
 
         document.getElementById('signal-type-filter').addEventListener('change', function () {
             const selectedSignalType = this.value;
-            document.querySelectorAll('.connection-card').forEach(function (card) {
-                const rows = card.querySelectorAll('.signal-row');
-                let hasVisibleSignals = false;
+            const signalRows = document.querySelectorAll('.signal-row');
 
-                rows.forEach(function (row) {
-                    const signalType = row.querySelector('.signal-type-badge').textContent.trim();
-                    if (!selectedSignalType || signalType === selectedSignalType) {
-                        row.style.display = '';
-                        hasVisibleSignals = true;
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
+            signalRows.forEach(function (row) {
+                const signalType = row.querySelector('.signal-type-badge').textContent.trim();
 
-                const cardContainer = card.closest('.col-12');
-                cardContainer.style.display = hasVisibleSignals || !selectedSignalType ? '' : 'none';
+                if (!selectedSignalType || signalType === selectedSignalType) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
             });
         });
     });

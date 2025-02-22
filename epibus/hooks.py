@@ -14,7 +14,10 @@ app_email = "geveritt@appliedrelevance.com"
 app_license = "MIT"
 
 # Include additional assets for the Modbus Dashboard page
-app_include_css = "/assets/epibus/css/modbus_dashboard.css"
+app_include_css = [
+    "/assets/epibus/vendor/font-awesome/css/font-awesome.min.css",
+    "/assets/epibus/css/modbus_dashboard.css"
+]
 app_include_js = "/assets/epibus/js/modbus_dashboard.js"
 
 fixtures = [
@@ -39,6 +42,21 @@ docfield_list = {
 # For example, including custom page JS/CSS or web templates if needed:
 # web_include_js = ["/assets/epibus/js/other_script.js"]
 web_include_css = [
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css",
+    "/assets/epibus/vendor/font-awesome/css/font-awesome.min.css",
     "/assets/epibus/css/modbus_dashboard.css",
 ]
+
+# Scheduler configuration for signal monitoring
+scheduler_events = {
+    "all": [
+        "epibus.epibus.utils.signal_monitor.check_signals"
+    ]
+}
+
+# Setup signal monitor on app install/update
+after_install = "epibus.epibus.utils.signal_monitor.setup_scheduler_job"
+
+# Whitelisted methods
+api_methods = {
+    "epibus.epibus.utils.signal_monitor.start_monitoring": ["POST"]
+}

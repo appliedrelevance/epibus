@@ -3,213 +3,138 @@
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     padding: 20px;
+    margin-bottom: 20px;
     background: #ffffff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    transition: box-shadow 0.3s ease;
 }
 
-.connection-card:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.connection-card.active {
-    border-left: 5px solid #28a745;
-}
-
-.connection-card.inactive {
-    border-left: 5px solid #dc3545;
-}
-
-/* Device Thumbnail */
-.device-thumbnail {
-    width: 48px;
-    height: 48px;
-    object-fit: cover;
+/* Signal Card Styles */
+.signal-card {
+    border: 1px solid #e0e0e0;
     border-radius: 4px;
-}
-
-/* Signal Table Styles */
-.signal-table-wrapper {
-    margin-bottom: 12px;
-    overflow-x: auto;
-}
-
-.signal-table {
-    width: 100%;
-    margin-bottom: 0;
-    background: #fff;
-    border-collapse: separate;
-    border-spacing: 0;
-    table-layout: fixed;
-}
-
-.signal-table thead {
-    background-color: #f8f9fa;
-}
-
-.signal-table th {
-    padding: 12px 8px;
-    font-weight: 600;
-    color: #495057;
-    border-bottom: 2px solid #dee2e6;
-    white-space: nowrap;
-}
-
-.signal-table td {
-    padding: 12px 8px;
-    vertical-align: middle;
-    border-bottom: 1px solid #dee2e6;
-}
-
-/* Column Widths */
-.signal-status {
-    width: 5%;
-    text-align: center;
-}
-
-.signal-name {
-    width: 20%;
-}
-
-.signal-type {
-    width: 25%;
-}
-
-.signal-value {
-    width: 10%;
-    text-align: center;
-}
-
-.signal-address {
-    width: 20%;
-}
-
-.signal-plc-address {
-    width: 20%;
-    font-family: monospace;
-}
-
-/* Signal Type Badges */
-.signal-type-badge {
-    font-size: 0.8rem;
-    padding: 0.5em 1em;
-    color: white;
-    border-radius: 20px;
-    display: inline-block;
-    white-space: nowrap;
-    font-weight: 500;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
     transition: all 0.2s ease;
 }
 
-.signal-type-badge:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+.signal-card:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.digital-output-coil-badge {
-    background: linear-gradient(135deg, #2196f3, #1976d2);
+/* Signal Type Specific Styles */
+.digital-output-coil {
+    border-left: 4px solid #2196f3;
 }
 
-.digital-input-contact-badge {
-    background: linear-gradient(135deg, #4caf50, #388e3c);
+.digital-input-contact {
+    border-left: 4px solid #4caf50;
 }
 
-.analog-input-register-badge {
-    background: linear-gradient(135deg, #ff9800, #f57c00);
+.analog-input-register {
+    border-left: 4px solid #ff9800;
 }
 
-.analog-output-register-badge {
-    background: linear-gradient(135deg, #e91e63, #c2185b);
+.analog-output-register {
+    border-left: 4px solid #e91e63;
 }
 
-.holding-register-badge {
-    background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+.holding-register {
+    border-left: 4px solid #9c27b0;
 }
 
-/* Status and Value Icons */
+/* Signal Status Indicators */
+.signal-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+/* Digital Input Status */
+.digital-input-true {
+    color: #28a745;
+}
+
+.digital-input-false {
+    color: #dc3545;
+}
+
+/* Digital Output Status */
+.digital-output-true {
+    color: #007bff;
+}
+
+.digital-output-false {
+    color: #6c757d;
+}
+
+/* Toggle Button Styles */
+.toggle-digital {
+    margin-top: 10px;
+    padding: 5px 15px;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.toggle-digital:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.toggle-digital:active {
+    background-color: #dee2e6;
+}
+
+/* Value Display */
+.value-display {
+    font-family: monospace;
+    font-size: 1.1em;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    display: inline-block;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* Status Icons */
 .fa-circle {
     font-size: 0.8rem;
 }
 
-.fa-power-off {
+.fa-toggle-on,
+.fa-toggle-off {
     font-size: 1.2rem;
-    transition: color 0.2s ease;
 }
 
-.fa-power-off.text-success {
-    color: #28a745;
-    text-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+/* Digital Input Icons */
+.fa-dot-circle,
+.fa-circle-o {
+    font-size: 1.2rem;
 }
 
-.fa-power-off.text-muted {
+/* Timestamp Display */
+.timestamp {
+    font-size: 0.8em;
     color: #6c757d;
-}
-
-/* Signal Value Display */
-.signal-value {
-    font-weight: 500;
-    text-align: center;
-}
-
-/* Address Labels */
-.address-label {
-    color: #6c757d;
-    font-weight: 600;
-    margin-right: 4px;
-}
-
-/* Hover Effects */
-.signal-row:hover {
-    background-color: rgba(0, 0, 0, 0.02);
-}
-
-/* Responsive Adjustments */
-@media (max-width: 992px) {
-    .signal-table {
-        table-layout: auto;
-    }
-
-    .signal-type-badge {
-        max-width: 200px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-}
-
-/* Badge Styles */
-.badge {
-    font-size: 0.8rem;
-    padding: 0.4em 0.8em;
-    margin-left: 0.5rem;
-}
-
-/* Loading Spinner */
-.spinner-border {
-    width: 3rem;
-    height: 3rem;
-    margin: 2rem auto;
-}
-
-/* Filter Section */
-.form-control {
-    border-radius: 6px;
-    border: 1px solid #ddd;
-    padding: 8px 12px;
-}
-
-.form-control:focus {
-    border-color: #80bdff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    margin-top: 5px;
 }
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .connection-card {
-        margin-bottom: 1rem;
+        margin-bottom: 15px;
     }
 
-    .col-12 {
-        padding: 0 15px;
+    .signal-card {
+        padding: 10px;
     }
 }

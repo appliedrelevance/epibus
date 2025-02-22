@@ -81,7 +81,7 @@ class ModbusEvent(Document):
         if self.event_type == "Action Execution" and not self.action:
             frappe.throw("Action is required for Action Execution events")
 
-    @frappe.whitelist()
+    @frappe.whitelist(methods=['POST'])
     def retry_action(self) -> None:
         """Retry failed action if this was an action execution event"""
         if self.event_type != "Action Execution":
