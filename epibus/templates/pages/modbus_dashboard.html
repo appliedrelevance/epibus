@@ -153,18 +153,22 @@
             const value = signal.signal_type.includes('Digital') ?
                 signal.digital_value : signal.float_value;
 
-            // Digital Input Contact (uses circle icons)
-            if (signal.signal_type === "Digital Input Contact") {
-                return value ?
-                    '<i class="fa fa-dot-circle digital-input-true"></i> TRUE' :
-                    '<i class="fa fa-circle-o digital-input-false"></i> FALSE';
-            }
-
-            // Digital Output Coil (uses toggle icons)
-            if (signal.signal_type === "Digital Output Coil") {
-                return value ?
-                    '<i class="fa fa-toggle-on digital-output-true"></i> TRUE' :
-                    '<i class="fa fa-toggle-off digital-output-false"></i> FALSE';
+            // Handle all digital signals
+            if (signal.signal_type.includes('Digital')) {
+                if (signal.signal_type === "Digital Input Contact") {
+                    return value ?
+                        '<i class="fa fa-circle digital-input-true"></i> TRUE' :
+                        '<i class="fa fa-circle-o digital-input-false"></i> FALSE';
+                } else if (signal.signal_type === "Digital Output Coil") {
+                    return value ?
+                        '<i class="fa fa-toggle-on digital-output-true"></i> TRUE' :
+                        '<i class="fa fa-toggle-off digital-output-false"></i> FALSE';
+                } else {
+                    // For any other digital signals, use a standard icon
+                    return value ?
+                        '<i class="fa fa-check-circle text-success"></i> TRUE' :
+                        '<i class="fa fa-times-circle text-muted"></i> FALSE';
+                }
             }
 
             // For analog signals, just return the value

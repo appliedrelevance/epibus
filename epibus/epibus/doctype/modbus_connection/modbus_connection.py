@@ -118,7 +118,7 @@ class ModbusConnection(Document):
 
         return html
 
-    @frappe.whitelist(methods=['GET'])
+    @frappe.whitelist()
     def test_connection(self):
         """Test connection to device and read all signals"""
         logger.info(

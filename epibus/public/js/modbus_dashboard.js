@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Digital Input Contact (uses circle icons)
         if (signal.type === "Digital Input Contact") {
             return value ?
-                '<i class="fa fa-dot-circle digital-input-true"></i> TRUE' :
+                '<i class="fa fa-circle digital-input-true"></i> TRUE' :
                 '<i class="fa fa-circle-o digital-input-false"></i> FALSE';
         }
 
