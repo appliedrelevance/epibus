@@ -122,9 +122,6 @@ def toggle_signal(signal_name: str, value: Optional[bool] = None) -> bool:
         result = signal.write_signal(new_value)
         if not is_bool(result):
             frappe.throw(_("Invalid toggle result - expected boolean value"))
-
-        # Publish the update immediately
-        publish_signal_update(signal_name, result)
         return result
 
     except Exception as e:
@@ -149,14 +146,7 @@ class ModbusSignal(Document):
         parenttype: DF.Data
         plc_address: DF.Data | None
         signal_name: DF.Data
-        signal_type: DF.Literal[
-            "Digital Output Coil",
-            "Digital Input Contact",
-            "Analog Input Register",
-            "Analog Output Register",
-            "Holding Register",
-        ]
-        value: NumericValue  # Added value field for non-boolean values
+        signal_type: DF.Literal["Digital Output Coil", "Digital Input Contact", "Analog Input Register", "Analog Output Register", "Holding Register"]
     # end: auto-generated types
 
     def validate(self):

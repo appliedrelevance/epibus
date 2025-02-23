@@ -1,8 +1,8 @@
 // modbus_dashboard.js
-document.addEventListener("DOMContentLoaded", function () {
-    // Connect to Frappe's socket.io system for real-time updates
-    var socket = io();
+frappe.ready(function () {
     var connections = [];
+    var updateQueue = [];
+    var processingUpdate = false;
 
     // Helper function to get signal status icon
     function getSignalStatusIcon(signal) {
@@ -27,6 +27,40 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // For analog signals, just return the value
         return `<span class="value-display">${value}</span>`;
+    }
+
+    // Function to find and update a signal
+    function updateSignal(signalName, newValue, timestamp) {
+        let updated = false;
+        connections.forEach(function (connection) {
+            connection.signals.forEach(function (signal) {
+                if (signal.id === signalName) {
+                    signal.value = newValue;
+                    signal.timestamp = timestamp;
+                    signal.status = "active";
+                    updated = true;
+                }
+            });
+        });
+        return updated;
+    }
+
+    // Process update queue
+    function processUpdateQueue() {
+        if (processingUpdate || updateQueue.length === 0) return;
+
+        processingUpdate = true;
+        const update = updateQueue.shift();
+
+        if (updateSignal(update.signal, update.value, update.timestamp)) {
+            renderDashboard();
+        }
+
+        processingUpdate = false;
+        // Process next update if any
+        if (updateQueue.length > 0) {
+            setTimeout(processUpdateQueue, 50);
+        }
     }
 
     // Fetch and initialize connections and signals
@@ -152,53 +186,22 @@ document.addEventListener("DOMContentLoaded", function () {
     // Initialize dashboard
     initializeDashboard();
 
-    // Listen for real-time updates via websocket
-    socket.on("modbus_signal_update", function (data) {
-        // Find and update the signal
-        connections.forEach(function (connection) {
-            connection.signals.forEach(function (signal) {
-                if (signal.id === data.signal) {
-                    signal.value = data.value;
-                    signal.timestamp = frappe.datetime.now_time();
-                    signal.status = "active";
+    // Listen for real-time updates
+    frappe.realtime.on("modbus_signal_update", function (data) {
+        console.log('Received signal update:', data);
 
-                    // Clear any pending status
-                    if (signal.status === "pending") {
-                        signal.status = "active";
-                    }
-                }
-            });
-        });
-        // Re-render dashboard with updated data
-        renderDashboard();
+        // Queue the update
+        updateQueue.push(data);
+        processUpdateQueue();
     });
-
-    // Function to verify signal value after toggle
-    function verifySignalValue(signalName) {
-        return new Promise((resolve, reject) => {
-            frappe.call({
-                method: 'frappe.client.get',
-                args: {
-                    doctype: 'Modbus Signal',
-                    name: signalName
-                },
-                callback: function (r) {
-                    if (r.message) {
-                        resolve(r.message.digital_value);
-                    } else {
-                        reject(new Error('Failed to verify signal value'));
-                    }
-                }
-            });
-        });
-    }
 
     // Event listener for digital signal toggle buttons
     document.addEventListener("click", function (e) {
         if (e.target && e.target.classList.contains("toggle-digital")) {
             var signalName = e.target.getAttribute("data-signal");
             if (signalName) {
-                // Find and update signal status
+                // Set signal to pending state
+                updateSignal(signalName, null, frappe.datetime.now_time());
                 connections.forEach(function (connection) {
                     connection.signals.forEach(function (signal) {
                         if (signal.id === signalName) {
@@ -215,50 +218,37 @@ document.addEventListener("DOMContentLoaded", function () {
                     },
                     callback: function (r) {
                         if (r.message !== undefined) {
-                            // Wait longer for the value to propagate to OpenPLC
+                            // Wait for the realtime update
                             setTimeout(() => {
-                                // Verify the value was set correctly
-                                verifySignalValue(signalName)
-                                    .then(actualValue => {
-                                        if (actualValue === r.message) {
-                                            frappe.show_alert({
-                                                message: 'Signal toggled successfully',
-                                                indicator: 'green'
-                                            });
-                                        } else {
-                                            // Value mismatch - retry the toggle
-                                            frappe.show_alert({
-                                                message: 'Retrying signal toggle...',
-                                                indicator: 'orange'
-                                            });
-                                            return frappe.call({
-                                                method: 'epibus.epibus.doctype.modbus_signal.modbus_signal.toggle_signal',
-                                                args: {
-                                                    signal: signalName,
-                                                    value: r.message // Force to intended value
-                                                }
-                                            });
+                                // Check if we received the update
+                                let signalFound = false;
+                                connections.forEach(function (connection) {
+                                    connection.signals.forEach(function (signal) {
+                                        if (signal.id === signalName) {
+                                            signalFound = true;
+                                            if (signal.status === "pending") {
+                                                // No update received, retry the toggle
+                                                frappe.show_alert({
+                                                    message: 'Retrying signal update...',
+                                                    indicator: 'orange'
+                                                });
+                                                frappe.call({
+                                                    method: 'epibus.epibus.doctype.modbus_signal.modbus_signal.toggle_signal',
+                                                    args: {
+                                                        signal: signalName,
+                                                        value: r.message // Force to intended value
+                                                    }
+                                                });
+                                            }
                                         }
-                                    })
-                                    .catch(err => {
-                                        frappe.show_alert({
-                                            message: 'Error verifying signal state',
-                                            indicator: 'red'
-                                        });
-                                        console.error('Signal verification error:', err);
-                                    })
-                                    .finally(() => {
-                                        // Clear pending status if still pending
-                                        connections.forEach(function (connection) {
-                                            connection.signals.forEach(function (signal) {
-                                                if (signal.id === signalName && signal.status === "pending") {
-                                                    signal.status = "active";
-                                                }
-                                            });
-                                        });
-                                        renderDashboard();
                                     });
-                            }, 500); // Increased delay to allow value propagation
+                                });
+
+                                if (!signalFound) {
+                                    // Signal not found, refresh the dashboard
+                                    initializeDashboard();
+                                }
+                            }, 1000); // Wait 1 second for update
                         }
                     }
                 });
