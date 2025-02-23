@@ -17,6 +17,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Digital Output Coil (uses toggle icons)
         if (signal.type === "Digital Output Coil") {
+            if (signal.status === "pending") {
+                return '<i class="fa fa-spinner fa-spin"></i> PENDING';
+            }
             return value ?
                 '<i class="fa fa-toggle-on digital-output-true"></i> TRUE' :
                 '<i class="fa fa-toggle-off digital-output-false"></i> FALSE';
@@ -117,6 +120,7 @@ document.addEventListener("DOMContentLoaded", function () {
             connection.signals.forEach(function (signal) {
                 var signalCard = document.createElement("div");
                 signalCard.className = "signal-card " + signal.type.toLowerCase().replace(/ /g, '-');
+                signalCard.setAttribute('data-signal-id', signal.id);
 
                 // Create signal content with appropriate status icon
                 signalCard.innerHTML = `
@@ -132,6 +136,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     toggleBtn.textContent = "Toggle";
                     toggleBtn.className = "toggle-digital";
                     toggleBtn.setAttribute("data-signal", signal.id);
+                    if (signal.status === "pending") {
+                        toggleBtn.disabled = true;
+                    }
                     signalCard.appendChild(toggleBtn);
                 }
                 signalsContainer.appendChild(signalCard);
@@ -154,6 +161,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     signal.value = data.value;
                     signal.timestamp = frappe.datetime.now_time();
                     signal.status = "active";
+
+                    // Clear any pending status
+                    if (signal.status === "pending") {
+                        signal.status = "active";
+                    }
                 }
             });
         });
@@ -161,33 +173,92 @@ document.addEventListener("DOMContentLoaded", function () {
         renderDashboard();
     });
 
+    // Function to verify signal value after toggle
+    function verifySignalValue(signalName) {
+        return new Promise((resolve, reject) => {
+            frappe.call({
+                method: 'frappe.client.get',
+                args: {
+                    doctype: 'Modbus Signal',
+                    name: signalName
+                },
+                callback: function (r) {
+                    if (r.message) {
+                        resolve(r.message.digital_value);
+                    } else {
+                        reject(new Error('Failed to verify signal value'));
+                    }
+                }
+            });
+        });
+    }
+
     // Event listener for digital signal toggle buttons
     document.addEventListener("click", function (e) {
         if (e.target && e.target.classList.contains("toggle-digital")) {
             var signalName = e.target.getAttribute("data-signal");
             if (signalName) {
+                // Find and update signal status
+                connections.forEach(function (connection) {
+                    connection.signals.forEach(function (signal) {
+                        if (signal.id === signalName) {
+                            signal.status = "pending";
+                        }
+                    });
+                });
+                renderDashboard();
+
                 frappe.call({
-                    method: 'frappe.client.get',
+                    method: 'epibus.epibus.doctype.modbus_signal.modbus_signal.toggle_signal',
                     args: {
-                        doctype: 'Modbus Signal',
-                        name: signalName
+                        signal: signalName
                     },
                     callback: function (r) {
-                        if (r.message) {
-                            frappe.call({
-                                method: 'epibus.epibus.doctype.modbus_signal.modbus_signal.toggle_signal',
-                                args: {
-                                    signal: signalName
-                                },
-                                callback: function (r) {
-                                    if (r.message) {
+                        if (r.message !== undefined) {
+                            // Wait longer for the value to propagate to OpenPLC
+                            setTimeout(() => {
+                                // Verify the value was set correctly
+                                verifySignalValue(signalName)
+                                    .then(actualValue => {
+                                        if (actualValue === r.message) {
+                                            frappe.show_alert({
+                                                message: 'Signal toggled successfully',
+                                                indicator: 'green'
+                                            });
+                                        } else {
+                                            // Value mismatch - retry the toggle
+                                            frappe.show_alert({
+                                                message: 'Retrying signal toggle...',
+                                                indicator: 'orange'
+                                            });
+                                            return frappe.call({
+                                                method: 'epibus.epibus.doctype.modbus_signal.modbus_signal.toggle_signal',
+                                                args: {
+                                                    signal: signalName,
+                                                    value: r.message // Force to intended value
+                                                }
+                                            });
+                                        }
+                                    })
+                                    .catch(err => {
                                         frappe.show_alert({
-                                            message: 'Signal toggled successfully',
-                                            indicator: 'green'
+                                            message: 'Error verifying signal state',
+                                            indicator: 'red'
                                         });
-                                    }
-                                }
-                            });
+                                        console.error('Signal verification error:', err);
+                                    })
+                                    .finally(() => {
+                                        // Clear pending status if still pending
+                                        connections.forEach(function (connection) {
+                                            connection.signals.forEach(function (signal) {
+                                                if (signal.id === signalName && signal.status === "pending") {
+                                                    signal.status = "active";
+                                                }
+                                            });
+                                        });
+                                        renderDashboard();
+                                    });
+                            }, 500); // Increased delay to allow value propagation
                         }
                     }
                 });

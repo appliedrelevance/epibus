@@ -12,11 +12,30 @@ class PLCState:
         self.operation_start_time: float = 0.0
         self.error_state: bool = False
         self.selected_bin: int | None = None
+        # Track previous bin states
+        self.previous_bin_states: dict[int, bool] = {
+            i: False for i in range(1, 13)}
 
 
 # Operation timeouts in seconds
 OPERATION_TIMEOUT = 5  # How long an operation takes
 ERROR_CHANCE = 0.05   # 5% chance of error per operation
+
+# Map bin numbers to their addresses
+BIN_ADDRESSES = {
+    1: "QX1.3",  # PICK_BIN_01
+    2: "QX1.4",  # PICK_BIN_02
+    3: "QX1.5",  # PICK_BIN_03
+    4: "QX1.6",  # PICK_BIN_04
+    5: "QX1.7",  # PICK_BIN_05
+    6: "QX2.0",  # PICK_BIN_06
+    7: "QX2.1",  # PICK_BIN_07
+    8: "QX2.2",  # PICK_BIN_08
+    9: "QX2.3",  # PICK_BIN_09
+    10: "QX2.4",  # PICK_BIN_10
+    11: "QX2.5",  # PICK_BIN_11
+    12: "QX2.6"  # PICK_BIN_12
+}
 
 
 def hardware_init():
@@ -29,15 +48,25 @@ def hardware_init():
 
 
 def handle_bin_selection():
-    """Check which bin is selected through output coils"""
-    for bin_num in range(1, 13):
-        bit = bin_num - 1
-        byte = bit // 8
-        offset = bit % 8
-        address = f"QX{byte}.{offset}"
-        if psm.get_var(address):
-            return bin_num
-    return None
+    """Check which bin is selected through output coils and log changes"""
+    selected_bin = None
+
+    # Check each bin's current state and compare with previous
+    for bin_num, address in BIN_ADDRESSES.items():
+        current_state = psm.get_var(address)
+        previous_state = state.previous_bin_states[bin_num]
+
+        # Log any state changes
+        if current_state != previous_state:
+            state.previous_bin_states[bin_num] = current_state
+            status = "ON" if current_state else "OFF"
+            print(f"📦 Bin {bin_num:02d} turned {status}")
+
+        # Return the first active bin
+        if current_state and selected_bin is None:
+            selected_bin = bin_num
+
+    return selected_bin
 
 
 def handle_station_selection():

@@ -161,8 +161,8 @@
                         '<i class="fa fa-circle-o digital-input-false"></i> FALSE';
                 } else if (signal.signal_type === "Digital Output Coil") {
                     return value ?
-                        '<i class="fa fa-toggle-on digital-output-true"></i> TRUE' :
-                        '<i class="fa fa-toggle-off digital-output-false"></i> FALSE';
+                        '<i class="fa fa-circle digital-output-true"></i> TRUE' :
+                        '<i class="fa fa-circle-o digital-output-false"></i> FALSE';
                 } else {
                     // For any other digital signals, use a standard icon
                     return value ?
@@ -399,6 +399,21 @@
                         },
                         callback: function (r) {
                             if (r.message) {
+                                // Find and update the signal in our local data
+                                connections.forEach(function (connection) {
+                                    if (connection.signals) {
+                                        connection.signals.forEach(function (signal) {
+                                            if (signal.name === signalName) {
+                                                // Toggle the digital value
+                                                signal.digital_value = !signal.digital_value;
+                                            }
+                                        });
+                                    }
+                                });
+
+                                // Re-render the dashboard with updated data
+                                renderDashboard(connections);
+
                                 frappe.show_alert({
                                     message: 'Signal toggled successfully',
                                     indicator: 'green'

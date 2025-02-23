@@ -9,6 +9,7 @@ from epibus.epibus.utils.epinomy_logger import get_logger
 from epibus.epibus.utils.signal_handler import SignalHandler
 from epibus.epibus.doctype.modbus_event.modbus_event import ModbusEvent
 from epibus.epibus.doctype.modbus_connection.modbus_connection import ModbusConnection
+from epibus.epibus.utils.signal_monitor import publish_signal_update
 
 logger = get_logger(__name__)
 
@@ -121,6 +122,9 @@ def toggle_signal(signal_name: str, value: Optional[bool] = None) -> bool:
         result = signal.write_signal(new_value)
         if not is_bool(result):
             frappe.throw(_("Invalid toggle result - expected boolean value"))
+
+        # Publish the update immediately
+        publish_signal_update(signal_name, result)
         return result
 
     except Exception as e:
@@ -317,6 +321,10 @@ class ModbusSignal(Document):
                     previous_value=current_value,
                     new_value=new_value,
                 )
+
+                # Publish immediate update
+                if self.name:
+                    publish_signal_update(str(self.name), new_value)
 
                 return new_value
 

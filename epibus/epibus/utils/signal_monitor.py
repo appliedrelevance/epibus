@@ -1,22 +1,23 @@
 # epibus/epibus/utils/signal_monitor.py
 from epibus.epibus.doctype.modbus_connection.modbus_connection import ModbusConnection
+from epibus.epibus.doctype.modbus_action.modbus_action import ModbusAction
 import frappe
 from frappe.realtime import publish_realtime
 from frappe.utils import now
-from epibus.epibus.doctype.modbus_signal.modbus_signal import ModbusSignal
-from epibus.epibus.doctype.modbus_action.modbus_action import ModbusAction
-from epibus.epibus.doctype.modbus_connection.modbus_connection import ModbusConnection
+from epibus.epibus.doctype.modbus_event.modbus_event import ModbusEvent
 from epibus.epibus.utils.epinomy_logger import get_logger
-from typing import Dict, Any, Optional, cast
+from typing import Dict, Any, Optional, cast, TypeVar, Union
 
 logger = get_logger(__name__)
+
+SignalValue = Union[bool, float, int]
 
 
 class SignalMonitor:
     """Monitors Modbus signals and publishes changes via Frappe's realtime"""
 
     _instance: Optional['SignalMonitor'] = None
-    active_signals: Dict[str, Any] = {}  # {signal_name: last_value}
+    active_signals: Dict[str, SignalValue] = {}  # {signal_name: last_value}
 
     def __new__(cls):
         if cls._instance is None:
@@ -39,19 +40,26 @@ class SignalMonitor:
                     "message": f"Already monitoring {signal_name}"
                 }
 
-            signal = cast(ModbusSignal, frappe.get_doc(
-                "Modbus Signal", signal_name))
-            device = cast(ModbusConnection, frappe.get_doc(
-                "Modbus Connection", signal.parent))
+            # Get signal document
+            signal_doc = frappe.get_doc("Modbus Signal", signal_name)
+            if not signal_doc:
+                raise ValueError(f"Signal {signal_name} not found")
 
-            if not device.enabled:  # type: ignore
+            # Get parent device document
+            parent_name = str(signal_doc.get("parent"))
+            device_doc = cast(ModbusConnection, frappe.get_doc(
+                "Modbus Connection", parent_name))
+            if not device_doc:
+                raise ValueError(f"Device not found for signal {signal_name}")
+
+            if not device_doc.enabled:
                 return {
                     "success": False,
-                    "message": f"Device {device.name} is disabled"
+                    "message": f"Device {device_doc.name} is disabled"
                 }
 
             # Store initial value
-            value = device.read_signal(signal)  # type: ignore
+            value = device_doc.read_signal(signal_doc)
             self.active_signals[signal_name] = value
 
             logger.info(f"Started monitoring signal {signal_name}")
@@ -80,18 +88,27 @@ class SignalMonitor:
 
         for signal_name, last_value in list(self.active_signals.items()):
             try:
-                signal = cast(ModbusSignal, frappe.get_doc(
-                    "Modbus Signal", signal_name))
-                device = cast(ModbusConnection, frappe.get_doc(
-                    "Modbus Connection", signal.parent))
+                # Get signal document
+                signal_doc = frappe.get_doc("Modbus Signal", signal_name)
+                if not signal_doc:
+                    raise frappe.DoesNotExistError(
+                        f"Signal {signal_name} not found")
 
-                if not device.enabled:  # type: ignore
+                # Get parent device document
+                parent_name = str(signal_doc.get("parent"))
+                device_doc = cast(ModbusConnection, frappe.get_doc(
+                    "Modbus Connection", parent_name))
+                if not device_doc:
+                    raise frappe.DoesNotExistError(
+                        f"Device not found for signal {signal_name}")
+
+                if not device_doc.enabled:
                     logger.warning(
-                        f"Device {device.name} disabled - stopping monitoring of {signal_name}")
+                        f"Device {device_doc.name} disabled - stopping monitoring of {signal_name}")
                     del self.active_signals[signal_name]
                     continue
 
-                current_value = device.read_signal(signal)  # type: ignore
+                current_value = device_doc.read_signal(signal_doc)
 
                 if current_value != last_value:
                     # Value changed - update cache and publish
@@ -125,7 +142,7 @@ class SignalMonitor:
                         try:
                             action_doc = cast(ModbusAction, frappe.get_doc(
                                 "Modbus Action", action.name))
-                            action_doc.execute_script()  # type: ignore
+                            action_doc.execute_script()
                         except Exception as e:
                             logger.error(
                                 f"Error executing action {action.name}: {str(e)}")
@@ -182,3 +199,28 @@ def setup_scheduler_job():
             logger.info(f"Created scheduler job: {job_name}")
     except Exception as e:
         logger.error(f"Error setting up scheduler job: {str(e)}")
+
+
+def publish_signal_update(signal_name: str, value: SignalValue) -> None:
+    """Publish a signal update to the realtime system and update monitoring cache.
+
+    Args:
+        signal_name: Name of the Modbus Signal document
+        value: New value to publish
+    """
+    try:
+        # Update monitoring cache
+        _signal_monitor.active_signals[signal_name] = value
+
+        # Publish realtime update
+        update_data = {
+            'signal': signal_name,
+            'value': value,
+            'timestamp': now()
+        }
+        publish_realtime('modbus_signal_update', update_data)
+        logger.debug(f"Published immediate update for {signal_name}: {value}")
+
+    except Exception as e:
+        logger.error(
+            f"Error publishing signal update for {signal_name}: {str(e)}")
