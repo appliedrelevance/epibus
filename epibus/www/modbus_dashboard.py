@@ -60,8 +60,7 @@ def get_modbus_data():
                     "signal_type": signal_doc.signal_type,
                     "modbus_address": signal_doc.modbus_address,
                     "plc_address": signal_doc.get_plc_address(),
-                    "digital_value": signal_doc.digital_value,
-                    "float_value": signal_doc.float_value,
+                    "value": signal_doc.read_signal(),
                 }
             )
         conn["signals"] = signals

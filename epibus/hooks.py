@@ -39,7 +39,7 @@ docfield_list = {
 
 # Other hooks and configurations can be added below
 # For example, including custom page JS/CSS or web templates if needed:
-# web_include_js = ["/assets/epibus/js/other_script.js"]
+web_include_js = ["/assets/epibus/js/modbus_dashboard.js"]
 web_include_css = [
     "/assets/epibus/vendor/font-awesome/css/font-awesome.min.css",
     "/assets/epibus/css/modbus_dashboard.css",

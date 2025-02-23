@@ -85,7 +85,7 @@ def read_bool_signal(signal: 'ModbusSignal') -> bool:
 
 
 @frappe.whitelist(methods=['POST'])
-def toggle_signal(signal_name: str, value: Optional[bool] = None) -> bool:
+def toggle_signal(signal_id: str, value: Optional[bool] = None) -> bool:
     """Toggle a digital signal between True/False or set to specific value
 
     Args:
@@ -99,10 +99,10 @@ def toggle_signal(signal_name: str, value: Optional[bool] = None) -> bool:
         ValueError: If signal_name is None or empty
         frappe.ValidationError: If signal is not a digital type or current value is not boolean
     """
-    if not signal_name:
-        frappe.throw(_("Signal name cannot be empty"))
+    if not signal_id:
+        frappe.throw(_("Signal id cannot be empty"))
 
-    signal = cast(ModbusSignal, frappe.get_doc("Modbus Signal", signal_name))
+    signal = cast(ModbusSignal, frappe.get_doc("Modbus Signal", signal_id))
 
     if not SIGNAL_TYPE_MAPPINGS[signal.signal_type]["bit_addressed"]:
         frappe.throw(_("Can only toggle digital signals"))
@@ -146,7 +146,8 @@ class ModbusSignal(Document):
         parenttype: DF.Data
         plc_address: DF.Data | None
         signal_name: DF.Data
-        signal_type: DF.Literal["Digital Output Coil", "Digital Input Contact", "Analog Input Register", "Analog Output Register", "Holding Register"]
+        signal_type: DF.Literal["Digital Output Coil", "Digital Input Contact",
+                                "Analog Input Register", "Analog Output Register", "Holding Register"]
     # end: auto-generated types
 
     def validate(self):

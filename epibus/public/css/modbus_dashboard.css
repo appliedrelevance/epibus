@@ -1,140 +1,115 @@
-/* Connection Card Styles */
-.connection-card {
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-    background: #ffffff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-/* Signal Card Styles */
-.signal-card {
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
+/* Modbus Dashboard Styles */
+.modbus-dashboard {
     padding: 15px;
-    margin-bottom: 10px;
-    background: #f8f9fa;
-    transition: all 0.2s ease;
 }
 
-.signal-card:hover {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.modbus-signal-row {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid var(--gray-200);
 }
 
-/* Signal Type Specific Styles */
-.digital-output-coil {
-    border-left: 4px solid #2196f3;
+.modbus-signal-row:last-child {
+    border-bottom: none;
 }
 
-.digital-input-contact {
-    border-left: 4px solid #4caf50;
+.signal-name {
+    flex: 2;
+    font-weight: 500;
 }
 
-.analog-input-register {
-    border-left: 4px solid #ff9800;
+.signal-type {
+    flex: 1;
+    color: var(--text-muted);
 }
 
-.analog-output-register {
-    border-left: 4px solid #e91e63;
-}
-
-.holding-register {
-    border-left: 4px solid #9c27b0;
-}
-
-/* Signal Status Indicators */
-.signal-indicator {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-right: 8px;
-}
-
-/* Digital Input Status */
-.digital-input-true {
-    color: #28a745;
-}
-
-.digital-input-false {
-    color: #dc3545;
-}
-
-/* Digital Output Status */
-.digital-output-true {
-    color: #007bff;
-}
-
-.digital-output-false {
-    color: #6c757d;
-}
-
-/* Toggle Button Styles */
-.toggle-digital {
-    margin-top: 10px;
-    padding: 5px 15px;
-    border-radius: 4px;
-    background-color: #f8f9fa;
-    border: 1px solid #ced4da;
-    color: #495057;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.toggle-digital:hover {
-    background-color: #e9ecef;
-    border-color: #adb5bd;
-}
-
-.toggle-digital:active {
-    background-color: #dee2e6;
-}
-
-/* Value Display */
-.value-display {
-    font-family: monospace;
-    font-size: 1.1em;
-    font-weight: bold;
-    padding: 4px 8px;
-    border-radius: 4px;
-    background: #ffffff;
-    border: 1px solid #dee2e6;
-    display: inline-block;
-    min-width: 60px;
+.signal-value {
+    flex: 1;
     text-align: center;
 }
 
-/* Status Icons */
-.fa-circle {
-    font-size: 0.8rem;
+.signal-address {
+    flex: 1;
+    color: var(--text-muted);
+    font-family: monospace;
 }
 
-.fa-toggle-on,
-.fa-toggle-off {
-    font-size: 1.2rem;
+.signal-toggle {
+    padding: 6px 12px;
+    border-radius: 4px;
+    background-color: var(--gray-200);
+    border: 1px solid var(--gray-300);
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-/* Digital Input Icons */
-.fa-circle,
-.fa-circle-o {
-    font-size: 1.2rem;
+.signal-toggle:hover {
+    background-color: var(--gray-300);
 }
 
-/* Timestamp Display */
-.timestamp {
-    font-size: 0.8em;
-    color: #6c757d;
-    margin-top: 5px;
+.signal-toggle.active {
+    background-color: var(--blue-500);
+    color: white;
+    border-color: var(--blue-600);
 }
 
-/* Responsive Adjustments */
+/* Signal status indicators */
+.signal-indicator {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.signal-indicator::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.signal-indicator.green::before {
+    background-color: var(--green-500);
+}
+
+.signal-indicator.red::before {
+    background-color: var(--red-500);
+}
+
+/* Dashboard header */
+.dashboard-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.dashboard-header h2 {
+    margin: 0;
+    color: var(--text-color);
+}
+
+/* Responsive adjustments */
 @media (max-width: 768px) {
-    .connection-card {
-        margin-bottom: 15px;
+    .modbus-signal-row {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 15px 10px;
     }
 
-    .signal-card {
-        padding: 10px;
+    .signal-name,
+    .signal-type,
+    .signal-value,
+    .signal-address {
+        flex: none;
+        width: 100%;
+        margin-bottom: 8px;
+    }
+
+    .signal-value {
+        text-align: left;
     }
 }

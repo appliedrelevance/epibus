@@ -27,33 +27,33 @@ class SignalMonitor:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def _start_monitoring_impl(self, signal_name: str) -> Dict[str, Any]:
+    def _start_monitoring_impl(self, signal_id: str) -> Dict[str, Any]:
         """Internal implementation of start monitoring
 
         Args:
-            signal_name: Name of Modbus Signal document
+            signal_id: The unique identifier of the Modbus Signal document
 
         Returns:
             dict: Status of monitoring request
         """
         try:
-            if signal_name in self.active_signals:
+            if signal_id in self.active_signals:
                 return {
                     "success": True,
-                    "message": f"Already monitoring {signal_name}"
+                    "message": f"Already monitoring {signal_id}"
                 }
 
             # Get signal document
-            signal_doc = frappe.get_doc("Modbus Signal", signal_name)
+            signal_doc = frappe.get_doc("Modbus Signal", signal_id)
             if not signal_doc:
-                raise ValueError(f"Signal {signal_name} not found")
+                raise ValueError(f"Signal {signal_id} not found")
 
             # Get parent device document
             parent_name = str(signal_doc.get("parent"))
             device_doc = cast(ModbusConnection, frappe.get_doc(
                 "Modbus Connection", parent_name))
             if not device_doc:
-                raise ValueError(f"Device not found for signal {signal_name}")
+                raise ValueError(f"Device not found for signal {signal_id}")
 
             if not device_doc.enabled:
                 return {
@@ -63,21 +63,21 @@ class SignalMonitor:
 
             # Store initial value
             value = device_doc.read_signal(signal_doc)
-            self.active_signals[signal_name] = value
+            self.active_signals[signal_id] = value
 
             # Group signals by device for batch reading
-            self.device_signals[parent_name].append(signal_name)
+            self.device_signals[parent_name].append(signal_id)
 
-            logger.info(f"Started monitoring signal {signal_name}")
+            logger.info(f"Started monitoring signal {signal_id}")
             return {
                 "success": True,
-                "message": f"Started monitoring {signal_name}",
+                "message": f"Started monitoring {signal_id}",
                 "initial_value": value
             }
 
         except Exception as e:
             logger.error(
-                f"Error starting monitoring for {signal_name}: {str(e)}")
+                f"Error starting monitoring for {signal_id}: {str(e)}")
             return {
                 "success": False,
                 "message": str(e)
@@ -183,16 +183,21 @@ _signal_monitor = SignalMonitor()
 
 
 @frappe.whitelist(allow_guest=False, methods=['POST'])
-def start_monitoring(signal_name: str) -> Dict[str, Any]:
+def start_monitoring(**kwargs) -> Dict[str, Any]:
     """Start monitoring a signal. This is the public API endpoint.
 
     Args:
-        signal_name: Name of Modbus Signal document
+        kwargs: Expected to contain signal_id parameter
 
     Returns:
         dict: Status of monitoring request
     """
-    return _signal_monitor._start_monitoring_impl(signal_name)
+    if 'signal_id' not in kwargs:
+        return {
+            "success": False,
+            "message": "signal_id parameter is required"
+        }
+    return _signal_monitor._start_monitoring_impl(kwargs['signal_id'])
 
 
 def check_signals():

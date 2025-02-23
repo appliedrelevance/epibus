@@ -134,11 +134,7 @@
                 if (connection.signals) {
                     connection.signals.forEach(function (signal) {
                         if (signal.name === data.signal) {
-                            if (signal.signal_type.includes('Digital')) {
-                                signal.digital_value = data.value;
-                            } else {
-                                signal.float_value = data.value;
-                            }
+                            signal.value = data.value;
                             signal.timestamp = frappe.datetime.now_time();
                         }
                     });
@@ -150,29 +146,17 @@
 
         // Helper function to get signal status icon
         function getSignalStatusIcon(signal) {
-            const value = signal.signal_type.includes('Digital') ?
-                signal.digital_value : signal.float_value;
-
             // Handle all digital signals
             if (signal.signal_type.includes('Digital')) {
-                if (signal.signal_type === "Digital Input Contact") {
-                    return value ?
-                        '<i class="fa fa-circle digital-input-true"></i> TRUE' :
-                        '<i class="fa fa-circle-o digital-input-false"></i> FALSE';
-                } else if (signal.signal_type === "Digital Output Coil") {
-                    return value ?
-                        '<i class="fa fa-circle digital-output-true"></i> TRUE' :
-                        '<i class="fa fa-circle-o digital-output-false"></i> FALSE';
-                } else {
-                    // For any other digital signals, use a standard icon
-                    return value ?
-                        '<i class="fa fa-check-circle text-success"></i> TRUE' :
-                        '<i class="fa fa-times-circle text-muted"></i> FALSE';
-                }
+                const iconClass = signal.value ? 'fa-circle' : 'fa-circle-o';
+                const colorClass = signal.value ? 'text-success' : 'text-muted';
+                const displayText = signal.value ? 'TRUE' : 'FALSE';
+
+                return `<i class="fa ${iconClass} ${colorClass}"></i> ${displayText}`;
             }
 
             // For analog signals, just return the value
-            return `<span class="value-display">${value !== null ? value.toFixed(2) : 'N/A'}</span>`;
+            return `<span class="value-display">${signal.value !== null ? signal.value.toFixed(2) : 'N/A'}</span>`;
         }
 
         // Get CSRF token from cookie
@@ -279,15 +263,16 @@
                     const sortedSignals = sortSignals([...connection.signals]);
 
                     sortedSignals.forEach(function (signal) {
-                        const value = signal.signal_type.includes('Digital') ?
-                            signal.digital_value ? 'ON' : 'OFF' :
-                            signal.float_value !== null ? signal.float_value.toFixed(2) : 'N/A';
+                        const value = signal.value;
+                        const displayValue = signal.signal_type.includes('Digital') ?
+                            value ? 'TRUE' : 'FALSE' :
+                            value !== null ? value.toFixed(2) : 'N/A';
 
                         cardHtml += `
                             <tr class="signal-row ${signal.signal_type.toLowerCase().replace(/\s+/g, '-')}">
                                 <td class="signal-status">
                                     <i class="fa fa-circle ${signal.signal_type.includes('Digital') ?
-                                (signal.digital_value ? 'text-success' : 'text-muted') :
+                                (value ? 'text-success' : 'text-muted') :
                                 'text-primary'}" aria-hidden="true"></i>
                                 </td>
                                 <td class="signal-name"><strong>${signal.signal_name}</strong></td>
@@ -355,7 +340,7 @@
                                         type: 'POST',
                                         url: '/api/method/epibus.epibus.utils.signal_monitor.start_monitoring',
                                         args: {
-                                            signal_name: signal.name
+                                            signal_id: signal.name
                                         },
                                         callback: function (r) {
                                             if (r.message && r.message.success) {
@@ -395,7 +380,7 @@
                         url: '/api/method/epibus.epibus.doctype.modbus_signal.modbus_signal.toggle_signal',
                         args: {
                             doctype: 'Modbus Signal',
-                            signal_name: signalName
+                            signal_id: signalName
                         },
                         callback: function (r) {
                             if (r.message) {
@@ -404,8 +389,8 @@
                                     if (connection.signals) {
                                         connection.signals.forEach(function (signal) {
                                             if (signal.name === signalName) {
-                                                // Toggle the digital value
-                                                signal.digital_value = !signal.digital_value;
+                                                // Toggle the value
+                                                signal.value = r.message;
                                             }
                                         });
                                     }
