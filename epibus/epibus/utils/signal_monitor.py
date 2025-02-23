@@ -7,6 +7,7 @@ from frappe.utils import now
 from epibus.epibus.doctype.modbus_event.modbus_event import ModbusEvent
 from epibus.epibus.utils.epinomy_logger import get_logger
 from typing import Dict, Any, Optional, cast, TypeVar, Union
+from collections import defaultdict
 
 logger = get_logger(__name__)
 
@@ -18,6 +19,8 @@ class SignalMonitor:
 
     _instance: Optional['SignalMonitor'] = None
     active_signals: Dict[str, SignalValue] = {}  # {signal_name: last_value}
+    device_signals: Dict[str, list] = defaultdict(
+        list)  # {device_name: [signal_names]}
 
     def __new__(cls):
         if cls._instance is None:
@@ -62,6 +65,9 @@ class SignalMonitor:
             value = device_doc.read_signal(signal_doc)
             self.active_signals[signal_name] = value
 
+            # Group signals by device for batch reading
+            self.device_signals[parent_name].append(signal_name)
+
             logger.info(f"Started monitoring signal {signal_name}")
             return {
                 "success": True,
@@ -86,73 +92,90 @@ class SignalMonitor:
             logger.debug("No active signals to monitor")
             return
 
-        for signal_name, last_value in list(self.active_signals.items()):
+        # Process signals grouped by device to minimize connections
+        for device_name, signal_names in self.device_signals.items():
             try:
-                # Get signal document
-                signal_doc = frappe.get_doc("Modbus Signal", signal_name)
-                if not signal_doc:
-                    raise frappe.DoesNotExistError(
-                        f"Signal {signal_name} not found")
-
-                # Get parent device document
-                parent_name = str(signal_doc.get("parent"))
                 device_doc = cast(ModbusConnection, frappe.get_doc(
-                    "Modbus Connection", parent_name))
-                if not device_doc:
-                    raise frappe.DoesNotExistError(
-                        f"Device not found for signal {signal_name}")
+                    "Modbus Connection", device_name))
 
                 if not device_doc.enabled:
                     logger.warning(
-                        f"Device {device_doc.name} disabled - stopping monitoring of {signal_name}")
-                    del self.active_signals[signal_name]
+                        f"Device {device_name} disabled - stopping monitoring of all its signals")
+                    for signal_name in signal_names:
+                        if signal_name in self.active_signals:
+                            del self.active_signals[signal_name]
+                    del self.device_signals[device_name]
                     continue
 
-                current_value = device_doc.read_signal(signal_doc)
+                # Get a single client connection for all signals on this device
+                client = device_doc.get_client()
 
-                if current_value != last_value:
-                    # Value changed - update cache and publish
-                    self.active_signals[signal_name] = current_value
+                for signal_name in signal_names:
+                    try:
+                        signal_doc = frappe.get_doc(
+                            "Modbus Signal", signal_name)
+                        if not signal_doc:
+                            raise frappe.DoesNotExistError(
+                                f"Signal {signal_name} not found")
 
-                    # Log the value change
-                    logger.info(
-                        f"Signal {signal_name} value changed: {last_value} -> {current_value}")
+                        last_value = self.active_signals.get(signal_name)
+                        current_value = device_doc.read_signal(signal_doc)
 
-                    # Publish realtime update
-                    update_data = {
-                        'signal': signal_name,
-                        'value': current_value,
-                        'timestamp': now()
-                    }
-                    publish_realtime('modbus_signal_update', update_data)
-                    logger.debug(
-                        f"Published update for {signal_name}: {current_value}")
+                        if current_value != last_value:
+                            # Value changed - update cache and publish
+                            self.active_signals[signal_name] = current_value
 
-                    # Find and execute relevant actions
-                    actions = frappe.get_all(
-                        "Modbus Action",
-                        filters={
-                            "signal": signal_name,
-                            "enabled": 1,
-                            "trigger_type": "API"
-                        }
-                    )
+                            # Log the value change
+                            logger.info(
+                                f"Signal {signal_name} value changed: {last_value} -> {current_value}")
 
-                    for action in actions:
-                        try:
-                            action_doc = cast(ModbusAction, frappe.get_doc(
-                                "Modbus Action", action.name))
-                            action_doc.execute_script()
-                        except Exception as e:
-                            logger.error(
-                                f"Error executing action {action.name}: {str(e)}")
+                            # Publish realtime update
+                            update_data = {
+                                'signal': signal_name,
+                                'value': current_value,
+                                'timestamp': now()
+                            }
+                            publish_realtime(
+                                'modbus_signal_update', update_data)
+                            logger.debug(
+                                f"Published update for {signal_name}: {current_value}")
 
-            except frappe.DoesNotExistError:
-                logger.warning(
-                    f"Signal {signal_name} no longer exists - removing from monitoring")
-                del self.active_signals[signal_name]
+                            # Find and execute relevant actions
+                            actions = frappe.get_all(
+                                "Modbus Action",
+                                filters={
+                                    "signal": signal_name,
+                                    "enabled": 1,
+                                    "trigger_type": "API"
+                                }
+                            )
+
+                            for action in actions:
+                                try:
+                                    action_doc = cast(ModbusAction, frappe.get_doc(
+                                        "Modbus Action", action.name))
+                                    action_doc.execute_script()
+                                except Exception as e:
+                                    logger.error(
+                                        f"Error executing action {action.name}: {str(e)}")
+
+                    except frappe.DoesNotExistError:
+                        logger.warning(
+                            f"Signal {signal_name} no longer exists - removing from monitoring")
+                        if signal_name in self.active_signals:
+                            del self.active_signals[signal_name]
+                        self.device_signals[device_name].remove(signal_name)
+                    except Exception as e:
+                        logger.error(
+                            f"Error checking signal {signal_name}: {str(e)}")
+
             except Exception as e:
-                logger.error(f"Error checking signal {signal_name}: {str(e)}")
+                logger.error(
+                    f"Error processing device {device_name}: {str(e)}")
+
+            # Clean up empty device groups
+            if not self.device_signals[device_name]:
+                del self.device_signals[device_name]
 
 
 # Create singleton instance
@@ -192,7 +215,8 @@ def setup_scheduler_job():
             job = frappe.get_doc({
                 "doctype": "Scheduled Job Type",
                 "method": "epibus.epibus.utils.signal_monitor.check_signals",
-                "frequency": "All",
+                "frequency": "Cron",
+                "cron_format": "*/5 * * * *",  # Run every 5 minutes instead of "All"
                 "title": job_name
             })
             job.insert()

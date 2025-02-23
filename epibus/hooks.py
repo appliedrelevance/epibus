@@ -18,7 +18,6 @@ app_include_css = [
     "/assets/epibus/vendor/font-awesome/css/font-awesome.min.css",
     "/assets/epibus/css/modbus_dashboard.css"
 ]
-app_include_js = "/assets/epibus/js/modbus_dashboard.js"
 
 fixtures = [
     {

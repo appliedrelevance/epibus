@@ -9,6 +9,8 @@ from epibus.epibus.utils.epinomy_logger import get_logger
 from epibus.epibus.utils.signal_handler import SignalHandler
 import asyncio
 from contextlib import contextmanager
+from typing import Optional
+import time
 
 logger = get_logger(__name__)
 
@@ -32,6 +34,10 @@ class ModbusConnection(Document):
         thumbnail: DF.AttachImage | None
     # end: auto-generated types
 
+    _client: Optional[ModbusTcpClient] = None
+    _last_used: float = 0
+    _connection_timeout: int = 30  # Seconds before connection is considered stale
+
     def validate(self):
         self.validate_connection_settings()
 
@@ -39,39 +45,51 @@ class ModbusConnection(Document):
         if not (1 <= self.port <= 65535):
             frappe.throw("Port must be between 1 and 65535")
 
-    @contextmanager
     def get_client(self):
-        """Get a connected ModbusTcpClient instance
+        """Get a ModbusTcpClient instance, reusing existing connection if valid
 
-        Yields:
+        Returns:
             ModbusTcpClient: Connected client instance
 
         Raises:
             ConnectionError: If connection fails
         """
-        try:
-            asyncio.get_event_loop()
-        except RuntimeError:
-            asyncio.set_event_loop(asyncio.new_event_loop())
+        current_time = time.time()
 
-        client = ModbusTcpClient(
-            host=self.host,
-            port=self.port,
-            framer=FramerType.SOCKET,
-            timeout=10
-        )
+        # Check if we need a new connection
+        if (self._client is None or
+            not self._client.connected or
+                current_time - self._last_used > self._connection_timeout):
 
-        try:
-            if not client.connect():
-                raise ConnectionError(
-                    f"Failed to connect to {self.host}:{self.port}")
-            yield client
-        finally:
-            if client:
+            # Close existing connection if any
+            if self._client:
                 try:
-                    client.close()
+                    self._client.close()
                 except:
                     pass
+                self._client = None
+
+            try:
+                asyncio.get_event_loop()
+            except RuntimeError:
+                asyncio.set_event_loop(asyncio.new_event_loop())
+
+            # Create new connection with retry settings
+            self._client = ModbusTcpClient(
+                host=self.host,
+                port=self.port,
+                framer=FramerType.SOCKET,
+                timeout=10,
+                retries=5,  # Increased from default 3
+                reconnect_delay=1  # 1 second delay between retries
+            )
+
+            if not self._client.connect():
+                raise ConnectionError(
+                    f"Failed to connect to {self.host}:{self.port}")
+
+        self._last_used = current_time
+        return self._client
 
     def _build_results_table(self, results: list) -> str:
         """Build HTML table for connection test results
@@ -125,50 +143,50 @@ class ModbusConnection(Document):
             f"Testing connection to device {self.device_name} at {self.host}:{self.port}")
 
         try:
-            with self.get_client() as client:
-                handler = SignalHandler(client)
-                results = []
+            client = self.get_client()
+            handler = SignalHandler(client)
+            results = []
 
-                # Collect results
-                for signal in self.signals:
-                    try:
-                        value = handler.read(
-                            signal.signal_type, signal.modbus_address)
+            # Collect results
+            for signal in self.signals:
+                try:
+                    value = handler.read(
+                        signal.signal_type, signal.modbus_address)
 
-                        if isinstance(value, bool):
-                            signal.digital_value = value
-                            state = "HIGH" if value else "LOW"
-                            indicator_color = "green" if value else "gray"
-                        else:
-                            signal.value = value
-                            state = str(value)
-                            indicator_color = "blue"
+                    if isinstance(value, bool):
+                        signal.db_set('digital_value', value)
+                        state = "HIGH" if value else "LOW"
+                        indicator_color = "green" if value else "gray"
+                    else:
+                        signal.db_set('float_value', float(value))
+                        state = str(value)
+                        indicator_color = "blue"
 
-                        results.append({
-                            "signal_name": signal.signal_name,
-                            "type": signal.signal_type,
-                            "address": signal.modbus_address,
-                            "state": state,
-                            "status": "success",
-                            "indicator": indicator_color
-                        })
-                        logger.debug(
-                            f"Successfully read signal {signal.signal_name}: {state}")
+                    results.append({
+                        "signal_name": signal.signal_name,
+                        "type": signal.signal_type,
+                        "address": signal.modbus_address,
+                        "state": state,
+                        "status": "success",
+                        "indicator": indicator_color
+                    })
+                    logger.debug(
+                        f"Successfully read signal {signal.signal_name}: {state}")
 
-                    except Exception as e:
-                        results.append({
-                            "signal_name": signal.signal_name,
-                            "type": signal.signal_type,
-                            "address": signal.modbus_address,
-                            "state": f"Error: {str(e)}",
-                            "status": "error",
-                            "indicator": "red"
-                        })
-                        logger.error(
-                            f"Error reading signal {signal.signal_name}: {str(e)}")
+                except Exception as e:
+                    results.append({
+                        "signal_name": signal.signal_name,
+                        "type": signal.signal_type,
+                        "address": signal.modbus_address,
+                        "state": f"Error: {str(e)}",
+                        "status": "error",
+                        "indicator": "red"
+                    })
+                    logger.error(
+                        f"Error reading signal {signal.signal_name}: {str(e)}")
 
-                logger.info("Connection test completed successfully")
-                return f"Connection successful - {self._build_results_table(results)}"
+            logger.info("Connection test completed successfully")
+            return f"Connection successful - {self._build_results_table(results)}"
 
         except Exception as e:
             error_msg = f"Connection failed: {str(e)}"
@@ -189,18 +207,17 @@ class ModbusConnection(Document):
             f"Reading signal {signal.signal_name} from {self.device_name}")
 
         try:
-            with self.get_client() as client:
-                handler = SignalHandler(client)
-                value = handler.read(signal.signal_type, signal.modbus_address)
+            client = self.get_client()
+            handler = SignalHandler(client)
+            value = handler.read(signal.signal_type, signal.modbus_address)
 
-                # Update signal's stored value
-                if isinstance(value, bool):
-                    signal.digital_value = value
-                else:
-                    signal.value = value
-                signal.save()
+            # Update signal's stored value
+            if isinstance(value, bool):
+                signal.db_set('digital_value', value)
+            else:
+                signal.db_set('float_value', float(value))
 
-                return value
+            return value
 
         except Exception as e:
             logger.error(f"Error reading signal: {str(e)}")
@@ -218,18 +235,17 @@ class ModbusConnection(Document):
             f"Writing value {value} to signal {signal.signal_name} on {self.device_name}")
 
         try:
-            with self.get_client() as client:
-                handler = SignalHandler(client)
-                handler.write(signal.signal_type, signal.modbus_address, value)
+            client = self.get_client()
+            handler = SignalHandler(client)
+            handler.write(signal.signal_type, signal.modbus_address, value)
 
-                # Read back and update stored value
-                current_value = handler.read(
-                    signal.signal_type, signal.modbus_address)
-                if isinstance(current_value, bool):
-                    signal.digital_value = current_value
-                else:
-                    signal.value = current_value
-                signal.save()
+            # Read back and update stored value
+            current_value = handler.read(
+                signal.signal_type, signal.modbus_address)
+            if isinstance(current_value, bool):
+                signal.db_set('digital_value', current_value)
+            else:
+                signal.db_set('float_value', float(current_value))
 
         except Exception as e:
             logger.error(f"Error writing signal: {str(e)}")

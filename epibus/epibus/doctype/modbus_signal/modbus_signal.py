@@ -225,13 +225,6 @@ class ModbusSignal(Document):
                 handler = SignalHandler(client)
                 value = handler.read(self.signal_type, self.modbus_address)
 
-                # Update stored value
-                if isinstance(value, bool):
-                    self.digital_value = value
-                else:
-                    self.value = value
-                self.save()
-
                 # Log successful read event
                 ModbusEvent.log_event(
                     event_type="Read",
@@ -271,10 +264,9 @@ class ModbusSignal(Document):
         try:
             # Get current value for event log
             current_value = None
-            if isinstance(value, bool):
-                current_value = self.digital_value
-            else:
-                current_value = self.value
+            # Get current value for event log
+            current_value = self.digital_value if isinstance(
+                value, bool) else self.float_value
 
             device_doc = cast(
                 ModbusConnection, frappe.get_doc(
@@ -295,13 +287,6 @@ class ModbusSignal(Document):
                 elif isinstance(value, (int, float)) and isinstance(new_value, bool):
                     frappe.throw(
                         _("Expected numeric value from write operation"))
-
-                # Update stored value
-                if isinstance(new_value, bool):
-                    self.digital_value = new_value
-                else:
-                    self.value = new_value
-                self.save()
 
                 # Log successful write event
                 ModbusEvent.log_event(
@@ -354,6 +339,32 @@ class ModbusSignal(Document):
             "Deprecated Method Used",
         )
         return self.toggle_signal()
+
+    def get_digital_value(self) -> bool:
+        """Virtual field getter for digital value"""
+        value = self.read_signal()
+        if not isinstance(value, bool):
+            frappe.throw(_("Invalid signal state - expected boolean value"))
+        return value
+
+    def set_digital_value(self, value: bool) -> None:
+        """Virtual field setter for digital value"""
+        if not isinstance(value, bool):
+            frappe.throw(_("Digital value must be boolean"))
+        self.write_signal(value)
+
+    def get_float_value(self) -> float:
+        """Virtual field getter for float value"""
+        value = self.read_signal()
+        if not isinstance(value, (int, float)):
+            frappe.throw(_("Invalid signal state - expected numeric value"))
+        return float(value)
+
+    def set_float_value(self, value: float) -> None:
+        """Virtual field setter for float value"""
+        if not isinstance(value, (int, float)):
+            frappe.throw(_("Float value must be numeric"))
+        self.write_signal(float(value))
 
     def get_plc_address(self) -> Optional[str]:
         """Virtual field getter for PLC address"""
