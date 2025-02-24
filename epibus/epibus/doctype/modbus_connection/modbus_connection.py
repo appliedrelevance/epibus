@@ -154,11 +154,9 @@ class ModbusConnection(Document):
                         signal.signal_type, signal.modbus_address)
 
                     if isinstance(value, bool):
-                        signal.db_set('digital_value', value)
                         state = "HIGH" if value else "LOW"
                         indicator_color = "green" if value else "gray"
                     else:
-                        signal.db_set('float_value', float(value))
                         state = str(value)
                         indicator_color = "blue"
 
@@ -239,13 +237,9 @@ class ModbusConnection(Document):
             handler = SignalHandler(client)
             handler.write(signal.signal_type, signal.modbus_address, value)
 
-            # Read back and update stored value
+            # Read back value to verify write
             current_value = handler.read(
                 signal.signal_type, signal.modbus_address)
-            if isinstance(current_value, bool):
-                signal.db_set('digital_value', current_value)
-            else:
-                signal.db_set('float_value', float(current_value))
 
         except Exception as e:
             logger.error(f"Error writing signal: {str(e)}")

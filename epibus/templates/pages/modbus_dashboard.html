@@ -111,8 +111,8 @@
 
                 // Handle special cases for different columns
                 if (currentSort.column === 'signal_value') {
-                    aVal = a.signal_type.includes('Digital') ? a.digital_value : a.float_value;
-                    bVal = b.signal_type.includes('Digital') ? b.digital_value : b.float_value;
+                    aVal = a.value;
+                    bVal = b.value;
                 }
 
                 // Convert to strings for comparison if not numbers

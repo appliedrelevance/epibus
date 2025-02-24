@@ -264,10 +264,10 @@ class ModbusSignal(Document):
 
         try:
             # Get current value for event log
-            current_value = None
-            # Get current value for event log
-            current_value = self.digital_value if isinstance(
-                value, bool) else self.float_value
+            try:
+                current_value = self.read_signal()
+            except Exception:
+                current_value = None
 
             device_doc = cast(
                 ModbusConnection, frappe.get_doc(
