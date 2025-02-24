@@ -1,0 +1,39 @@
+{
+ "based_on": "creation",
+ "chart_name": "Modbus Events",
+ "chart_type": "Count",
+ "creation": "2025-02-12 14:51:58.321651",
+ "docstatus": 0,
+ "doctype": "Dashboard Chart",
+ "document_type": "Modbus Event",
+ "dynamic_filters_json": "[]",
+ "filters_json": "[]",
+ "group_by_type": "Count",
+ "idx": 6,
+ "is_public": 1,
+ "is_standard": 1,
+ "last_synced_on": "2025-02-23 17:58:43.502890",
+ "modified": "2025-02-23 19:20:36.165725",
+ "modified_by": "Administrator",
+ "module": "EpiBus",
+ "name": "Modbus Events",
+ "number_of_groups": 0,
+ "owner": "Administrator",
+ "parent_document_type": "",
+ "roles": [
+  {
+   "role": "Modbus Administrator"
+  },
+  {
+   "role": "Modbus Administrator"
+  }
+ ],
+ "source": "",
+ "time_interval": "Yearly",
+ "timeseries": 1,
+ "timespan": "Last Year",
+ "type": "Heatmap",
+ "use_report_chart": 0,
+ "value_based_on": "",
+ "y_axis": []
+}

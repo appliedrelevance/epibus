@@ -26,6 +26,7 @@ fixtures = [
     },
     {"dt": "Workspace", "filters": [["name", "in", ["EpiBus"]]]},
     {"dt": "Server Script", "filters": [["module", "in", ["EpiBus"]]]},
+    {"dt": "Dashboard Chart", "filters": [["module", "in", ["EpiBus"]]]},
 ]
 
 export_python_type_annotations = True
