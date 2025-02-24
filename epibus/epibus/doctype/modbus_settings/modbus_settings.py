@@ -13,9 +13,7 @@ class ModbusSettings(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		default_coil_prefix: DF.Data | None
-		default_contact_prefix: DF.Data | None
-		default_register_prefix: DF.Data | None
 		enable_triggers: DF.Check
+		polling_interval: DF.Int
 	# end: auto-generated types
 	pass

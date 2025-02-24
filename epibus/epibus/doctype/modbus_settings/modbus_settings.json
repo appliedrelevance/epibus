@@ -9,9 +9,7 @@
  "field_order": [
   "modbus_tab",
   "enable_triggers",
-  "default_coil_prefix",
-  "default_contact_prefix",
-  "default_register_prefix"
+  "polling_interval"
  ],
  "fields": [
   {
@@ -22,33 +20,22 @@
    "label": "Enable Triggers"
   },
   {
-   "default": "COIL_",
-   "fieldname": "default_coil_prefix",
-   "fieldtype": "Data",
-   "label": "Default Coil Prefix"
-  },
-  {
-   "default": "CONTACT_",
-   "fieldname": "default_contact_prefix",
-   "fieldtype": "Data",
-   "label": "Default Contact Prefix"
-  },
-  {
-   "default": "REGISTER_",
-   "fieldname": "default_register_prefix",
-   "fieldtype": "Data",
-   "label": "Default Register Prefix"
-  },
-  {
    "fieldname": "modbus_tab",
    "fieldtype": "Tab Break",
    "label": "ModBus"
+  },
+  {
+   "default": "200",
+   "fieldname": "polling_interval",
+   "fieldtype": "Int",
+   "label": "Polling Interval (ms)",
+   "non_negative": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-01-24 15:45:22.465110",
+ "modified": "2025-02-23 16:02:44.850916",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Settings",

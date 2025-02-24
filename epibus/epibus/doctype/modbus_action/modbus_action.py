@@ -22,13 +22,12 @@ class ModbusAction(Document):
         from frappe.types import DF
 
         action_name: DF.Data
+        connection: DF.Link
         description: DF.SmallText | None
-        device: DF.Link
         enabled: DF.Check
         interval_seconds: DF.Int
         parameters: DF.Table[ModbusParameter]
         server_script: DF.Link
-        signal: DF.Link | None
         trigger_doctype: DF.Link | None
         trigger_event: DF.Literal["Before Insert", "After Insert", "Before Save", "After Save", "Before Submit", "After Submit", "Before Cancel",
                                   "After Cancel", "Before Delete", "After Delete", "Before Save (Submitted Document)", "After Save (Submitted Document)"]
@@ -36,11 +35,8 @@ class ModbusAction(Document):
     # end: auto-generated types
 
     def validate(self):
-        if not self.device:
-            frappe.throw(_("Device is required"))
-
-        if not self.signal:
-            frappe.throw(_("Signal is required"))
+        if not self.connection:
+            frappe.throw(_("Modbus Connection is required"))
 
         if not self.server_script:
             frappe.throw(_("Server Script is required"))
@@ -66,8 +62,7 @@ class ModbusAction(Document):
             "Server Script", self.server_script))
 
         # Set up the context for API script execution
-        frappe.form_dict.device_id = self.device
-        frappe.form_dict.signal_id = self.signal
+        frappe.form_dict.connection_id = self.connection
 
         # Convert parameters table to dict
         params = {p.parameter: p.value for p in self.parameters}
@@ -76,8 +71,7 @@ class ModbusAction(Document):
         # Store context in flags for access during execution
         frappe.flags.modbus_context = {
             "action": self,
-            "signal": frappe.get_doc("Modbus Signal", str(self.signal)),
-            "device": frappe.get_doc("Modbus Connection", str(self.device)),
+            "connection": frappe.get_doc("Modbus Connection", str(self.connection)),
             "params": params
         }
 

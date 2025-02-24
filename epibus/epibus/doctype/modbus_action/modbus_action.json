@@ -13,8 +13,7 @@
   "description",
   "enabled",
   "column_break_drsf",
-  "device",
-  "signal",
+  "connection",
   "server_script",
   "script_parameters_section",
   "parameters",
@@ -27,23 +26,10 @@
  ],
  "fields": [
   {
-   "fieldname": "signal",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Signal",
-   "options": "Modbus Signal"
-  },
-  {
    "fieldname": "action_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Action Name",
-   "reqd": 1
-  },
-  {
-   "fieldname": "device",
-   "fieldtype": "Link",
-   "label": "Device",
-   "options": "Modbus Connection",
    "reqd": 1
   },
   {
@@ -59,6 +45,7 @@
    "description": "Link to the Server Script to execute.  ",
    "fieldname": "server_script",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Server Script",
    "options": "Server Script",
    "reqd": 1
@@ -116,11 +103,19 @@
    "fieldname": "enabled",
    "fieldtype": "Check",
    "label": "Enabled"
+  },
+  {
+   "fieldname": "connection",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Modbus Connection",
+   "options": "Modbus Connection",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-21 09:39:45.097435",
+ "modified": "2025-02-23 17:30:26.732586",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Action",

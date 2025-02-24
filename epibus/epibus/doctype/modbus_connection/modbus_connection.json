@@ -78,8 +78,14 @@
  ],
  "image_field": "thumbnail",
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-01-22 15:02:34.639259",
+ "links": [
+  {
+   "group": "Actions",
+   "link_doctype": "Modbus Action",
+   "link_fieldname": "connection"
+  }
+ ],
+ "modified": "2025-02-23 17:25:01.431636",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Connection",
