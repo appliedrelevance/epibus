@@ -193,6 +193,29 @@
             errorDiv.style.display = 'block';
         }
 
+        // Show connection timeout message
+        function showConnectionTimeout() {
+            hideLoading();
+            const dashboardGrid = document.getElementById('dashboard-grid');
+            dashboardGrid.innerHTML = `
+                <div class="col-12">
+                    <div class="card border-danger">
+                        <div class="card-body text-center">
+                            <i class="fa fa-exclamation-triangle text-danger fa-3x mb-3"></i>
+                            <h3 class="text-danger">Connection Timeout</h3>
+                            <p>Unable to connect to the Modbus endpoint. Please check if the service is running.</p>
+                            <button class="btn btn-primary mt-3" id="retry-connection">
+                                <i class="fa fa-refresh mr-1"></i> Retry Connection
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add event listener to retry button
+            document.getElementById('retry-connection').addEventListener('click', updateDashboard);
+        }
+
         // Render the dashboard with connection and signal data
         function renderDashboard(connections) {
             const dashboardGrid = document.getElementById('dashboard-grid');
@@ -324,10 +347,35 @@
         function updateDashboard() {
             showLoading();
 
-            frappe.call({
-                type: 'GET',
-                url: '/api/method/epibus.www.modbus_dashboard.get_modbus_data',
-                callback: function (response) {
+            // Set a timeout reference
+            let timeoutId;
+
+            // Create a timeout promise that rejects after 10 seconds
+            const timeoutPromise = new Promise((_, reject) => {
+                timeoutId = setTimeout(() => {
+                    reject(new Error('Connection timeout'));
+                }, 10000); // 10 second timeout
+            });
+
+            // Create the API call promise
+            const apiCallPromise = new Promise((resolve, reject) => {
+                frappe.call({
+                    type: 'GET',
+                    url: '/api/method/epibus.www.modbus_dashboard.get_modbus_data',
+                    callback: function (response) {
+                        clearTimeout(timeoutId); // Clear the timeout
+                        resolve(response);
+                    },
+                    error: function (xhr, textStatus) {
+                        clearTimeout(timeoutId); // Clear the timeout
+                        reject(new Error("Failed to fetch Modbus data: " + textStatus));
+                    }
+                });
+            });
+
+            // Race the API call against the timeout
+            Promise.race([apiCallPromise, timeoutPromise])
+                .then(response => {
                     hideLoading();
                     if (response.message) {
                         connections = response.message;
@@ -356,12 +404,15 @@
                     } else {
                         showError("Invalid response format");
                     }
-                },
-                error: function (xhr, textStatus) {
-                    hideLoading();
-                    showError("Failed to fetch Modbus data: " + textStatus);
-                }
-            });
+                })
+                .catch(error => {
+                    if (error.message === 'Connection timeout') {
+                        showConnectionTimeout();
+                    } else {
+                        hideLoading();
+                        showError(error.message);
+                    }
+                });
         }
 
         // Initial load
