@@ -1,0 +1,55 @@
+PROPOSED COMMUNICATION SEQUENCE..							
+STORAGE TO RECEIVING SEQUENCE:	Cycle Steps					ERP MODBUS Actions	
+Sequence Step 1	PLC CYCLE RUNNING signal on					Check if this is HIGH before setting signals.  Report error if not. 	
+Sequence Step 2	ERP System turns on PICK BIN XX & TO RECEIVING STA 1 digital signals					Triggered by Material Receipt Stock Entry (before Submit) - Set PICK BIN XX and TO RECEIVING STA 1 high	
+Sequence Step 3	PLC communicates to STORAGE WAREHOUSE ROBOT 						
+Sequence Step 4	    STORAGE WAREHOUSE ROBOT Starts Pick to Receiving Routine (from home position)						
+Sequence Step 5	PLC turns on PICK TO RECEIVING IN PROCESS digital signal					Wait for PICK ERROR or TO RECEIVING IN PROCESS set HIGH (timeout default 60 seconds or script parameter WAIT_TIMEOUT_SECS)	
+Sequence Step 6	ERP System turns off PICK BIN XX & TO RECEIVING STA 1 digital signals					Set PICK BIN XX and TO RECEIVING STA 1 to LOW	
+Sequence Step 7	    STORAGE WAREHOUSE ROBOT completes Pick and Place Routine (returns to home position)						
+Sequence Step 8	PLC turns off PICK TO RECEIVING IN PROCESS digital signal					Wait for PICK ERROR or PICK TO RECEIVING IN PROCESS	
+Sequence Step 9	PLC Pulse on PICK TO RECEIVING COMPLETE digital signal (1-sec.)					Wait for PICK ERROR or PICK TO RECEIVING COMPLETE	
+Sequence Step 10	    Receiving Operator manually removes BIN from Gravity Conveyor 1					If no PICK ERROR, submit the Stock Entry document.	
+Sequence Step 11	    Receiving Operator manually places Stock Entry parts in BIN Received from Storage					If a PICK ERROR occurs, the submit will be rolled back and the Mateial Receipt document will remain in "Saved" status.  	
+Sequence Step 12	    Receiving Operator Manually places BIN Received from Storage onto Gravity Conveyor 2					Create a Modbus Event logging the error	
+RECEIVING TO STORAGE SEQUENCE:							
+Sequence Step 13	PLC CYCLE RUNNING						
+Sequence Step 14	PLC Detects R1 CONV 2 BIN PRESENT PE					How do I know which BIN is to receive the inventory?  I need that information to pick the warehouse location for the Material Transfer.  	
+Sequence Step 15	PLC Reads BIN RFID Tag and records BIN Number (Should be same as BIN # Picked to Receiving)						
+Sequence Step 16	PLC communicates BIN Location to STORAGE WAREHOUSE ROBOT 						
+Sequence Step 17	    STORAGE WAREHOUSE ROBOT Starts Pick from RECEIVING to STORAGE Routine						
+Sequence Step 18	PLC turns on PICK TO STORAGE IN PROCESS digital signal					Wait for PICK TO STORAGE IN PROCESS to be HIGH	
+Sequence Step 19	    STORAGE WAREHOUSE ROBOT completes Pick and Place Routine (returns to home position)					Generate a Material Transfer Stock Entry document.	
+Sequence Step 20	PLC turns off PICK TO STORAGE WAREHOUSE IN PROCESS digital signal					Save the Material Transfer Stock Entry document when PICK TO STORAGE IN PROCESS is HIGH	
+Sequence Step 21	PLC Pulse on PICK TO STORAGE WAREHOUSE COMPLETE digital signal (1-sec.)					If no PICK ERROR, Submit the Material Transfer Stock Entry document.	
+Sequence Step 22	Return to Sequence Step 1						
+	NOTE: A PICK ERROR digital signal indicates an incompleted sequence 					If PICK ERROR, roll back the submit of the Material Transfer Stock Entry Document	
+OR	and should be treated as an INCOMPLETE ORDER in the ERP SYSTEM					Create a Modbus Event logging the error. 	
+							
+STORAGE TO PICK AND PACK SEQUENCE:						ERP MODBUS Actions	
+Sequence Step 1	PLC CYCLE RUNNING					Check if this is HIGH before setting signals.  Report error if not. 	
+Sequence Step 2	ERP System turns on PICK BIN XX & TO PICK & PACK  STA 1 digital signals					Triggered by Pick List (before Submit) - Set PICK BIN XX and TO ASSEMBLY STA 1 high	
+Sequence Step 3	PLC communicates to STORAGE WAREHOUSE ROBOT 						
+Sequence Step 4	    STORAGE WAREHOUSE ROBOT Starts Pick BIN XX from STORAGE to PICK & PACK Routine						
+Sequence Step 5	PLC turns on PICK TO PICK & PACK IN PROCESS digital signal					Wait for PICK ERROR or TO ASSEMBLY IN PROCESS set HIGH (timeout default 60 seconds or script parameter WAIT_TIMEOUT_SECS)	
+Sequence Step 6	ERP System turns off PICK BIN XX & TO PICK & PACK STA 1 digital signals					Set PICK BIN XX and TO ASSEMBLY STA 1 to LOW	
+Sequence Step 7	STORAGE WAREHOUSE ROBOT completes Pick from STORAGE to PICK & PACK Routine						
+Sequence Step 8	PLC turns off PICK TO PICK & PACK IN PROCESS digital signal					Wait for PICK ERROR or PICK TO ASSEMBLY IN PROCESS	
+Sequence Step 9	PLC Pulse on PICK TO PICK & PACK COMPLETE digital signal (1-sec.)					Wait for PICK ERROR or PICK TO ASSEMBLY COMPLETE	
+Sequence Step 10	    PICK & PACK Operator manually packs parts from BIN/S XX into Shipping Bin					If no PICK ERROR, submit the Stock Entry document.	
+Sequence Step 11	    PICK & PACK Operator manually places BIN XX on gravity Conveyor 4 (Return to Storage)					If a PICK ERROR occurs, the submit will be rolled back and the Mateial Receipt document will remain in "Saved" status.  	
+Sequence Step 12	    PICK & PACK Operator manually places Shipping Bin with all packed parts on Conveyor 6					Create a Modbus Event logging the error	
+Sequence Step 13	PLC detects POWER CONV 5 INFEED PE and turns on Conveyor 5 to transfer Shipping bin to Shipping Station						
+PICK AND PACK TO STORAGE SEQUENCE:							
+Sequence Step 14	PLC CYCLE RUNNING					How do I know which BIN is to receive the inventory?  I need that information to pick the warehouse location for the Material Transfer.  	
+Sequence Step 15	PLC Detects R3 CONV 4 BIN PRESENT PE						
+Sequence Step 16	PLC Reads BIN RFID Tag and records BIN Number						
+Sequence Step 17	PLC communicates BIN Location to STORAGE WAREHOUSE ROBOT 						
+Sequence Step 18	    STORAGE WAREHOUSE ROBOT Starts Pick Routine (from home position)					Wait for PICK TO STORAGE IN PROCESS to be HIGH	
+Sequence Step 19	PLC turns on PICK TO STORAGE IN PROCESS digital signal					Generate a Material Transfer Stock Entry document.	
+Sequence Step 20	    STORAGE WAREHOUSE ROBOT completes Pick and Place Routine (returns to home position)					Save the Material Transfer Stock Entry document when PICK TO STORAGE IN PROCESS is HIGH	
+Sequence Step 21	PLC turns off PICK TO STORAGE IN PROCESS digital signal					If no PICK ERROR, Submit the Material Transfer Stock Entry document.	
+Sequence Step 22	PLC Pulse on PICK TO STORAGE COMPLETE digital signal (1-sec.)						
+Sequence Step 23	Return to Sequence Step 1					If PICK ERROR, roll back the submit of the Material Transfer Stock Entry Document	
+	NOTE: A PICK ERROR digital signal indicates an incompleted sequence 					Create a Modbus Event logging the error. 	
+	and should be treated as an INCOMPLETE ORDER in the ERP SYSTEM						
