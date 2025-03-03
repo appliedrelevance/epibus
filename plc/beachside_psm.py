@@ -79,6 +79,7 @@ def hardware_init():
 def handle_bin_selection():
     """Check which bin is selected through output coils and log changes"""
     selected_bin = None
+    active_bins = []
 
     # Check each bin's current state and compare with previous
     for bin_num, address in BIN_ADDRESSES.items():
@@ -92,21 +93,70 @@ def handle_bin_selection():
             print(f"📦 Bin {bin_num:02d} turned {status}")
 
         # Return the first active bin
-        if current_state and selected_bin is None:
-            selected_bin = bin_num
+        if current_state:
+            active_bins.append(bin_num)
+            if selected_bin is None:
+                selected_bin = bin_num
+
+    # Debug: Print active bins if any
+    if active_bins:
+        print(f"🔍 DEBUG: Active bins detected: {active_bins}")
 
     return selected_bin
 
 
+# Track previous signal states to only log changes
+previous_signal_states = {
+    "TO_RECEIVING_STA_1": False,
+    "FROM_RECEIVING": False,
+    "TO_ASSEMBLY_STA_1": False,
+    "FROM_ASSEMBLY": False
+}
+
+
 def handle_station_selection():
     """Check which station operation is requested"""
-    if psm.get_var(SIGNALS["TO_RECEIVING_STA_1"]):
+    # Read all station signals
+    to_receiving = psm.get_var(SIGNALS["TO_RECEIVING_STA_1"])
+    from_receiving = psm.get_var(SIGNALS["FROM_RECEIVING"])
+    to_assembly = psm.get_var(SIGNALS["TO_ASSEMBLY_STA_1"])
+    from_assembly = psm.get_var(SIGNALS["FROM_ASSEMBLY"])
+
+    # Check for changes and print only if changed
+    signals_changed = False
+    changes = []
+
+    if to_receiving != previous_signal_states["TO_RECEIVING_STA_1"]:
+        previous_signal_states["TO_RECEIVING_STA_1"] = to_receiving
+        signals_changed = True
+        changes.append(f"TO_RECEIVING: {to_receiving}")
+
+    if from_receiving != previous_signal_states["FROM_RECEIVING"]:
+        previous_signal_states["FROM_RECEIVING"] = from_receiving
+        signals_changed = True
+        changes.append(f"FROM_RECEIVING: {from_receiving}")
+
+    if to_assembly != previous_signal_states["TO_ASSEMBLY_STA_1"]:
+        previous_signal_states["TO_ASSEMBLY_STA_1"] = to_assembly
+        signals_changed = True
+        changes.append(f"TO_ASSEMBLY: {to_assembly}")
+
+    if from_assembly != previous_signal_states["FROM_ASSEMBLY"]:
+        previous_signal_states["FROM_ASSEMBLY"] = from_assembly
+        signals_changed = True
+        changes.append(f"FROM_ASSEMBLY: {from_assembly}")
+
+    # Print only if any signal changed
+    if signals_changed and changes:
+        print(f"🔍 Station signals changed: {', '.join(changes)}")
+
+    if to_receiving:
         return "to_receiving"
-    elif psm.get_var(SIGNALS["FROM_RECEIVING"]):
+    elif from_receiving:
         return "from_receiving"
-    elif psm.get_var(SIGNALS["TO_ASSEMBLY_STA_1"]):
+    elif to_assembly:
         return "to_assembly"
-    elif psm.get_var(SIGNALS["FROM_ASSEMBLY"]):
+    elif from_assembly:
         return "from_assembly"
     return None
 
@@ -302,10 +352,17 @@ def update_inputs():
         # Look for new operation from ERP
         bin_num = handle_bin_selection()
         if bin_num:
+            print(
+                f"🔍 DEBUG: Bin {bin_num} selected, checking for station operation")
             operation = handle_station_selection()
             if operation:
+                print(
+                    f"🔍 DEBUG: Operation {operation} detected, starting operation")
                 clear_error_state()  # Clear any previous errors
                 start_operation(operation, bin_num)
+            else:
+                print(
+                    f"🔍 DEBUG: No station operation detected for bin {bin_num}")
 
 
 def update_outputs():
@@ -327,6 +384,10 @@ def handle_commands():
     # 3 = Clear Error
     command = psm.get_var("MW0")
 
+    # Always print the command value for debugging
+    if command != 0:
+        print(f"🔍 DEBUG: Command register value: {command}")
+
     if command == 1 and not state.cycle_running:
         print("▶️ Starting PLC cycle")
         state.cycle_running = True
@@ -339,7 +400,42 @@ def handle_commands():
         clear_error_state()
 
     # Clear command
-    psm.set_var("MW0", 0)
+    if command != 0:
+        print(f"🔍 DEBUG: Clearing command register from {command} to 0")
+        psm.set_var("MW0", 0)
+
+
+# Debug function to dump all signal values
+def debug_dump_signals():
+    """Dump all signal values for debugging"""
+    print("\n🔍 DEBUG: Current Signal Values:")
+    print("-" * 40)
+
+    # Input signals
+    print("Input Signals (From PLC to ERP):")
+    for name, address in SIGNALS.items():
+        if name.startswith("TO_") or name.startswith("FROM_"):
+            continue  # Skip output signals
+        value = psm.get_var(address)
+        print(f"  {name}: {value}")
+
+    # Output signals
+    print("\nOutput Signals (From ERP to PLC):")
+    for name, address in SIGNALS.items():
+        if name.startswith("TO_") or name.startswith("FROM_"):
+            value = psm.get_var(address)
+            print(f"  {name}: {value}")
+
+    # Bin selections
+    print("\nBin Selections:")
+    for bin_num, address in BIN_ADDRESSES.items():
+        value = psm.get_var(address)
+        print(f"  Bin {bin_num}: {value}")
+
+    # Command register
+    command = psm.get_var("MW0")
+    print(f"\nCommand Register (MW0): {command}")
+    print("-" * 40)
 
 
 # Initialize state
@@ -349,10 +445,21 @@ if __name__ == "__main__":
     hardware_init()
     print("🔄 Starting main PLC cycle")
 
+    # Debug variables
+    last_debug_time = time.time()
+    debug_interval = 5  # Dump debug info every 5 seconds
+
     while not psm.should_quit():
         handle_commands()
         update_inputs()
         update_outputs()
+
+        # Periodically dump all signal values for debugging
+        current_time = time.time()
+        if current_time - last_debug_time >= debug_interval:
+            debug_dump_signals()
+            last_debug_time = current_time
+
         time.sleep(0.1)  # 100ms cycle time
 
     print("👋 Shutting down PLC simulator")

@@ -9,10 +9,10 @@ import logging
 import time
 import sys
 
-# Enable debug logging
-logging.basicConfig()
+# Configure logging
+logging.basicConfig(format='%(levelname)s: %(message)s')
 log = logging.getLogger()
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)  # Changed from DEBUG to INFO to reduce verbosity
 
 # OpenPLC uses a specific addressing scheme for Modbus:
 # For coils (digital outputs):
@@ -75,7 +75,7 @@ TIMEOUT = 10      # Default timeout for operations (seconds)
 
 def connect_to_plc():
     """Connect to the PLC and return the client"""
-    print(f"🔌 Connecting to OpenPLC at {HOST}:{PORT}...")
+    log.info(f"🔌 Connecting to OpenPLC at {HOST}:{PORT}...")
 
     # Create client with appropriate configuration
     client = ModbusTcpClient(
@@ -88,10 +88,10 @@ def connect_to_plc():
 
     connection = client.connect()
     if connection:
-        print("✅ Connected to OpenPLC")
+        log.info("✅ Connected to OpenPLC")
         return client
     else:
-        print("❌ Failed to connect to OpenPLC")
+        log.error("❌ Failed to connect to OpenPLC")
         return None
 
 
@@ -179,17 +179,17 @@ def deselect_bin(client, bin_number):
 
 def send_command(client, command):
     """Send a command to the PLC via the command register"""
-    print(f"📝 Sending command: {command}")
+    log.info(f"📝 Sending command: {command}")
     try:
         result = client.write_register(address=COMMAND_REGISTER, value=command)
         if result:
-            print(f"✅ Command {command} sent successfully")
+            log.info(f"✅ Command {command} sent successfully")
             return True
         else:
-            print(f"❌ Failed to send command {command}")
+            log.error(f"❌ Failed to send command {command}")
             return False
     except Exception as e:
-        print(f"❌ Error sending command: {str(e)}")
+        log.error(f"❌ Error sending command: {str(e)}")
         return False
 
 
@@ -228,6 +228,14 @@ def read_all_signals(client):
     print("=" * 40)
 
 
+def log_robot_operation(message, delay=2):
+    """Log a robot operation with a delay to make it visible"""
+    log.warning(f"🤖 ROBOT RUNNING: {message}")
+    print(f"⏳ Waiting {delay} seconds for robot operation...")
+    time.sleep(delay)
+    log.warning(f"🤖 ROBOT OPERATION COMPLETE: {message}")
+
+
 def run_diagnostic():
     """Run diagnostic tests on the beachside PSM"""
     client = connect_to_plc()
@@ -235,55 +243,88 @@ def run_diagnostic():
         print("❌ Cannot proceed with diagnostics without connection to PLC")
         return False
 
+    # Track actions for summary
+    actions_performed = []
+
     try:
         # Read initial state
         print("\n🔍 Reading initial state...")
         read_all_signals(client)
+        actions_performed.append("Read initial state")
 
         # Start the PLC cycle
         print("\n▶️ Starting PLC cycle...")
         send_command(client, CMD_START_CYCLE)
-        time.sleep(2)
+        log_robot_operation("Starting PLC cycle")
         read_all_signals(client)
+        actions_performed.append("Started PLC cycle")
 
         # Try a simple storage to receiving operation
         print("\n📦 Testing storage to receiving operation...")
+        actions_performed.append("Tested storage to receiving operation")
 
         # Clear any previous signals
         print("Clearing any previous signals...")
         write_signal(client, "TO_RECEIVING_STA_1", False)
         for bin_num in range(1, 13):
             deselect_bin(client, bin_num)
-        time.sleep(2)
+        log_robot_operation("Clearing signals", delay=2)
+        actions_performed.append("Cleared previous signals")
 
         # Select bin 1 and set TO_RECEIVING_STA_1
         print("Selecting bin 1 and setting TO_RECEIVING_STA_1...")
         select_bin(client, 1)
         write_signal(client, "TO_RECEIVING_STA_1", True)
+        log_robot_operation("Moving bin 1 to receiving station", delay=3)
+        actions_performed.append("Selected bin 1 and set TO_RECEIVING_STA_1")
 
         # Monitor signals for 30 seconds
         print("Monitoring signals for 30 seconds...")
         start_time = time.time()
+        check_count = 0
         while time.time() - start_time < 30:
             read_all_signals(client)
+            check_count += 1
             time.sleep(5)  # Check every 5 seconds
+        actions_performed.append(
+            f"Monitored signals for 30 seconds ({check_count} checks)")
 
         # Clean up
         print("Cleaning up...")
         deselect_bin(client, 1)
         write_signal(client, "TO_RECEIVING_STA_1", False)
+        log_robot_operation("Resetting bin positions", delay=2)
+        actions_performed.append(
+            "Cleaned up (deselected bin 1, reset TO_RECEIVING_STA_1)")
 
         # Stop the PLC cycle
         print("\n⏹️ Stopping PLC cycle...")
         send_command(client, CMD_STOP_CYCLE)
-        time.sleep(2)
+        log_robot_operation("Stopping PLC cycle")
         read_all_signals(client)
+        actions_performed.append("Stopped PLC cycle")
+
+        # Print summary of actions
+        print("\n📋 SUMMARY OF ACTIONS TAKEN:")
+        print("=" * 40)
+        for i, action in enumerate(actions_performed, 1):
+            print(f"{i}. {action}")
+        print("=" * 40)
 
         print("\n✅ Diagnostic complete")
         return True
 
     except Exception as e:
         print(f"❌ Error during diagnostic: {str(e)}")
+        actions_performed.append(f"ERROR: {str(e)}")
+
+        # Print summary even if there was an error
+        print("\n📋 SUMMARY OF ACTIONS TAKEN (WITH ERROR):")
+        print("=" * 40)
+        for i, action in enumerate(actions_performed, 1):
+            print(f"{i}. {action}")
+        print("=" * 40)
+
         return False
 
     finally:
@@ -294,5 +335,5 @@ def run_diagnostic():
 
 
 if __name__ == "__main__":
-    print("🧪 Starting Beachside PSM diagnostic...")
+    log.info("🧪 Starting Beachside PSM diagnostic...")
     run_diagnostic()
