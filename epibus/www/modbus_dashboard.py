@@ -6,8 +6,14 @@ from epibus.epibus.doctype.modbus_signal.modbus_signal import ModbusSignal
 
 def get_context(context):
     """Get page context for the Modbus dashboard."""
+    # Set cache control headers
     context.no_cache = 1
     context.show_sidebar = True
+    
+    # Set response headers to prevent caching
+    frappe.response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    frappe.response.headers["Pragma"] = "no-cache"
+    frappe.response.headers["Expires"] = "0"
 
     # Get initial data
     context.connections = get_modbus_data()
@@ -23,8 +29,8 @@ def get_context(context):
         "Holding Register",
     ]
 
-
-@frappe.whitelist(methods=['GET'])
+# Make sure this function is properly whitelisted for API access
+@frappe.whitelist(methods=['GET', 'POST'], allow_guest=True)
 def get_modbus_data():
     """Get comprehensive data about Modbus connections and their signals."""
     # Fetch Modbus Connection data with all relevant fields

@@ -73,11 +73,11 @@
 }
 
 .signal-indicator.green::before {
-    background-color: var(--green-500);
+    background-color: #28a745;
 }
 
 .signal-indicator.red::before {
-    background-color: var(--red-500);
+    background-color: #dc3545;
 }
 
 /* Dashboard header */
@@ -90,6 +90,38 @@
 .dashboard-header h2 {
     margin: 0;
     color: var(--text-color);
+}
+
+/* Signal value cell highlight animation */
+.signal-value-cell {
+    transition: background-color 0.5s ease;
+}
+
+/* Table styles */
+.signals-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.signals-container th {
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.signals-container tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Card styles */
+.card {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Responsive adjustments */
@@ -111,5 +143,37 @@
 
     .signal-value {
         text-align: left;
+    }
+    
+    .signals-container {
+        overflow-x: auto;
+    }
+}
+
+/* Cross-browser compatibility fixes */
+/* For Firefox */
+@-moz-document url-prefix() {
+    .signals-container table {
+        width: 100%;
+    }
+}
+
+/* For Safari */
+@media not all and (min-resolution:.001dpcm) {
+    @supports (-webkit-appearance:none) {
+        .signal-indicator::before {
+            margin-top: 1px;
+        }
+    }
+}
+
+/* For IE11 */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+    .signals-container {
+        width: 100%;
+    }
+    
+    .signal-indicator {
+        display: inline-block;
     }
 }
