@@ -110,6 +110,27 @@
     z-index: 10;
 }
 
+/* Sortable table headers */
+.signals-container th.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.signals-container th.sortable:hover {
+    background-color: #e9ecef;
+}
+
+.signals-container th .sort-indicator {
+    display: inline-block;
+    margin-left: 5px;
+    color: #6c757d;
+}
+
+.signals-container th.sortable:hover .sort-indicator {
+    color: #495057;
+}
+
 .signals-container tbody tr:hover {
     background-color: rgba(0, 123, 255, 0.05);
 }

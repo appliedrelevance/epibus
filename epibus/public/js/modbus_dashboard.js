@@ -17,6 +17,11 @@ console.log("modbus_dashboard.js loaded");
         signalType: ""
     };
     var socket = null;
+    var currentSort = {
+        column: null,
+        direction: 'asc'
+    };
+    var SORT_STORAGE_KEY = 'modbus_dashboard_sort_preferences';
     
     // No fallback data - we'll use the API properly
     
@@ -195,6 +200,14 @@ console.log("modbus_dashboard.js loaded");
             var connectionCard = createConnectionCard(connection);
             dashboardGrid.appendChild(connectionCard);
         });
+        
+        // Apply saved sort preferences to all tables
+        if (currentSort.column) {
+            var tables = dashboardGrid.querySelectorAll('.signals-container table');
+            tables.forEach(function(table) {
+                applySavedSortPreferences(table);
+            });
+        }
     }
     
     // Function to create a connection card
@@ -238,11 +251,10 @@ console.log("modbus_dashboard.js loaded");
         // Connection details
         var connectionDetails = document.createElement('div');
         connectionDetails.className = 'mb-3';
-        connectionDetails.innerHTML = `
-            <p class="mb-1"><strong>Type:</strong> ${connection.device_type || 'N/A'}</p>
-            <p class="mb-1"><strong>Host:</strong> ${connection.host || 'N/A'}</p>
-            <p class="mb-0"><strong>Port:</strong> ${connection.port || 'N/A'}</p>
-        `;
+        connectionDetails.innerHTML =
+            '<p class="mb-1"><strong>Type:</strong> ' + (connection.device_type || 'N/A') + '</p>' +
+            '<p class="mb-1"><strong>Host:</strong> ' + (connection.host || 'N/A') + '</p>' +
+            '<p class="mb-0"><strong>Port:</strong> ' + (connection.port || 'N/A') + '</p>';
         
         // Signals table
         var signalsContainer = document.createElement('div');
@@ -254,14 +266,14 @@ console.log("modbus_dashboard.js loaded");
             
             // Table header
             var thead = document.createElement('thead');
-            thead.innerHTML = `
-                <tr>
-                    <th class="sortable" data-sort="name">Signal Name <span class="sort-indicator"><i class="fa fa-sort"></i></span></th>
-                    <th>Type</th>
-                    <th>Value</th>
-                    <th>Address</th>
-                </tr>
-            `;
+            thead.innerHTML =
+                '<tr>' +
+                    '<th class="sortable" data-sort="name">Signal Name <span class="sort-indicator"><i class="fa fa-sort"></i></span></th>' +
+                    '<th class="sortable" data-sort="type">Type <span class="sort-indicator"><i class="fa fa-sort"></i></span></th>' +
+                    '<th class="sortable" data-sort="value">Value <span class="sort-indicator"><i class="fa fa-sort"></i></span></th>' +
+                    '<th class="sortable" data-sort="address">Address <span class="sort-indicator"><i class="fa fa-sort"></i></span></th>' +
+                    '<th>Actions</th>' +
+                '</tr>';
             
             // Table body
             var tbody = document.createElement('tbody');
@@ -269,16 +281,19 @@ console.log("modbus_dashboard.js loaded");
                 var row = document.createElement('tr');
                 row.id = 'signal-' + signal.name;
                 row.dataset.signalId = signal.name;
-                
                 // Format value based on signal type
                 var formattedValue = formatSignalValue(signal);
                 
-                row.innerHTML = `
-                    <td>${signal.signal_name || 'N/A'}</td>
-                    <td><small>${signal.signal_type || 'N/A'}</small></td>
-                    <td class="signal-value-cell">${formattedValue}</td>
-                    <td><code>${signal.modbus_address !== undefined ? signal.modbus_address : 'N/A'}</code></td>
-                `;
+                // Create action buttons based on signal type
+                var actionButtons = createActionButtons(signal);
+                
+                // Use string concatenation instead of template literals to avoid syntax issues
+                row.innerHTML =
+                    '<td>' + (signal.signal_name || 'N/A') + '</td>' +
+                    '<td><small>' + (signal.signal_type || 'N/A') + '</small></td>' +
+                    '<td class="signal-value-cell">' + formattedValue + '</td>' +
+                    '<td><code>' + (signal.modbus_address !== undefined ? signal.modbus_address : 'N/A') + '</code></td>' +
+                    '<td class="signal-actions">' + actionButtons + '</td>';
                 
                 tbody.appendChild(row);
             });
@@ -318,6 +333,39 @@ console.log("modbus_dashboard.js loaded");
             return signal.value.toFixed(2);
         } else {
             return signal.value.toString();
+        }
+    }
+    
+    // Function to check if a signal type is writable
+    function isSignalWritable(signalType) {
+        return signalType === "Digital Output Coil" ||
+               signalType === "Analog Output Register" ||
+               signalType === "Holding Register";
+    }
+    
+    // Function to create action buttons based on signal type
+    function createActionButtons(signal) {
+        if (!isSignalWritable(signal.signal_type)) {
+            return ''; // No buttons for read-only signals
+        }
+        
+        if (signal.signal_type === "Digital Output Coil") {
+            // Toggle button for digital outputs
+            return '<button class="btn btn-sm btn-outline-primary toggle-signal" data-signal-id="' + signal.name + '">' +
+                   'Toggle' +
+                   '</button>';
+        } else {
+            // Input field and set button for analog outputs and holding registers
+            var defaultValue = typeof signal.value === 'number' ? signal.value : 0;
+            return '<div class="input-group input-group-sm">' +
+                   '<input type="number" class="form-control form-control-sm signal-value-input" ' +
+                   'data-signal-id="' + signal.name + '" value="' + defaultValue + '">' +
+                   '<div class="input-group-append">' +
+                   '<button class="btn btn-sm btn-outline-primary set-signal-value" data-signal-id="' + signal.name + '">' +
+                   'Set' +
+                   '</button>' +
+                   '</div>' +
+                   '</div>';
         }
     }
     
@@ -362,11 +410,12 @@ console.log("modbus_dashboard.js loaded");
         container.appendChild(pollIndicator);
     }
     
-    // Function to setup event listeners for filters
+    // Function to setup event listeners for filters and signal actions
     function setupFilterListeners() {
         var deviceTypeFilter = document.getElementById('device-type-filter');
         var signalTypeFilter = document.getElementById('signal-type-filter');
         var refreshButton = document.getElementById('refresh-data');
+        var dashboardGrid = document.getElementById('dashboard-grid');
         
         if (deviceTypeFilter) {
             deviceTypeFilter.addEventListener('change', function() {
@@ -387,6 +436,201 @@ console.log("modbus_dashboard.js loaded");
                 fetchModbusData();
             });
         }
+        
+        // Event delegation for signal action buttons and table sorting
+        if (dashboardGrid) {
+            dashboardGrid.addEventListener('click', function(event) {
+                // Handle table sorting when clicking on sortable headers
+                if (event.target.closest('.sortable') ||
+                    (event.target.closest('.sort-indicator') && event.target.closest('th.sortable'))) {
+                    
+                    // Find the closest sortable header
+                    var sortableHeader = event.target.closest('.sortable') ||
+                                        event.target.closest('th.sortable');
+                    
+                    if (sortableHeader) {
+                        var column = sortableHeader.getAttribute('data-sort');
+                        sortTable(sortableHeader, column);
+                    }
+                    return;
+                }
+                
+                // Toggle button for digital outputs
+                if (event.target.classList.contains('toggle-signal')) {
+                    var signalId = event.target.getAttribute('data-signal-id');
+                    if (signalId) {
+                        toggleSignal(signalId);
+                    }
+                }
+                
+                // Set value button for analog outputs and holding registers
+                if (event.target.classList.contains('set-signal-value')) {
+                    var signalId = event.target.getAttribute('data-signal-id');
+                    if (signalId) {
+                        var inputElement = document.querySelector('.signal-value-input[data-signal-id="' + signalId + '"]');
+                        if (inputElement) {
+                            var value = parseFloat(inputElement.value);
+                            if (!isNaN(value)) {
+                                setSignalValue(signalId, value);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    // Function to sort a table based on a column
+    function sortTable(headerElement, column) {
+        // Find the table that contains this header
+        var table = headerElement.closest('table');
+        if (!table) return;
+        
+        var tbody = table.querySelector('tbody');
+        if (!tbody) return;
+        
+        // Get all rows from the table body
+        var rows = Array.from(tbody.querySelectorAll('tr'));
+        if (rows.length === 0) return;
+        
+        // Determine sort direction
+        var direction = 'asc';
+        
+        // If we're already sorting by this column, toggle direction
+        if (currentSort.column === column) {
+            direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+        }
+        
+        // Update current sort state
+        currentSort.column = column;
+        currentSort.direction = direction;
+        
+        // Save sort preferences to localStorage
+        saveSortPreferences();
+        
+        // Update all sort indicators in this table
+        var headers = table.querySelectorAll('th.sortable');
+        headers.forEach(function(header) {
+            var indicator = header.querySelector('.sort-indicator');
+            if (indicator) {
+                // Reset all indicators
+                indicator.innerHTML = '<i class="fa fa-sort"></i>';
+            }
+        });
+        
+        // Update the clicked header's indicator
+        var clickedIndicator = headerElement.querySelector('.sort-indicator');
+        if (clickedIndicator) {
+            clickedIndicator.innerHTML = direction === 'asc' ?
+                '<i class="fa fa-sort-up"></i>' :
+                '<i class="fa fa-sort-down"></i>';
+        }
+        
+        // Sort the table data
+        sortTableData(table, column, direction);
+    }
+    
+    // Function to toggle a digital signal
+    function toggleSignal(signalId) {
+        console.log("Toggling signal:", signalId);
+        
+        // Show loading indicator
+        showLoading(true);
+        
+        // Prepare headers with CSRF token if available
+        const headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        };
+        
+        // Add CSRF token if available
+        if (frappe && frappe.csrf_token) {
+            headers['X-Frappe-CSRF-Token'] = frappe.csrf_token;
+        }
+        
+        // Call the toggle_signal method
+        fetch('/api/method/epibus.epibus.doctype.modbus_signal.modbus_signal.toggle_signal', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+                signal_id: signalId
+            }),
+            credentials: 'same-origin'
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                return response.text().then(function(text) {
+                    throw new Error('Network response was not ok: ' + text);
+                });
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            console.log("Toggle response:", data);
+            if (data && data.message !== undefined) {
+                // Update the UI with the new value
+                updateSignalValue(signalId, data.message);
+            }
+            showLoading(false);
+        })
+        .catch(function(error) {
+            console.error('Error toggling signal:', error);
+            showError("Failed to toggle signal: " + error.message);
+            showLoading(false);
+        });
+    }
+    
+    // Function to set a value for an analog or holding register
+    function setSignalValue(signalId, value) {
+        console.log("Setting signal value:", signalId, value);
+        
+        // Show loading indicator
+        showLoading(true);
+        
+        // Prepare headers with CSRF token if available
+        const headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        };
+        
+        // Add CSRF token if available
+        if (frappe && frappe.csrf_token) {
+            headers['X-Frappe-CSRF-Token'] = frappe.csrf_token;
+        }
+        
+        // Call the write_signal method
+        fetch('/api/method/frappe.client.set_value', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+                doctype: 'Modbus Signal',
+                name: signalId,
+                fieldname: 'float_value',
+                value: value
+            }),
+            credentials: 'same-origin'
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                return response.text().then(function(text) {
+                    throw new Error('Network response was not ok: ' + text);
+                });
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            console.log("Set value response:", data);
+            if (data && data.message) {
+                // Update the UI with the new value
+                updateSignalValue(signalId, value);
+            }
+            showLoading(false);
+        })
+        .catch(function(error) {
+            console.error('Error setting signal value:', error);
+            showError("Failed to set signal value: " + error.message);
+            showLoading(false);
+        });
     }
     
     // Function to setup Socket.IO for realtime updates
@@ -445,10 +689,117 @@ console.log("modbus_dashboard.js loaded");
         }
     }
     
+    // Function to save sort preferences to localStorage
+    function saveSortPreferences() {
+        try {
+            localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify(currentSort));
+            console.log("Sort preferences saved:", currentSort);
+        } catch (e) {
+            console.error("Error saving sort preferences to localStorage:", e);
+        }
+    }
+    
+    // Function to load sort preferences from localStorage
+    function loadSortPreferences() {
+        try {
+            var savedSort = localStorage.getItem(SORT_STORAGE_KEY);
+            if (savedSort) {
+                currentSort = JSON.parse(savedSort);
+                console.log("Sort preferences loaded:", currentSort);
+                return true;
+            }
+        } catch (e) {
+            console.error("Error loading sort preferences from localStorage:", e);
+        }
+        return false;
+    }
+    
+    // Function to apply saved sort preferences to a table
+    function applySavedSortPreferences(table) {
+        if (!table || !currentSort.column) return false;
+        
+        // Find the header with the matching data-sort attribute
+        var header = table.querySelector('th.sortable[data-sort="' + currentSort.column + '"]');
+        if (header) {
+            // Update the sort indicator
+            var indicator = header.querySelector('.sort-indicator');
+            if (indicator) {
+                indicator.innerHTML = currentSort.direction === 'asc' ?
+                    '<i class="fa fa-sort-up"></i>' :
+                    '<i class="fa fa-sort-down"></i>';
+            }
+            
+            // Sort the table
+            sortTableData(table, currentSort.column, currentSort.direction);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // Function to sort table data without updating the currentSort state
+    function sortTableData(table, column, direction) {
+        if (!table) return;
+        
+        var tbody = table.querySelector('tbody');
+        if (!tbody) return;
+        
+        // Get all rows from the table body
+        var rows = Array.from(tbody.querySelectorAll('tr'));
+        if (rows.length === 0) return;
+        
+        // Get column index for sorting
+        var headerRow = table.querySelector('thead tr');
+        if (!headerRow) return;
+        
+        var headers = headerRow.querySelectorAll('th');
+        var columnIndex = -1;
+        
+        for (var i = 0; i < headers.length; i++) {
+            if (headers[i].getAttribute('data-sort') === column) {
+                columnIndex = i;
+                break;
+            }
+        }
+        
+        if (columnIndex === -1) return;
+        
+        // Sort the rows
+        rows.sort(function(rowA, rowB) {
+            var cellA = rowA.cells[columnIndex].textContent.trim();
+            var cellB = rowB.cells[columnIndex].textContent.trim();
+            
+            // Handle numeric values
+            if (!isNaN(parseFloat(cellA)) && !isNaN(parseFloat(cellB))) {
+                return direction === 'asc' ?
+                    parseFloat(cellA) - parseFloat(cellB) :
+                    parseFloat(cellB) - parseFloat(cellA);
+            }
+            
+            // Handle text values
+            return direction === 'asc' ?
+                cellA.localeCompare(cellB) :
+                cellB.localeCompare(cellA);
+        });
+        
+        // Remove all existing rows
+        while (tbody.firstChild) {
+            tbody.removeChild(tbody.firstChild);
+        }
+        
+        // Add sorted rows back to the table
+        rows.forEach(function(row) {
+            tbody.appendChild(row);
+        });
+    }
+    
     // Function to initialize the dashboard
     function initDashboard() {
         console.log("Initializing Modbus Dashboard");
         console.log("Using polling interval: " + pollInterval + "ms");
+        
+        // Load saved sort preferences
+        loadSortPreferences();
         
         // Setup filter event listeners
         setupFilterListeners();
