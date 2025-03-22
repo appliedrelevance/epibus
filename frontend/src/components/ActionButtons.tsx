@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ModbusSignal } from '../App';
 import { fetchWrapper } from '../utils/fetchWrapper';
 import './ActionButtons.css';
@@ -7,10 +7,27 @@ interface ActionButtonsProps {
   signal: ModbusSignal;
 }
 
+// Create a custom event for local state updates
+export const createSignalUpdateEvent = (signalId: string, value: any) => {
+  const event = new CustomEvent('local-signal-update', {
+    detail: { signal: signalId, value }
+  });
+  window.dispatchEvent(event);
+  console.log('Dispatched local update event:', { signal: signalId, value });
+};
+
 const ActionButtons: React.FC<ActionButtonsProps> = ({ signal }) => {
   const [inputValue, setInputValue] = useState<number>(
     typeof signal.value === 'number' ? signal.value : 0
   );
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  
+  // Update input value when signal value changes
+  useEffect(() => {
+    if (typeof signal.value === 'number') {
+      setInputValue(signal.value);
+    }
+  }, [signal.value]);
   
   // Check if a signal type is writable
   const isSignalWritable = (signalType: string): boolean => {
@@ -23,26 +40,51 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ signal }) => {
   
   // Handle toggle action for digital outputs
   const handleToggle = async () => {
+    if (isUpdating) return;
+    
     try {
-      await fetchWrapper('/api/method/epibus.www.warehouse_dashboard.set_signal_value', {
+      setIsUpdating(true);
+      const newValue = !(signal.value as boolean);
+      
+      // Optimistically update UI immediately
+      createSignalUpdateEvent(signal.name, newValue);
+      
+      const response = await fetchWrapper('/api/method/epibus.www.warehouse_dashboard.set_signal_value', {
         method: 'POST',
         body: JSON.stringify({
           signal_id: signal.name,
-          value: !(signal.value as boolean)
+          value: newValue
         })
       });
       
-      // The actual value update will come through the real-time updates
+      // Update with actual response value if different from our optimistic update
+      if (response && response.message && response.message.value !== newValue) {
+        createSignalUpdateEvent(signal.name, response.message.value);
+      }
+      
+      console.log('Toggle response:', response);
     } catch (error) {
       console.error('Error toggling signal:', error);
       alert(`Error toggling signal: ${error instanceof Error ? error.message : String(error)}`);
+      
+      // Revert to original value on error
+      createSignalUpdateEvent(signal.name, signal.value);
+    } finally {
+      setIsUpdating(false);
     }
   };
   
   // Handle set value action for analog outputs and holding registers
   const handleSetValue = async () => {
+    if (isUpdating) return;
+    
     try {
-      await fetchWrapper('/api/method/epibus.www.warehouse_dashboard.set_signal_value', {
+      setIsUpdating(true);
+      
+      // Optimistically update UI immediately
+      createSignalUpdateEvent(signal.name, inputValue);
+      
+      const response = await fetchWrapper('/api/method/epibus.www.warehouse_dashboard.set_signal_value', {
         method: 'POST',
         body: JSON.stringify({
           signal_id: signal.name,
@@ -50,10 +92,21 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ signal }) => {
         })
       });
       
-      // The actual value update will come through the real-time updates
+      // Update with actual response value if different from our optimistic update
+      if (response && response.message && response.message.value !== inputValue) {
+        createSignalUpdateEvent(signal.name, response.message.value);
+        setInputValue(response.message.value);
+      }
+      
+      console.log('Set value response:', response);
     } catch (error) {
       console.error('Error setting signal value:', error);
       alert(`Error setting signal value: ${error instanceof Error ? error.message : String(error)}`);
+      
+      // Revert to original value on error
+      createSignalUpdateEvent(signal.name, signal.value);
+    } finally {
+      setIsUpdating(false);
     }
   };
   
@@ -65,11 +118,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ signal }) => {
   // For digital outputs, show toggle button
   if (signal.signal_type === "Digital Output Coil") {
     return (
-      <button 
-        className="btn btn-sm btn-outline-primary toggle-signal" 
+      <button
+        className={`btn btn-sm btn-outline-primary toggle-signal ${isUpdating ? 'disabled' : ''}`}
         onClick={handleToggle}
+        disabled={isUpdating}
       >
-        Toggle
+        {isUpdating ? 'Updating...' : 'Toggle'}
       </button>
     );
   }
@@ -77,18 +131,20 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ signal }) => {
   // For analog outputs and holding registers, show input field and set button
   return (
     <div className="input-group input-group-sm">
-      <input 
-        type="number" 
+      <input
+        type="number"
         className="form-control form-control-sm signal-value-input"
         value={inputValue}
         onChange={(e) => setInputValue(parseFloat(e.target.value))}
+        disabled={isUpdating}
       />
       <div className="input-group-append">
-        <button 
-          className="btn btn-sm btn-outline-primary set-signal-value"
+        <button
+          className={`btn btn-sm btn-outline-primary set-signal-value ${isUpdating ? 'disabled' : ''}`}
           onClick={handleSetValue}
+          disabled={isUpdating}
         >
-          Set
+          {isUpdating ? 'Setting...' : 'Set'}
         </button>
       </div>
     </div>
