@@ -1,0 +1,28 @@
+/* ConnectionCard styles */
+.card {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  padding: 15px;
+  border-bottom: 1px solid var(--gray-200);
+  background-color: #f8f9fa;
+}
+
+.card-body {
+  padding: 15px;
+}
+
+.signals-container {
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  padding: 10px;
+  height: 100%;
+  overflow-x: auto;
+  max-width: 100%;
+}

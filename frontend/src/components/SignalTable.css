@@ -1,0 +1,74 @@
+/* SignalTable styles */
+.table {
+  width: 100%;
+  margin-bottom: 1rem;
+  background-color: transparent;
+  border-collapse: collapse;
+}
+
+/* Add responsive table container */
+.signals-container {
+  overflow-x: auto;
+  max-width: 100%;
+  margin-bottom: 1rem;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem;
+  vertical-align: top;
+  border-top: 1px solid var(--gray-200);
+}
+
+.table thead th {
+  vertical-align: bottom;
+  border-bottom: 2px solid var(--gray-200);
+  background-color: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.table-sm th,
+.table-sm td {
+  padding: 0.3rem;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Sortable table headers */
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 25px !important;
+}
+
+.sort-indicator {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.5;
+}
+
+.sortable:hover .sort-indicator {
+  opacity: 1;
+}
+
+.fa-sort-alpha-asc,
+.fa-sort-alpha-desc {
+  opacity: 1;
+  color: var(--blue-500);
+}
+
+/* Signal value cell highlight animation */
+.signal-value-cell {
+  transition: background-color 0.5s ease;
+}
+
+.signal-value-cell.highlight {
+  background-color: rgba(33, 150, 243, 0.2);
+}

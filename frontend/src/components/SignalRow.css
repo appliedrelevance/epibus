@@ -1,0 +1,25 @@
+/* SignalRow styles */
+tr {
+  transition: background-color 0.2s ease;
+}
+
+.signal-value-cell {
+  transition: background-color 0.5s ease;
+}
+
+.signal-value-cell.highlight {
+  background-color: rgba(33, 150, 243, 0.2);
+}
+
+.signal-actions {
+  white-space: nowrap;
+}
+
+code {
+  font-family: monospace;
+  background-color: #f8f9fa;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: #333;
+}

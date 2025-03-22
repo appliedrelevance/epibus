@@ -1,0 +1,39 @@
+/* ValueDisplay styles */
+.signal-indicator {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.signal-indicator::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.signal-indicator.green {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.signal-indicator.green::before {
+  background-color: #28a745;
+}
+
+.signal-indicator.red {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+.signal-indicator.red::before {
+  background-color: #dc3545;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}

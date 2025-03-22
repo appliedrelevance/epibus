@@ -5,8 +5,8 @@
    "label": "Modbus Events"
   }
  ],
- "content": "[{\"id\":\"boPg_-oQOX\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">EpiBus</span>\",\"col\":12}},{\"id\":\"LEfpIArEmD\",\"type\":\"paragraph\",\"data\":{\"text\":\"EpiBus is a MODBUS Integration for Epinomy and ERPNext.&nbsp; It allows you to control manufacturing hardware like Programmable Logic Controllers (PLCs), Robots and other devices that support the MODBUS protocol.&nbsp;\",\"col\":12}},{\"id\":\"caExZmdfT9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Modbus Settings\",\"col\":4}},{\"id\":\"neGMZO5QS2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Modbus Dashboard\",\"col\":4}},{\"id\":\"CRWcM2trPc\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Modbus Events\",\"col\":12}},{\"id\":\"DqK8wkoHQF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Modbus Documents</span>\",\"col\":12}},{\"id\":\"KPT1S3MuK0\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Connections\",\"col\":6}},{\"id\":\"OlilxW5QK5\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Actions\",\"col\":6}},{\"id\":\"COmczrrZC5\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Server Script\",\"col\":6}},{\"id\":\"XqGjBv470Z\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Events\",\"col\":6}}]",
- "creation": "2025-02-23 19:21:35.999753",
+ "content": "[{\"id\":\"boPg_-oQOX\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">EpiBus</span>\",\"col\":12}},{\"id\":\"LEfpIArEmD\",\"type\":\"paragraph\",\"data\":{\"text\":\"EpiBus is a MODBUS Integration for Epinomy and ERPNext.&nbsp; It allows you to control manufacturing hardware like Programmable Logic Controllers (PLCs), Robots and other devices that support the MODBUS protocol.&nbsp;\",\"col\":12}},{\"id\":\"caExZmdfT9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Modbus Settings\",\"col\":3}},{\"id\":\"CFfM_y9q4J\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Warehouse Dashboard\",\"col\":3}},{\"id\":\"CRWcM2trPc\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Modbus Events\",\"col\":12}},{\"id\":\"DqK8wkoHQF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Modbus Documents</span>\",\"col\":12}},{\"id\":\"KPT1S3MuK0\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Connections\",\"col\":6}},{\"id\":\"OlilxW5QK5\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Actions\",\"col\":6}},{\"id\":\"COmczrrZC5\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Server Script\",\"col\":6}},{\"id\":\"XqGjBv470Z\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Modbus Events\",\"col\":6}}]",
+ "creation": "2025-03-21 09:36:43.122014",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -17,7 +17,7 @@
  "is_hidden": 0,
  "label": "EpiBus",
  "links": [],
- "modified": "2025-02-23 19:33:13.957944",
+ "modified": "2025-03-21 16:03:24.426453",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "EpiBus",
@@ -47,14 +47,14 @@
   }
  ],
  "roles": [],
- "sequence_id": 2.0,
+ "sequence_id": 3.0,
  "shortcuts": [
   {
    "color": "Grey",
    "doc_view": "List",
-   "label": "Modbus Dashboard",
+   "label": "Warehouse Dashboard",
    "type": "URL",
-   "url": "/modbus_dashboard"
+   "url": "/warehouse_dashboard"
   },
   {
    "color": "Grey",

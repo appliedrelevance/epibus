@@ -1,0 +1,52 @@
+/* ActionButtons styles */
+.toggle-signal {
+  width: 100%;
+  max-width: 80px;
+}
+
+.signal-value-input {
+  max-width: 80px;
+}
+
+.input-group-sm > .form-control,
+.input-group-sm > .input-group-append > .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border-radius: 0.2rem;
+}
+
+.input-group-append {
+  margin-left: -1px;
+  display: flex;
+}
+
+.input-group > .form-control:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.input-group > .input-group-append > .btn {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.btn-outline-primary {
+  color: var(--blue-500);
+  background-color: transparent;
+  background-image: none;
+  border-color: var(--blue-500);
+}
+
+.btn-outline-primary:hover {
+  color: #fff;
+  background-color: var(--blue-500);
+  border-color: var(--blue-500);
+}
+
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border-radius: 0.2rem;
+}

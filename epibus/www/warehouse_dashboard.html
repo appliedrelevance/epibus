@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Dashboard</title>
+    
+    <!-- Cache control meta tags -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- CSRF token meta tag -->
+    <meta name="csrf-token" content="{{ frappe.session.csrf_token }}">
+    
+    <!-- React App CSS -->
+    <link rel="stylesheet" href="/assets/epibus/warehouse_dashboard/assets/index.css">
+    
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="/assets/epibus/vendor/font-awesome/css/font-awesome.min.css">
+</head>
+<body>
+    <!-- React App Root -->
+    <div id="root"></div>
+    
+    <!-- Load React App -->
+    <script src="/assets/epibus/warehouse_dashboard/assets/index.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Warehouse dashboard page loaded");
+        });
+    </script>
+</body>
+</html>

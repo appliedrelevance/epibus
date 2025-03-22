@@ -26,7 +26,6 @@ fixtures = [
     },
     {"dt": "Workspace", "filters": [["name", "in", ["EpiBus"]]]},
     {"dt": "Server Script", "filters": [["module", "in", ["EpiBus"]]]},
-    {"dt": "Dashboard Chart", "filters": [["module", "in", ["EpiBus"]]]},
 ]
 
 export_python_type_annotations = True
@@ -40,10 +39,9 @@ docfield_list = {
 
 # Other hooks and configurations can be added below
 # For example, including custom page JS/CSS or web templates if needed:
-web_include_js = ["/assets/epibus/js/modbus_dashboard.js"]
+web_include_js = []
 web_include_css = [
     "/assets/epibus/vendor/font-awesome/css/font-awesome.min.css",
-    "/assets/epibus/css/modbus_dashboard.css",
 ]
 
 # Scheduler configuration for signal monitoring
@@ -58,5 +56,7 @@ after_install = "epibus.epibus.utils.signal_monitor.setup_scheduler_job"
 
 # Whitelisted methods
 api_methods = {
-    "epibus.epibus.utils.signal_monitor.start_monitoring": ["POST"]
+    "epibus.epibus.utils.signal_monitor.start_monitoring": ["POST"],
+    "epibus.www.warehouse_dashboard.get_modbus_data": ["GET"],
+    "epibus.www.warehouse_dashboard.set_signal_value": ["POST"]
 }

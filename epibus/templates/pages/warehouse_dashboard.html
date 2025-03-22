@@ -1,0 +1,33 @@
+{%- extends "templates/web.html" -%}
+
+{%- block title -%}{{ title | striptags }}{%- endblock -%}
+
+{%- block page_head_tags -%}
+<!-- Cache control meta tags -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- Font Awesome CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<!-- Frappe Socket.IO -->
+<script src="/assets/frappe/js/lib/socket.io.min.js"></script>
+{%- endblock -%}
+
+{%- block page_content -%}
+<!-- React App Mount Point -->
+<div id="root"></div>
+
+<!-- Load React App -->
+<script type="module" src="/assets/epibus/warehouse_dashboard/main.js"></script>
+{%- endblock -%}
+
+{%- block script %}
+<script>
+    // Initialize the dashboard when the page is ready
+    frappe.ready(function() {
+        // Pass the initial connections data from the server context
+        window.initialConnections = {{ connections | json }};
+        console.log("Warehouse dashboard page loaded with initial data");
+    });
+</script>
+{%- endblock -%}
