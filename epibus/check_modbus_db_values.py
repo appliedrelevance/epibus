@@ -29,7 +29,7 @@ def check_device_db_values(device_name):
             return
 
         logger.info(
-            f"Device found: {device_doc.device_name} ({device_doc.host}:{device_doc.port})")
+            f"Device found: {device_doc.get('device_name')} ({device_doc.get('host')}:{device_doc.get('port')})")
 
         # Get all signals for this device
         signals = frappe.get_all(

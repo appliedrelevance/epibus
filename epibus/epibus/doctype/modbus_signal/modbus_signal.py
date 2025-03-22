@@ -281,13 +281,24 @@ class ModbusSignal(Document):
                 # Read back value
                 new_value = handler.read(self.signal_type, self.modbus_address)
 
-                # Convert and validate read-back value
+                # Convert and validate read-back value based on input and output types
                 if isinstance(value, bool):
-                    # Convert numeric 0/1 to boolean
-                    new_value = bool(new_value)
-                elif isinstance(value, (int, float)) and isinstance(new_value, bool):
-                    frappe.throw(
-                        _("Expected numeric value from write operation"))
+                    # If input was boolean, ensure output is boolean
+                    if isinstance(new_value, (int, float)):
+                        # Convert numeric 0/1 to boolean safely
+                        new_value = bool(new_value)
+                    elif not isinstance(new_value, bool):
+                        frappe.throw(
+                            _("Invalid return type from boolean write operation"))
+                elif isinstance(value, (int, float)):
+                    # If input was numeric, ensure output is numeric
+                    if isinstance(new_value, bool):
+                        frappe.throw(
+                            _("Expected numeric value from write operation, got boolean"))
+                    elif isinstance(new_value, (int, float)):
+                        # Ensure consistent numeric type
+                        new_value = float(new_value) if isinstance(
+                            value, float) else int(new_value)
 
                 # Log successful write event
                 ModbusEvent.log_event(

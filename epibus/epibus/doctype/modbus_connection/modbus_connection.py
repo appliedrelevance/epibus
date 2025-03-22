@@ -5,13 +5,14 @@ import frappe
 from frappe.model.document import Document
 from pymodbus.client import ModbusTcpClient
 from pymodbus.framer import FramerType
-from epibus.epibus.utils.epinomy_logger import get_logger
+
 from epibus.epibus.utils.signal_handler import SignalHandler
 import asyncio
 from contextlib import contextmanager
 from typing import Optional
 import time
 
+from epibus.epibus.utils.epinomy_logger import get_logger
 logger = get_logger(__name__)
 
 
@@ -209,11 +210,9 @@ class ModbusConnection(Document):
             handler = SignalHandler(client)
             value = handler.read(signal.signal_type, signal.modbus_address)
 
-            # Update signal's stored value
-            if isinstance(value, bool):
-                signal.db_set('digital_value', value)
-            else:
-                signal.db_set('float_value', float(value))
+            # No need to update the database for virtual fields
+            # The value is returned directly and should not be persisted
+            # as digital_value and float_value are virtual fields
 
             return value
 
