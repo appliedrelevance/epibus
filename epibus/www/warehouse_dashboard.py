@@ -14,6 +14,10 @@ from typing import Dict, List, Any, Optional, cast, TypedDict
 from epibus.epibus.utils.epinomy_logger import get_logger
 logger = get_logger(__name__)
 
+# Cache to store the last known values of signals
+# This will persist between function calls
+signal_value_cache = {}
+
 
 class ModbusConnectionDict(TypedDict):
     name: str
@@ -64,7 +68,8 @@ def get_context(context):
     # Add CSRF token to context
     context.csrf_token = frappe.session.csrf_token
 
-    logger.info(
+    # Only log at debug level for dashboard access
+    logger.debug(
         f"Warehouse dashboard accessed by user: {frappe.session.user}")
     logger.debug(
         f"CSRF token for session: {frappe.session.csrf_token[:5]}...")
@@ -84,7 +89,7 @@ def get_modbus_data() -> List[ModbusConnectionDict]:
     try:
         # Log the current user for debugging
         current_user = frappe.session.user
-        logger.info(f"Fetching Modbus data as user: {current_user}")
+        logger.debug(f"Fetching Modbus data as user: {current_user}")
 
         # Get all enabled Modbus connections
         # Remove allow_guest=True to ensure proper permission checking
@@ -96,7 +101,7 @@ def get_modbus_data() -> List[ModbusConnectionDict]:
             order_by="device_name asc"
         )
 
-        logger.info(f"Found {len(connections)} Modbus connections")
+        logger.debug(f"Found {len(connections)} Modbus connections")
 
         # For each connection, get its signals
         for connection in connections:
@@ -136,38 +141,57 @@ def get_modbus_data() -> List[ModbusConnectionDict]:
                                     "Modbus Connection", connection["name"]))
 
                             # Read the signal value directly
-                            logger.info(
+                            logger.debug(
                                 f"Attempting to read signal {signal['name']} directly from device {connection['name']}")
 
                             # Use the read_signal method to get the current value
                             # We've already cast signal_doc to ModbusSignal, so this is safe
                             value = signal_doc.read_signal()
 
+                            # Get previous value from our persistent cache
+                            signal_id = signal['name']
+                            previous_value = signal_value_cache.get(signal_id)
+
                             if value is not None:
                                 signal["value"] = value
                                 # No need to update the database for virtual fields
                                 # The value is already stored in the signal dictionary for the UI
-                                logger.info(
-                                    f"Read value for signal {signal['name']}: {value}")
+
+                                # Only log if the value has changed from the cached value
+                                if previous_value != value:
+                                    # Get the human-readable signal name
+                                    signal_name = signal['signal_name']
+                                    logger.info(
+                                        f"Signal value changed: {signal_name} ({signal_id}) from {previous_value} to {value}")
+
+                                # Update the cache with the new value
+                                signal_value_cache[signal_id] = value
                             else:
                                 signal["value"] = None
+                                # Get the human-readable signal name
+                                signal_name = signal['signal_name']
                                 logger.warning(
-                                    f"Direct read returned None for signal {signal['name']}")
+                                    f"Direct read returned None for signal {signal_name} ({signal_id})")
                         except Exception as read_error:
+                            # Get the human-readable signal name
+                            signal_name = signal['signal_name']
                             logger.error(
-                                f"Error reading signal {signal['name']} directly: {str(read_error)}")
+                                f"Error reading signal {signal_name} ({signal['name']}) directly: {str(read_error)}")
                             signal["value"] = None
 
+                    # Debug level for all signal values
                     logger.debug(
                         f"Signal {signal['name']} value: {signal.get('value')}")
                 except Exception as signal_error:
+                    # Get the human-readable signal name
+                    signal_name = signal['signal_name']
                     logger.error(
-                        f"Error getting value for signal {signal['name']}: {str(signal_error)}")
+                        f"Error getting value for signal {signal_name} ({signal['name']}): {str(signal_error)}")
                     signal["value"] = None
 
             # Add signals to the connection
             connection["signals"] = signals
-            logger.info(
+            logger.debug(
                 f"Connection {connection['name']} has {len(signals)} signals")
 
         return connections
@@ -195,7 +219,7 @@ def set_signal_value(signal_id: str, value: Any) -> Dict[str, Any]:
     try:
         # Log the current user for debugging
         current_user = frappe.session.user
-        logger.info(
+        logger.debug(
             f"Setting signal value as user: {current_user} for signal: {signal_id}")
 
         # Convert value to the appropriate type based on signal type
@@ -214,13 +238,33 @@ def set_signal_value(signal_id: str, value: Any) -> Dict[str, Any]:
         # Use the write_signal method directly to update the value
         # This properly handles the communication with the device without
         # trying to persist virtual fields to the database
+
+        # Get the current value from our cache
+        previous_value = signal_value_cache.get(signal_id)
+
+        # If not in cache, try to get from signal attributes
+        if previous_value is None:
+            if hasattr(signal, "current_value") and getattr(signal, "current_value", None) is not None:
+                previous_value = getattr(signal, "current_value")
+            elif hasattr(signal, "float_value") and getattr(signal, "float_value", None) is not None:
+                previous_value = getattr(signal, "float_value")
+            elif hasattr(signal, "digital_value") and getattr(signal, "digital_value", None) is not None:
+                previous_value = getattr(signal, "digital_value")
+
         result_value = signal.write_signal(value)
 
         # No need to call signal.save() as we're not persisting anything to the database
         # The write_signal method handles the actual communication with the device
 
+        # Update our cache with the new value
+        signal_value_cache[signal_id] = result_value
+
+        # Get the human-readable signal name
+        signal_name = signal.signal_name
+
+        # Log the value change at INFO level
         logger.info(
-            f"Successfully updated signal {signal_id} to value {result_value}")
+            f"Signal value changed: {signal_name} ({signal_id}) from {previous_value} to {result_value}")
 
         # Return success response with the actual value read back from the device
         return {
@@ -236,3 +280,42 @@ def set_signal_value(signal_id: str, value: Any) -> Dict[str, Any]:
         frappe.throw(_("Error setting signal value: {0}").format(str(e)))
         # This will never be reached due to frappe.throw, but satisfies the type checker
         return {"status": "error", "message": str(e), "signal_id": signal_id, "value": None}
+
+
+@frappe.whitelist()
+def clear_signal_value_cache() -> Dict[str, Any]:
+    """
+    Clear the in-memory cache of signal values.
+    This is useful for debugging or forcing a refresh of all values.
+
+    Returns:
+        Dict[str, Any]: A dictionary with the status of the operation.
+    """
+    try:
+        # Log the current user for debugging
+        current_user = frappe.session.user
+        logger.debug(f"Clearing signal value cache as user: {current_user}")
+
+        # Store the cache size for logging
+        cache_size = len(signal_value_cache)
+
+        # Clear the cache
+        signal_value_cache.clear()
+
+        logger.info(
+            f"Signal value cache cleared. {cache_size} entries removed.")
+
+        # Return success response
+        return {
+            "status": "success",
+            "message": _("Signal value cache cleared successfully"),
+            "entries_removed": cache_size
+        }
+
+    except Exception as e:
+        logger.error(f"Error in clear_signal_value_cache: {str(e)}")
+        frappe.log_error(f"Error in clear_signal_value_cache: {str(e)}")
+        frappe.throw(
+            _("Error clearing signal value cache: {0}").format(str(e)))
+        # This will never be reached due to frappe.throw, but satisfies the type checker
+        return {"status": "error", "message": str(e)}

@@ -19,7 +19,7 @@ class EpinomyLogger(logging.Logger):
         """
         Set up and configure the logger.
         """
-        self.setLevel(logging.DEBUG)
+        self.setLevel(logging.INFO)
 
         # Remove existing handlers
         for handler in self.handlers[:]:
@@ -50,10 +50,10 @@ class EpinomyLogger(logging.Logger):
     def get_logger(cls, module_name: str) -> 'EpinomyLogger':
         """
         Get or create an EpinomyLogger instance for the given module name.
-        
+
         Args:
             module_name (str): The name of the module requesting the logger
-            
+
         Returns:
             EpinomyLogger: A configured logger instance
         """
@@ -64,10 +64,10 @@ def get_logger(module_name: str) -> EpinomyLogger:
     """
     Get or create an EpinomyLogger instance for the given module name.
     This is a convenience function for backward compatibility.
-    
+
     Args:
         module_name (str): The name of the module requesting the logger
-        
+
     Returns:
         EpinomyLogger: A configured logger instance
     """
@@ -77,11 +77,11 @@ def get_logger(module_name: str) -> EpinomyLogger:
 def add_timeline_entry(document, message: str) -> Optional[str]:
     """
     Adds a simplified comment to the specified document's timeline.
-    
+
     Args:
         document: The document to which the comment will be added (Document instance)
         message: The content of the comment (str)
-        
+
     Returns:
         Optional[str]: Name of created comment or None if operation fails
     """
@@ -98,7 +98,8 @@ def add_timeline_entry(document, message: str) -> Optional[str]:
         return comment.name
     except frappe.DoesNotExistError:
         logger = get_logger(__name__)
-        logger.error(f"Document {document.doctype} with name {document.name} does not exist.")
+        logger.error(
+            f"Document {document.doctype} with name {document.name} does not exist.")
         return None
     except Exception as e:
         logger = get_logger(__name__)
@@ -115,7 +116,7 @@ def add_timeline_entry_detailed(
 ) -> Optional[str]:
     """
     Adds a detailed comment to a document's timeline with additional options.
-    
+
     Args:
         doctype: The Doctype of the document
         docname: The name of the document

@@ -41,12 +41,8 @@ class ModbusAction(Document):
         if not self.server_script:
             frappe.throw(_("Server Script is required"))
 
-            self.validate_script_type()
-
-        script: ServerScript = cast(ServerScript, frappe.get_doc(
-            "Server Script", self.server_script))  # type: ignore
-        if script.script_type not in ("API"):
-            frappe.throw(_("Server Script must be of type API"))
+        # Validate script type
+        self.validate_script_type()
 
     def validate_script_type(self):
         """Validate the script type of the linked server script"""
@@ -58,32 +54,82 @@ class ModbusAction(Document):
     @frappe.whitelist(methods=['POST'])
     def execute_script(self, event_doc=None):
         """Execute the linked server script"""
-        script: ServerScript = cast(ServerScript, frappe.get_doc(
-            "Server Script", self.server_script))
-
-        # Set up the context for API script execution
-        frappe.form_dict.connection_id = self.connection
-
-        # Convert parameters table to dict
-        params = {p.parameter: p.value for p in self.parameters}
-        frappe.form_dict.params = params
-
-        # Store context in flags for access during execution
-        frappe.flags.modbus_context = {
-            "action": self,
-            "connection": frappe.get_doc("Modbus Connection", str(self.connection)),
-            "params": params
-        }
+        logger.debug(
+            f"Executing script for Modbus Action {self.name} ({self.action_name})")
 
         try:
+            script: ServerScript = cast(ServerScript, frappe.get_doc(
+                "Server Script", self.server_script))
+
+            # Set up the context for API script execution
+            frappe.form_dict.connection_id = self.connection
+
+            # Convert parameters table to dict
+            params = {p.parameter: p.value for p in self.parameters}
+            frappe.form_dict.params = params
+
+            # Log parameters for debugging
+            logger.debug(f"Script parameters: {params}")
+
+            # Store context in flags for access during execution
+            connection_doc = frappe.get_doc(
+                "Modbus Connection", str(self.connection))
+            frappe.flags.modbus_context = {
+                "action": self,
+                "connection": connection_doc,
+                "params": params
+            }
+
+            logger.debug(
+                f"Modbus context set with connection {connection_doc.name}")
+
             if script.script_type == "API":
+                logger.debug(f"Executing API script {script.name}")
                 result = script.execute_method()
+
+                if not result:
+                    logger.error(f"Script {script.name} returned no result")
+                    return {
+                        "status": "error",
+                        "value": None,
+                        "error": "Script returned nothing"
+                    }
+
+                logger.debug(f"Script execution result: {result}")
+
+                # Ensure we have a proper dictionary with expected keys
+                if not isinstance(result, dict):
+                    logger.warning(
+                        f"Script {script.name} returned non-dict result: {result}")
+                    # Convert non-dict result to a standard format
+                    return {
+                        "status": "success",
+                        "value": result,
+                        "error": None
+                    }
+
                 return {
-                    "status": result.get("status", "unknown"),
+                    "status": result.get("status", "success"),
                     "value": result.get("value"),
                     "error": result.get("error")
                 }
             else:
-                return script.execute_doc(event_doc) if event_doc else None
+                logger.debug(
+                    f"Executing non-API script {script.name} with event_doc: {event_doc is not None}")
+                result = script.execute_doc(event_doc) if event_doc else None
+                return {
+                    "status": "success" if result is not None else "error",
+                    "value": result,
+                    "error": "No event document provided" if not event_doc else None
+                }
+        except Exception as e:
+            logger.exception(
+                f"Error executing script for Modbus Action {self.name}: {str(e)}")
+            return {
+                "status": "error",
+                "value": None,
+                "error": str(e)
+            }
         finally:
+            logger.debug(f"Clearing modbus context for action {self.name}")
             frappe.flags.modbus_context = None
