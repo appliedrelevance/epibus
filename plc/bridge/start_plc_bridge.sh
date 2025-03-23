@@ -4,7 +4,7 @@
 # Set variables
 BENCH_DIR="/workspace/development/frappe-bench"
 APP_DIR="$BENCH_DIR/apps/epibus"
-BRIDGE_SCRIPT="$APP_DIR/epibus/plc_bridge.py"
+BRIDGE_SCRIPT="$APP_DIR/plc/bridge/plc_bridge.py"
 LOG_DIR="$BENCH_DIR/logs"
 PID_FILE="$LOG_DIR/plc_bridge.pid"
 LOG_FILE="$LOG_DIR/plc_bridge.log"
