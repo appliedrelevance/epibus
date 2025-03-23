@@ -44,7 +44,7 @@ def update_signal():
 
         # Parse value based on signal type
         signal = frappe.get_doc("Modbus Signal", signal_id)
-        if "Digital" in signal.signal_type:
+        if "Digital" in signal.get("signal_type", ""):
             value = value.lower() == "true" if isinstance(value, str) else bool(value)
         else:
             value = float(value)
