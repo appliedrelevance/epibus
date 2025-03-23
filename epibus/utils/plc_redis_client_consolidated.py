@@ -23,23 +23,30 @@ class PLCRedisClient:
         """Initialize Redis client"""
         settings = frappe.get_doc("Modbus Settings")
 
-        # Get Redis settings from site_config.json or use defaults
-        redis_config = frappe.get_site_config().get('redis_queue') or {
-            'host': 'localhost',
-            'port': 6379
-        }
+        # Get Redis settings from site_config.json
+        try:
+            redis_config = frappe.get_site_config().get('redis_queue')
 
-        # Extract host and port from redis_queue URL if it's a URL
-        redis_url = redis_config
-        if isinstance(redis_url, str) and redis_url.startswith('redis://'):
-            # Parse redis URL (format: redis://hostname:port)
-            parts = redis_url.replace('redis://', '').split(':')
-            host = parts[0]
-            port = int(parts[1]) if len(parts) > 1 else 6379
-        else:
-            # Use dictionary format
-            host = redis_config.get('host', 'localhost')
-            port = redis_config.get('port', 6379)
+            # Default to redis-queue:6379 if not found in config
+            if not redis_config:
+                logger.warning(
+                    "⚠️ redis_queue not found in site_config.json, using default redis-queue:6379")
+                host = 'redis-queue'
+                port = 6379
+            elif isinstance(redis_config, str) and redis_config.startswith('redis://'):
+                # Parse redis URL (format: redis://hostname:port)
+                parts = redis_config.replace('redis://', '').split(':')
+                host = parts[0]
+                port = int(parts[1]) if len(parts) > 1 else 6379
+            else:
+                # Use dictionary format
+                host = redis_config.get('host', 'redis-queue')
+                port = redis_config.get('port', 6379)
+        except Exception as e:
+            logger.error(
+                f"❌ Error reading Redis config: {str(e)}, using default redis-queue:6379")
+            host = 'redis-queue'
+            port = 6379
 
         logger.info(f"🔌 Connecting to Redis at {host}:{port}")
 

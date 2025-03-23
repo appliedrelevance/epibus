@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ModbusSignal } from '../App';
 import SignalRow from './SignalRow';
+import { loadSortPreference, saveSortPreference } from '../utils/storageUtils';
 import './SignalTable.css';
 
 interface SignalTableProps {
   signals: ModbusSignal[];
+  connectionId: string; // Added connectionId prop for unique storage keys
 }
 
-const SignalTable: React.FC<SignalTableProps> = ({ signals }) => {
+const SignalTable: React.FC<SignalTableProps> = ({ signals, connectionId }) => {
+  // Use a ref to track if this is the first render
+  const isInitialMount = useRef(true);
+  // Initialize sort config from localStorage or default values
   const [sortConfig, setSortConfig] = useState<{
     key: keyof ModbusSignal | null;
     direction: 'asc' | 'desc';
@@ -15,6 +20,27 @@ const SignalTable: React.FC<SignalTableProps> = ({ signals }) => {
     key: null,
     direction: 'asc'
   });
+
+  // Load saved sort preferences on component mount
+  useEffect(() => {
+    if (isInitialMount.current) {
+      // Only load preferences on initial mount
+      const savedPreference = loadSortPreference(connectionId);
+      if (savedPreference.key) {
+        setSortConfig({
+          key: savedPreference.key as keyof ModbusSignal,
+          direction: savedPreference.direction
+        });
+      }
+      isInitialMount.current = false;
+    }
+  }, [connectionId]);
+
+  // Log when signals change to help with debugging
+  useEffect(() => {
+    console.log(`SignalTable for ${connectionId} received updated signals (${signals.length} signals)`);
+    // We don't reset sort config here, allowing it to persist across signal updates
+  }, [signals, connectionId]);
 
   // Handle sorting
   const handleSort = (key: keyof ModbusSignal) => {
@@ -24,7 +50,11 @@ const SignalTable: React.FC<SignalTableProps> = ({ signals }) => {
       direction = 'desc';
     }
     
+    // Update state
     setSortConfig({ key, direction });
+    
+    // Save to localStorage
+    saveSortPreference(connectionId, key, direction);
   };
   
   // Sort signals based on current sort configuration

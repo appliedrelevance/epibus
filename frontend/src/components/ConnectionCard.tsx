@@ -9,16 +9,20 @@ interface ConnectionCardProps {
     deviceType: string;
     signalType: string;
   };
+  pollCount?: number; // Optional poll count prop
 }
 
-const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection, activeFilters }) => {
+const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection, activeFilters, pollCount }) => {
   // Filter signals based on active filters
-  const filteredSignals = connection.signals.filter(signal => {
-    if (activeFilters.signalType && signal.signal_type !== activeFilters.signalType) {
-      return false;
-    }
-    return true;
-  });
+  const filteredSignals = React.useMemo(() => {
+    // Using useMemo to avoid unnecessary filtering on each render
+    return connection.signals.filter(signal => {
+      if (activeFilters.signalType && signal.signal_type !== activeFilters.signalType) {
+        return false;
+      }
+      return true;
+    });
+  }, [connection.signals, activeFilters.signalType, pollCount]); // Re-compute when signals, filters, or pollCount changes
 
   return (
     <div className="col-12 mb-4">
@@ -52,7 +56,10 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection, activeFilte
           {/* Signals table */}
           <div className="signals-container mt-3">
             {filteredSignals.length > 0 ? (
-              <SignalTable signals={filteredSignals} />
+              <SignalTable
+                signals={filteredSignals}
+                connectionId={connection.name}
+              />
             ) : (
               <p className="text-center text-muted">
                 No signals match the current filters

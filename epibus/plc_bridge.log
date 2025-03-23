@@ -75,3 +75,4 @@
 2025-03-23 03:03:36,997 - plc_bridge - WARNING - ⚠️ Invalid write command: {'command': 'write_signal', 'signal': '1ffsc9tu2d', 'value': False}
 2025-03-23 03:03:39,363 - plc_bridge - WARNING - ⚠️ Invalid write command: {'command': 'write_signal', 'signal': '20fpfrhgfv', 'value': True}
 2025-03-23 03:03:42,397 - plc_bridge - WARNING - ⚠️ Invalid write command: {'command': 'write_signal', 'signal': '20fpfrhgfv', 'value': False}
+2025-03-23 11:19:49,934 - plc_bridge - WARNING - ⚠️ Invalid write command: {'command': 'write_signal', 'signal': '0ort9mb3vk', 'value': True}

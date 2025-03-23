@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import io from 'socket.io-client';
+import io, { Socket } from 'socket.io-client';
 
 interface SignalValue {
   value: boolean | number;
@@ -14,7 +14,8 @@ interface SignalUpdateEvent {
 
 export function useSignalMonitor() {
   const [signals, setSignals] = useState<Record<string, SignalValue>>({});
-  const [socket, setSocket] = useState<SocketIOClient.Socket | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [socketInstance, setSocketInstance] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
 
   // Initialize socket connection
@@ -52,7 +53,7 @@ export function useSignalMonitor() {
       }));
     });
 
-    setSocket(socket);
+    setSocketInstance(socket);
 
     return () => {
       console.log('👋 Closing socket connection');

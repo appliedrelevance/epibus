@@ -5,6 +5,7 @@ import PollIndicator from './PollIndicator';
 import LoadingIndicator from './LoadingIndicator';
 import ErrorMessage from './ErrorMessage';
 import ConnectionCard from './ConnectionCard';
+import { clearAllSortPreferences } from '../utils/storageUtils';
 import './ModbusDashboard.css';
 
 interface ModbusDashboardProps {
@@ -92,6 +93,30 @@ const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
     setAutoRefresh(prev => !prev);
   };
   
+  // Reset all sorting preferences
+  const handleResetSorting = () => {
+    clearAllSortPreferences();
+    // Force a re-render of the component to reflect the reset
+    setPollCount(prevCount => prevCount + 1);
+    // Show feedback to the user
+    const toast = document.createElement('div');
+    toast.className = 'alert alert-success alert-dismissible fade show position-fixed';
+    toast.style.top = '20px';
+    toast.style.right = '20px';
+    toast.style.zIndex = '1050';
+    toast.innerHTML = `
+      <strong>Success!</strong> Sorting preferences have been reset.
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    document.body.appendChild(toast);
+    
+    // Remove the toast after 3 seconds
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 150);
+    }, 3000);
+  };
+  
   return (
     <div className="container-fluid">
       <div className="row mt-4 mb-4">
@@ -99,22 +124,32 @@ const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
           <h1>Warehouse Dashboard</h1>
         </div>
         <div className="col-auto">
-          <div className="btn-group" role="group">
+          <div className="d-flex gap-2">
+            <div className="btn-group" role="group">
+              <button
+                type="button"
+                className="btn btn-outline-primary"
+                onClick={handleManualRefresh}
+                disabled={loading}
+              >
+                <i className="fa fa-refresh"></i> Refresh
+              </button>
+              <button
+                type="button"
+                className={`btn btn-outline-${autoRefresh ? 'success' : 'secondary'}`}
+                onClick={toggleAutoRefresh}
+              >
+                <i className={`fa fa-${autoRefresh ? 'clock-o' : 'pause'}`}></i>
+                {autoRefresh ? ' Auto-refresh On' : ' Auto-refresh Off'}
+              </button>
+            </div>
             <button
               type="button"
-              className="btn btn-outline-primary"
-              onClick={handleManualRefresh}
-              disabled={loading}
+              className="btn btn-outline-secondary"
+              onClick={handleResetSorting}
+              title="Reset all table sorting preferences"
             >
-              <i className="fa fa-refresh"></i> Refresh
-            </button>
-            <button
-              type="button"
-              className={`btn btn-outline-${autoRefresh ? 'success' : 'secondary'}`}
-              onClick={toggleAutoRefresh}
-            >
-              <i className={`fa fa-${autoRefresh ? 'clock-o' : 'pause'}`}></i>
-              {autoRefresh ? ' Auto-refresh On' : ' Auto-refresh Off'}
+              <i className="fa fa-sort"></i> Reset Sorting
             </button>
           </div>
         </div>
@@ -150,9 +185,10 @@ const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
         {/* Connection cards */}
         {filteredConnections.map(connection => (
           <ConnectionCard
-            key={`${connection.name}-${pollCount}`} // Force re-render on poll count change
+            key={connection.name} // Use stable key to prevent re-mounting and state loss
             connection={connection}
             activeFilters={activeFilters}
+            pollCount={pollCount} // Pass as prop instead of using in key
           />
         ))}
       </div>
