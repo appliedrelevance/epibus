@@ -12,6 +12,9 @@ import json
 from typing import Dict, List, Any, Optional, cast, TypedDict
 
 from epibus.epibus.utils.epinomy_logger import get_logger
+# Import the PLC Bridge adapter
+from epibus.utils.plc_bridge_adapter import get_signals_from_plc_bridge, write_signal_via_plc_bridge
+
 logger = get_logger(__name__)
 
 # Cache to store the last known values of signals
@@ -83,6 +86,9 @@ def get_modbus_data() -> List[ModbusConnectionDict]:
     Get all Modbus connections and their signals.
     Uses the current user's permissions to access the data.
 
+    This function now uses the PLC Bridge adapter to get signals when possible,
+    with a fallback to direct Modbus communication if needed.
+
     Returns:
         List[ModbusConnectionDict]: A list of Modbus connections with their signals.
     """
@@ -91,8 +97,52 @@ def get_modbus_data() -> List[ModbusConnectionDict]:
         current_user = frappe.session.user
         logger.debug(f"Fetching Modbus data as user: {current_user}")
 
+        # First, try to get signals from the PLC Bridge
+        try:
+            logger.info("Attempting to get signals from PLC Bridge...")
+            plc_signals = get_signals_from_plc_bridge()
+
+            if plc_signals and len(plc_signals) > 0:
+                logger.info(
+                    f"✅ Successfully retrieved {len(plc_signals)} signals from PLC Bridge")
+
+                # Create a dictionary to organize signals by connection
+                signals_by_connection = {}
+                for signal in plc_signals:
+                    # Get the parent connection from the signal
+                    parent = frappe.db.get_value(
+                        "Modbus Signal", signal["name"], "parent")
+                    if parent:
+                        if parent not in signals_by_connection:
+                            signals_by_connection[parent] = []
+                        signals_by_connection[parent].append(signal)
+
+                # Get all enabled Modbus connections
+                connections: List[ModbusConnectionDict] = frappe.get_all(
+                    "Modbus Connection",
+                    fields=["name", "device_name", "device_type",
+                            "host", "port", "enabled"],
+                    filters={"enabled": 1},
+                    order_by="device_name asc"
+                )
+
+                # Attach signals to their respective connections
+                for connection in connections:
+                    connection["signals"] = signals_by_connection.get(
+                        connection["name"], [])
+                    logger.debug(
+                        f"Connection {connection['name']} has {len(connection['signals'])} signals from PLC Bridge")
+
+                return connections
+        except Exception as plc_error:
+            logger.warning(
+                f"⚠️ Failed to get signals from PLC Bridge: {str(plc_error)}")
+            logger.warning("Falling back to direct Modbus communication...")
+
+        # Fallback to the original direct Modbus communication method
+        logger.info("Using direct Modbus communication as fallback...")
+
         # Get all enabled Modbus connections
-        # Remove allow_guest=True to ensure proper permission checking
         connections: List[ModbusConnectionDict] = frappe.get_all(
             "Modbus Connection",
             fields=["name", "device_name", "device_type",
@@ -209,6 +259,9 @@ def set_signal_value(signal_id: str, value: Any) -> Dict[str, Any]:
     Set the value of a Modbus signal.
     Uses the current user's permissions to update the signal.
 
+    This function now uses the PLC Bridge adapter to write signals when possible,
+    with a fallback to direct Modbus communication if needed.
+
     Args:
         signal_id (str): The ID of the signal to update.
         value (Any): The new value for the signal.
@@ -222,10 +275,12 @@ def set_signal_value(signal_id: str, value: Any) -> Dict[str, Any]:
         logger.debug(
             f"Setting signal value as user: {current_user} for signal: {signal_id}")
 
-        # Convert value to the appropriate type based on signal type
+        # Get the signal document to determine its type
         signal = cast(ModbusSignal, frappe.get_doc("Modbus Signal", signal_id))
         signal_type = signal.signal_type
+        signal_name = signal.signal_name
 
+        # Convert value to the appropriate type based on signal type
         if "Digital" in signal_type:
             # For digital signals, convert to boolean
             # Using bool(cint(value)) to ensure proper boolean conversion
@@ -234,10 +289,6 @@ def set_signal_value(signal_id: str, value: Any) -> Dict[str, Any]:
         elif "Analog" in signal_type or "Holding" in signal_type:
             # For analog signals, convert to float
             value = float(value)
-
-        # Use the write_signal method directly to update the value
-        # This properly handles the communication with the device without
-        # trying to persist virtual fields to the database
 
         # Get the current value from our cache
         previous_value = signal_value_cache.get(signal_id)
@@ -251,16 +302,44 @@ def set_signal_value(signal_id: str, value: Any) -> Dict[str, Any]:
             elif hasattr(signal, "digital_value") and getattr(signal, "digital_value", None) is not None:
                 previous_value = getattr(signal, "digital_value")
 
-        result_value = signal.write_signal(value)
+        # First, try to write the signal via the PLC Bridge
+        try:
+            logger.info(
+                f"Attempting to write signal {signal_id} via PLC Bridge...")
+            success = write_signal_via_plc_bridge(signal_id, value)
 
-        # No need to call signal.save() as we're not persisting anything to the database
-        # The write_signal method handles the actual communication with the device
+            if success:
+                logger.info(
+                    f"✅ Successfully wrote signal {signal_name} ({signal_id}) via PLC Bridge")
+
+                # Update our cache with the new value
+                signal_value_cache[signal_id] = value
+
+                # Log the value change at INFO level
+                logger.info(
+                    f"Signal value changed: {signal_name} ({signal_id}) from {previous_value} to {value}")
+
+                # Return success response
+                return {
+                    "status": "success",
+                    "message": _("Signal value updated successfully via PLC Bridge"),
+                    "signal_id": signal_id,
+                    "value": value
+                }
+        except Exception as plc_error:
+            logger.warning(
+                f"⚠️ Failed to write signal via PLC Bridge: {str(plc_error)}")
+            logger.warning("Falling back to direct Modbus communication...")
+
+        # Fallback to direct Modbus communication
+        logger.info(
+            f"Using direct Modbus communication to write signal {signal_id}...")
+
+        # Use the write_signal method directly to update the value
+        result_value = signal.write_signal(value)
 
         # Update our cache with the new value
         signal_value_cache[signal_id] = result_value
-
-        # Get the human-readable signal name
-        signal_name = signal.signal_name
 
         # Log the value change at INFO level
         logger.info(
@@ -269,7 +348,7 @@ def set_signal_value(signal_id: str, value: Any) -> Dict[str, Any]:
         # Return success response with the actual value read back from the device
         return {
             "status": "success",
-            "message": _("Signal value updated successfully"),
+            "message": _("Signal value updated successfully via direct Modbus"),
             "signal_id": signal_id,
             "value": result_value
         }

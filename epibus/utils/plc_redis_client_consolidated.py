@@ -66,7 +66,7 @@ class PLCRedisClient:
 
             # Start background worker
             frappe.enqueue(
-                'epibus.utils.plc_redis_client_fixed.pubsub_worker',
+                'epibus.utils.plc_redis_client_consolidated.pubsub_worker',
                 queue='long',
                 timeout=None
             )
@@ -270,7 +270,7 @@ class PLCRedisClient:
                 try:
                     # Queue action execution with minimal delay
                     frappe.enqueue(
-                        'epibus.utils.plc_redis_client_fixed.execute_action',
+                        'epibus.utils.plc_redis_client_consolidated.execute_action',
                         action_name=action.name,
                         signal_name=signal_name,
                         value=value,
@@ -313,7 +313,7 @@ def pubsub_worker():
 
         # Re-enqueue the worker to restart it
         frappe.enqueue(
-            'epibus.utils.plc_redis_client_fixed.pubsub_worker',
+            'epibus.utils.plc_redis_client_consolidated.pubsub_worker',
             queue='long',
             timeout=None
         )

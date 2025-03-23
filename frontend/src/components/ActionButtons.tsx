@@ -49,7 +49,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ signal }) => {
       // Optimistically update UI immediately
       createSignalUpdateEvent(signal.name, newValue);
       
-      const response = await fetchWrapper('/api/method/epibus.www.warehouse_dashboard.set_signal_value', {
+      const response = await fetchWrapper('/api/method/epibus.api.plc.update_signal', {
         method: 'POST',
         body: JSON.stringify({
           signal_id: signal.name,
@@ -84,7 +84,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ signal }) => {
       // Optimistically update UI immediately
       createSignalUpdateEvent(signal.name, inputValue);
       
-      const response = await fetchWrapper('/api/method/epibus.www.warehouse_dashboard.set_signal_value', {
+      const response = await fetchWrapper('/api/method/epibus.api.plc.update_signal', {
         method: 'POST',
         body: JSON.stringify({
           signal_id: signal.name,

@@ -58,5 +58,9 @@ after_install = "epibus.epibus.utils.signal_monitor.setup_scheduler_job"
 api_methods = {
     "epibus.epibus.utils.signal_monitor.start_monitoring": ["POST"],
     "epibus.www.warehouse_dashboard.get_modbus_data": ["GET"],
-    "epibus.www.warehouse_dashboard.set_signal_value": ["POST"]
+    "epibus.www.warehouse_dashboard.set_signal_value": ["POST"],
+    "epibus.api.plc.get_signals": ["GET"],
+    "epibus.api.plc.update_signal": ["POST"],
+    "epibus.api.plc.get_plc_status": ["GET"],
+    "epibus.api.plc.reload_signals": ["POST"]
 }

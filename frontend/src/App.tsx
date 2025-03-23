@@ -147,34 +147,127 @@ function App() {
       setLoading(true);
       setError(null);
       
-      const data = await fetchWrapper('/api/method/epibus.www.warehouse_dashboard.get_modbus_data', {
+      const data = await fetchWrapper('/api/method/epibus.api.plc.get_signals', {
         method: 'GET'
       });
       
       console.log('API Response:', data);
       setLastUpdateSource('api');
       
-      // Handle different possible response structures from Frappe API
-      if (data && data.message && Array.isArray(data.message)) {
-        // Standard Frappe response with array in message property
-        setConnections(data.message);
-      } else if (data && Array.isArray(data)) {
-        // Direct array response
-        setConnections(data);
-      } else if (data && typeof data === 'object' && data.message && typeof data.message === 'object') {
-        // Response with nested object in message
-        // Try to find an array property that might contain the connections
-        const possibleArrays = Object.values(data.message).filter(val => Array.isArray(val));
-        if (possibleArrays.length > 0) {
-          // Use the first array found
-          setConnections(possibleArrays[0] as ModbusConnection[]);
+      try {
+        // First, check if this is a response from the PLC Bridge API (flat list of signals)
+        if (data && data.message && Array.isArray(data.message) &&
+            data.message.length > 0 && 'name' in data.message[0] && 'value' in data.message[0]) {
+          
+          console.log('Detected PLC Bridge API response format');
+          
+          // Group signals by their parent connection
+          const signalsByConnection: Record<string, ModbusSignal[]> = {};
+          const connectionNames: Set<string> = new Set();
+          
+          // Process each signal to find its parent connection
+          for (const signal of data.message) {
+            // We need to make an additional request to get the parent connection
+            // This is a temporary solution until we modify the PLC Bridge API to include connection info
+            try {
+              const parentResponse = await fetchWrapper(`/api/method/frappe.client.get_value`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  doctype: 'Modbus Signal',
+                  filters: { name: signal.name },
+                  fieldname: 'parent'
+                })
+              });
+              
+              if (parentResponse && parentResponse.message && parentResponse.message.parent) {
+                const parentName = parentResponse.message.parent;
+                connectionNames.add(parentName);
+                
+                if (!signalsByConnection[parentName]) {
+                  signalsByConnection[parentName] = [];
+                }
+                
+                signalsByConnection[parentName].push(signal);
+              }
+            } catch (parentError) {
+              console.error(`Error getting parent for signal ${signal.name}:`, parentError);
+            }
+          }
+          
+          // Now fetch the connection details for each connection
+          const connectionPromises = Array.from(connectionNames).map(async (connectionName) => {
+            try {
+              const connectionResponse = await fetchWrapper(`/api/method/frappe.client.get`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  doctype: 'Modbus Connection',
+                  name: connectionName
+                })
+              });
+              
+              if (connectionResponse && connectionResponse.message) {
+                const connection = connectionResponse.message;
+                return {
+                  name: connection.name,
+                  device_name: connection.device_name,
+                  device_type: connection.device_type,
+                  host: connection.host,
+                  port: connection.port,
+                  enabled: connection.enabled,
+                  signals: signalsByConnection[connectionName] || []
+                } as ModbusConnection;
+              }
+              return null;
+            } catch (connectionError) {
+              console.error(`Error getting connection ${connectionName}:`, connectionError);
+              return null;
+            }
+          });
+          
+          // Wait for all connection requests to complete
+          const connections = (await Promise.all(connectionPromises)).filter(Boolean) as ModbusConnection[];
+          setConnections(connections);
+          
+        } else if (data && data.message && Array.isArray(data.message) &&
+                  data.message.length > 0 && 'signals' in data.message[0]) {
+          // This is a response from the warehouse_dashboard API (connections with nested signals)
+          console.log('Detected warehouse dashboard API response format');
+          setConnections(data.message);
+        } else if (data && Array.isArray(data)) {
+          // Direct array response
+          setConnections(data);
+        } else if (data && typeof data === 'object' && data.message && typeof data.message === 'object') {
+          // Response with nested object in message
+          // Try to find an array property that might contain the connections
+          const possibleArrays = Object.values(data.message).filter(val => Array.isArray(val));
+          if (possibleArrays.length > 0) {
+            // Use the first array found
+            setConnections(possibleArrays[0] as ModbusConnection[]);
+          } else {
+            console.error('Could not find connections array in response:', data);
+            throw new Error('Could not find connections array in response');
+          }
         } else {
-          console.error('Could not find connections array in response:', data);
-          throw new Error('Could not find connections array in response');
+          console.error('Invalid data structure received:', data);
+          throw new Error('Invalid data structure received');
         }
-      } else {
-        console.error('Invalid data structure received:', data);
-        throw new Error('Invalid data structure received');
+      } catch (processingError) {
+        console.error('Error processing API response:', processingError);
+        
+        // Fallback to the warehouse dashboard API
+        console.log('Falling back to warehouse dashboard API...');
+        const fallbackData = await fetchWrapper('/api/method/epibus.www.warehouse_dashboard.get_modbus_data', {
+          method: 'GET'
+        });
+        
+        console.log('Fallback API Response:', fallbackData);
+        
+        if (fallbackData && fallbackData.message && Array.isArray(fallbackData.message)) {
+          setConnections(fallbackData.message);
+          setLastUpdateSource('fallback-api');
+        } else {
+          throw new Error('Invalid data structure received from fallback API');
+        }
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';

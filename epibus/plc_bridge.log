@@ -28,3 +28,50 @@
 2025-03-23 01:45:53,420 - plc_bridge - ERROR - ❌ Timeout waiting for signals from Frappe
 2025-03-23 01:45:53,422 - plc_bridge - ERROR - ❌ Cannot start bridge - Failed to load signals
 2025-03-23 01:45:53,422 - plc_bridge - INFO - 👋 Disconnected from PLC
+2025-03-23 01:53:54,609 - plc_bridge - INFO - Received exit signal. Shutting down...
+2025-03-23 01:53:54,614 - plc_bridge - INFO - 👋 Disconnected from PLC
+2025-03-23 01:53:54,615 - plc_bridge - INFO - 🛑 PLC Bridge stopped
+2025-03-23 01:54:07,072 - plc_bridge - INFO - 🔧 Initialized PLC Bridge - PLC: openplc:502, Redis: redis-queue:6379
+2025-03-23 01:54:07,074 - plc_bridge - INFO - 🔌 Connected to PLC at openplc:502
+2025-03-23 01:54:07,074 - plc_bridge - INFO - 🔄 Requesting signals from Frappe...
+2025-03-23 01:54:17,136 - plc_bridge - ERROR - ❌ Timeout waiting for signals from Frappe
+2025-03-23 01:54:17,143 - plc_bridge - ERROR - ❌ Cannot start bridge - Failed to load signals
+2025-03-23 01:54:17,146 - plc_bridge - INFO - 👋 Disconnected from PLC
+2025-03-23 01:57:26,516 - plc_bridge - INFO - Received exit signal. Shutting down...
+2025-03-23 01:57:26,523 - plc_bridge - INFO - 👋 Disconnected from PLC
+2025-03-23 01:57:26,523 - plc_bridge - INFO - 🛑 PLC Bridge stopped
+2025-03-23 01:57:34,510 - plc_bridge - INFO - 🔧 Initialized PLC Bridge - PLC: openplc:502, Redis: redis-queue:6379
+2025-03-23 01:57:34,514 - plc_bridge - INFO - 🔌 Connected to PLC at openplc:502
+2025-03-23 01:57:34,514 - plc_bridge - INFO - 🔄 Requesting signals from Frappe...
+2025-03-23 01:57:44,577 - plc_bridge - ERROR - ❌ Timeout waiting for signals from Frappe
+2025-03-23 01:57:44,581 - plc_bridge - ERROR - ❌ Cannot start bridge - Failed to load signals
+2025-03-23 01:57:44,582 - plc_bridge - INFO - 👋 Disconnected from PLC
+2025-03-23 01:58:57,612 - plc_bridge - INFO - Received exit signal. Shutting down...
+2025-03-23 01:58:57,615 - plc_bridge - INFO - 👋 Disconnected from PLC
+2025-03-23 01:58:57,615 - plc_bridge - INFO - 🛑 PLC Bridge stopped
+2025-03-23 02:00:28,234 - plc_bridge - INFO - 🔧 Initialized PLC Bridge - PLC: openplc:502, Redis: redis-queue:6379
+2025-03-23 02:00:28,246 - plc_bridge - INFO - 🔌 Connected to PLC at openplc:502
+2025-03-23 02:00:28,246 - plc_bridge - INFO - 🔄 Requesting signals from Frappe...
+2025-03-23 02:00:38,285 - plc_bridge - ERROR - ❌ Timeout waiting for signals from Frappe
+2025-03-23 02:00:38,288 - plc_bridge - ERROR - ❌ Cannot start bridge - Failed to load signals
+2025-03-23 02:00:38,288 - plc_bridge - INFO - 👋 Disconnected from PLC
+2025-03-23 02:02:06,077 - plc_bridge - INFO - Received exit signal. Shutting down...
+2025-03-23 02:02:06,079 - plc_bridge - INFO - 👋 Disconnected from PLC
+2025-03-23 02:02:06,079 - plc_bridge - INFO - 🛑 PLC Bridge stopped
+2025-03-23 02:02:13,955 - plc_bridge - INFO - 🔧 Initialized PLC Bridge - PLC: openplc:502, Redis: redis-queue:6379
+2025-03-23 02:02:13,959 - plc_bridge - INFO - 🔌 Connected to PLC at openplc:502
+2025-03-23 02:02:13,959 - plc_bridge - INFO - 🔄 Requesting signals from Frappe...
+2025-03-23 02:02:13,961 - plc_bridge - INFO - ✅ Loaded 0 signals from Frappe
+2025-03-23 02:02:13,962 - plc_bridge - INFO - 🔄 Starting subscription worker
+2025-03-23 02:02:13,962 - plc_bridge - INFO - 🔄 Starting polling worker
+2025-03-23 02:02:13,962 - plc_bridge - INFO - 🚀 PLC Bridge started successfully
+2025-03-23 02:36:42,260 - plc_bridge - INFO - 🔄 Requesting signals from Frappe...
+2025-03-23 02:36:52,323 - plc_bridge - ERROR - ❌ Timeout waiting for signals from Frappe
+2025-03-23 02:36:52,338 - plc_bridge - WARNING - ⚠️ Unknown command: get_signals
+2025-03-23 03:03:17,647 - plc_bridge - WARNING - ⚠️ Invalid write command: {'command': 'write_signal', 'signal': '0ort9mb3vk', 'value': True}
+2025-03-23 03:03:30,132 - plc_bridge - WARNING - ⚠️ Invalid write command: {'command': 'write_signal', 'signal': '0ort9mb3vk', 'value': True}
+2025-03-23 03:03:32,074 - plc_bridge - WARNING - ⚠️ Invalid write command: {'command': 'write_signal', 'signal': '0ort9mb3vk', 'value': False}
+2025-03-23 03:03:34,675 - plc_bridge - WARNING - ⚠️ Invalid write command: {'command': 'write_signal', 'signal': '1ffsc9tu2d', 'value': True}
+2025-03-23 03:03:36,997 - plc_bridge - WARNING - ⚠️ Invalid write command: {'command': 'write_signal', 'signal': '1ffsc9tu2d', 'value': False}
+2025-03-23 03:03:39,363 - plc_bridge - WARNING - ⚠️ Invalid write command: {'command': 'write_signal', 'signal': '20fpfrhgfv', 'value': True}
+2025-03-23 03:03:42,397 - plc_bridge - WARNING - ⚠️ Invalid write command: {'command': 'write_signal', 'signal': '20fpfrhgfv', 'value': False}
