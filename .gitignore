@@ -2,6 +2,7 @@
 *.pyc
 *.egg-info
 *.swp
+*.log
 tags
 epibus/docs/current
 node_modules/
