@@ -227,12 +227,12 @@ class ModbusSignal(Document):
                 value = handler.read(self.signal_type, self.modbus_address)
 
                 # Log successful read event
-                ModbusEvent.log_event(
-                    event_type="Read",
-                    device=self.parent,
-                    signal=self.name,
-                    new_value=value,
-                )
+                # ModbusEvent.log_event(
+                #     event_type="Read",
+                #     device=self.parent,
+                #     signal=self.name,
+                #     new_value=value,
+                # )
 
                 return value
 
