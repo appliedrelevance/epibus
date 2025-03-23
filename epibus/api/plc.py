@@ -19,12 +19,15 @@ except Exception as e:
 
 @frappe.whitelist(allow_guest=True)
 def get_signals():
-    """Get all Modbus signals for the React dashboard"""
+    """Get all Modbus signals for the React dashboard
+
+    Returns the complete Modbus Connection document structure with nested signals
+    """
     try:
-        # Get signals
+        # Get connections with nested signals
         client = PLCRedisClient.get_instance()
-        signals = client.get_signals()
-        return signals
+        connections = client.get_signals()
+        return connections
 
     except Exception as e:
         logger.error(f"❌ Error getting signals: {str(e)}")
@@ -65,18 +68,54 @@ def update_signal():
         return {"success": False, "message": str(e)}
 
 
-@frappe.whitelist()
-def get_plc_status(allow_guest=True):
+@frappe.whitelist(allow_guest=True)
+def get_plc_status():
     """Get current PLC status"""
     try:
         # Request status from PLC bridge
         client = PLCRedisClient.get_instance()
+        logger.info("🔄 Requesting PLC Bridge status")
         client.redis.publish("plc:command", json.dumps({
             "command": "status"
         }))
+        logger.info("✅ Sent status request to PLC Bridge")
 
-        # Note: We don't wait for response here, status will be published to
-        # the 'plc:status' channel and picked up by React directly
+        # Subscribe to the plc:status channel to forward the status to the frontend
+        def forward_status_to_frontend(channel, message):
+            try:
+                logger.info(
+                    f"📥 Received PLC status on channel {channel}: {message}")
+                status_data = json.loads(message)
+                logger.info(f"🔄 Parsed status data: {status_data}")
+
+                # Forward the status to the frontend via Frappe's realtime
+                logger.info(f"📤 Publishing status to frontend via realtime")
+                publish_realtime('plc:status', status_data)
+                logger.info(
+                    f"✅ Forwarded PLC status to frontend: {status_data}")
+            except Exception as e:
+                logger.error(f"❌ Error forwarding PLC status: {str(e)}")
+                logger.error(
+                    f"Error details: {e.__class__.__name__}: {str(e)}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
+
+        # Set up a temporary subscription to forward the next status message
+        pubsub = client.redis.pubsub()
+        pubsub.subscribe(**{'plc:status': forward_status_to_frontend})
+
+        # Start a background thread to listen for the status message
+        pubsub_thread = pubsub.run_in_thread(sleep_time=1, daemon=True)
+
+        # Schedule the thread to be stopped after a timeout
+        def stop_pubsub_thread():
+            pubsub_thread.stop()
+            pubsub.unsubscribe('plc:status')
+            logger.info("✅ Stopped PLC status listener thread")
+
+        # Stop the thread after 5 seconds (timeout)
+        frappe.enqueue(stop_pubsub_thread, queue='short',
+                       timeout=10, now=False, enqueue_after=5)
 
         return {"success": True}
 

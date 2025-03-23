@@ -95,15 +95,44 @@ class PLCBridge:
                 "command": "get_signals"
             }))
 
-            # Wait for response (timeout after 10 seconds)
-            response = self.redis_pub.blpop(["plc:signals"], timeout=10)
+            # First try to get the new connections format (timeout after 5 seconds)
+            connections_response = self.redis_pub.blpop(
+                ["plc:connections"], timeout=5)
 
-            if not response:
+            if connections_response:
+                # Parse connections data
+                connections_data = json.loads(connections_response[1])
+                self.signals = {}
+                connection_count = len(connections_data)
+                signal_count = 0
+
+                # Process each connection and its signals
+                for connection in connections_data:
+                    if "signals" in connection and isinstance(connection["signals"], list):
+                        for signal_data in connection["signals"]:
+                            signal = ModbusSignal(
+                                name=signal_data["name"],
+                                address=signal_data["modbus_address"],
+                                type=signal_data["signal_type"]
+                            )
+                            self.signals[signal.name] = signal
+                            signal_count += 1
+
+                logger.info(
+                    f"✅ Loaded {signal_count} signals from {connection_count} connections (new format)")
+                return True
+
+            # Fall back to the legacy format if connections data is not available
+            logger.info(
+                "⚠️ No connections data found, falling back to legacy format")
+            signals_response = self.redis_pub.blpop(["plc:signals"], timeout=5)
+
+            if not signals_response:
                 logger.error("❌ Timeout waiting for signals from Frappe")
                 return False
 
-            # Parse signals
-            signals_data = json.loads(response[1])
+            # Parse signals from legacy format
+            signals_data = json.loads(signals_response[1])
             self.signals = {}
 
             for signal_data in signals_data:
@@ -114,7 +143,8 @@ class PLCBridge:
                 )
                 self.signals[signal.name] = signal
 
-            logger.info(f"✅ Loaded {len(self.signals)} signals from Frappe")
+            logger.info(
+                f"✅ Loaded {len(self.signals)} signals from Frappe (legacy format)")
             return True
 
         except Exception as e:
@@ -294,7 +324,9 @@ class PLCBridge:
             }
 
             # Publish to Redis
+            logger.info(f"📤 Publishing PLC Bridge status: {status}")
             self.redis_pub.publish("plc:status", json.dumps(status))
+            logger.info(f"✅ Published PLC Bridge status to Redis")
 
         except Exception as e:
             logger.error(f"❌ Error publishing status: {str(e)}")
@@ -324,6 +356,7 @@ class PLCBridge:
         logger.info("🔄 Starting polling worker")
 
         poll_interval = 0.05  # 50ms polling interval for <200ms latency
+        last_status_time = 0  # Track when we last published status
 
         while self.running:
             try:
@@ -383,6 +416,13 @@ class PLCBridge:
                         signal.value = new_value
                         signal.last_update = time.time()
                         self._publish_signal_update(signal)
+
+                # Check if we should publish status (every 10 seconds)
+                current_time = time.time()
+                if current_time - last_status_time > 10:
+                    logger.info("⏰ Publishing periodic PLC Bridge status")
+                    self._publish_status()
+                    last_status_time = current_time
 
                 # Calculate polling time and sleep for the remainder of the interval
                 elapsed = time.time() - start_time

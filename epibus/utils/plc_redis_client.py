@@ -84,17 +84,21 @@ class PLCRedisClient:
             logger.error(f"❌ Error starting Redis pubsub listener: {str(e)}")
 
     def get_signals(self) -> List[Dict[str, Any]]:
-        """Get all Modbus signals and send to PLC bridge"""
+        """Get all Modbus signals and send to PLC bridge
+
+        Returns the complete Modbus Connection document structure with nested signals
+        """
         try:
-            # Get enabled Modbus Connections
+            # Get enabled Modbus Connections with all fields
             connections = frappe.get_all(
                 "Modbus Connection",
                 filters={"enabled": 1},
-                fields=["name"]
+                fields=["name", "device_name",
+                        "device_type", "host", "port", "enabled"]
             )
 
-            # Initialize signals list
-            signals = []
+            # Initialize connections list with signals
+            connection_data = []
 
             # Get signals for each connection
             for conn in connections:
@@ -107,6 +111,7 @@ class PLCRedisClient:
                 )
 
                 # Process each signal
+                processed_signals = []
                 for signal in conn_signals:
                     try:
                         # Get the full document to access methods and virtual fields
@@ -133,14 +138,26 @@ class PLCRedisClient:
                         signal["value"] = False if "Digital" in signal["signal_type"] else 0
                         signal["plc_address"] = None
 
-                # Add to signals list
-                signals.extend(conn_signals)
+                    processed_signals.append(signal)
 
-            # Send to PLC bridge
-            self.redis.rpush("plc:signals", json.dumps(signals))
+                # Add signals to the connection
+                conn_data = conn.copy()
+                conn_data["signals"] = processed_signals
+                connection_data.append(conn_data)
 
-            logger.info(f"✅ Sent {len(signals)} signals to PLC bridge")
-            return signals
+            # Also create a flat list of signals for backward compatibility
+            flat_signals = []
+            for conn in connection_data:
+                flat_signals.extend(conn["signals"])
+
+            # Send to PLC bridge - both the flat list for backward compatibility
+            # and the structured connections data
+            self.redis.rpush("plc:signals", json.dumps(flat_signals))
+            self.redis.rpush("plc:connections", json.dumps(connection_data))
+
+            logger.info(
+                f"✅ Sent {len(flat_signals)} signals from {len(connection_data)} connections to PLC bridge")
+            return connection_data
 
         except Exception as e:
             logger.error(f"❌ Error getting signals: {str(e)}")
@@ -171,14 +188,6 @@ class PLCRedisClient:
 
             # Send to PLC bridge
             self.redis.publish("plc:command", json.dumps(command))
-
-            # Log event locally as well
-            frappe.get_doc({
-                "doctype": "Modbus Event",
-                "event_type": "Signal Write",
-                "signal": signal_name,
-                "value": str(value)
-            }).insert(ignore_permissions=True)
 
             logger.info(f"✏️ Requested write to {signal_name}: {value}")
             return True

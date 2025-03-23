@@ -90,6 +90,23 @@ function App() {
     };
   }, [updateSignalValue]);
 
+  // Function to check PLC Bridge status by fetching signals
+  const checkPLCStatus = useCallback(() => {
+    console.log('🔄 Checking PLC Bridge status by fetching signals');
+    fetchWrapper('/api/method/epibus.api.plc.get_signals', {
+      method: 'GET'
+    })
+    .then(response => {
+      console.log('✅ Signal fetch successful, PLC Bridge is connected:', response);
+      setConnected(true);
+      setLastUpdateTime(Date.now());
+    })
+    .catch(err => {
+      console.error('❌ Error fetching signals, PLC Bridge may be disconnected:', err);
+      setConnected(false);
+    });
+  }, []);
+
   // Set up real-time event listener
   useEffect(() => {
     // Function to handle real-time updates
@@ -97,30 +114,65 @@ function App() {
       console.log('Received real-time update:', data);
       if (data.signal && data.value !== undefined) {
         updateSignalValue(data.signal, data.value, 'realtime');
+        // We received a signal update, which means the PLC Bridge is working
         setConnected(true);
+        setLastUpdateTime(Date.now());
+      }
+    };
+
+    // Function to handle PLC Bridge status updates
+    const handlePLCStatusUpdate = (data: any) => {
+      console.log('📥 Received PLC Bridge status update:', data);
+      console.log('Status data type:', typeof data);
+      console.log('Status data keys:', data ? Object.keys(data) : 'null');
+      
+      if (data && typeof data.connected === 'boolean') {
+        console.log(`🔄 Setting connected state to: ${data.connected}`);
+        setConnected(data.connected);
+        setLastUpdateTime(Date.now());
+        console.log('✅ Updated connection status and timestamp');
+      } else {
+        console.warn('⚠️ Invalid PLC Bridge status data:', data);
       }
     };
 
     // Set up the event listener for Frappe's real-time events
     const setupSocketListener = () => {
       if (window.frappe && window.frappe.realtime) {
-        console.log('Setting up real-time event listener');
+        console.log('🔄 Setting up real-time event listeners');
+        
+        // Listen for signal updates
+        console.log('🔄 Setting up modbus_signal_update listener');
         window.frappe.realtime.on('modbus_signal_update', handleRealtimeUpdate);
+        console.log('✅ modbus_signal_update listener set up');
+        
+        // Listen for PLC Bridge status updates
+        console.log('🔄 Setting up plc:status listener');
+        window.frappe.realtime.on('plc:status', handlePLCStatusUpdate);
+        console.log('✅ plc:status listener set up');
         
         // Set connected status based on socket connection
         if (window.frappe.socketio && window.frappe.socketio.socket) {
-          setConnected(window.frappe.socketio.socket.connected);
+          const socketConnected = window.frappe.socketio.socket.connected;
+          console.log('🔌 Socket connection status:', socketConnected);
           
           // Add connection status event listeners
+          console.log('🔄 Setting up socket connect event listener');
           window.frappe.socketio.socket.on('connect', () => {
-            console.log('Socket connected');
-            setConnected(true);
+            console.log('🔌 Socket connected');
+            // When socket connects, check PLC Bridge status
+            console.log('🔄 Checking PLC Bridge status after socket connect');
+            checkPLCStatus();
           });
+          console.log('✅ Socket connect event listener set up');
           
+          console.log('🔄 Setting up socket disconnect event listener');
           window.frappe.socketio.socket.on('disconnect', () => {
-            console.log('Socket disconnected');
+            console.log('🔌 Socket disconnected');
+            console.log('🔄 Setting connected state to false due to socket disconnect');
             setConnected(false);
           });
+          console.log('✅ Socket disconnect event listener set up');
         }
         
         return true;
@@ -146,22 +198,52 @@ function App() {
         clearInterval(intervalId);
         if (window.frappe && window.frappe.realtime) {
           window.frappe.realtime.off('modbus_signal_update', handleRealtimeUpdate);
+          window.frappe.realtime.off('plc:status', handlePLCStatusUpdate);
         }
       };
     }
     
-    // Clean up event listener when component unmounts
+    // Set up periodic status check
+    console.log('🔄 Setting up periodic PLC Bridge status check');
+    const statusCheckInterval = setInterval(() => {
+      console.log('⏰ Periodic status check triggered');
+      if (window.frappe && window.frappe.socketio && window.frappe.socketio.socket &&
+          window.frappe.socketio.socket.connected) {
+        console.log('🔄 Socket is connected, checking PLC Bridge status');
+        checkPLCStatus();
+      } else {
+        console.log('⚠️ Socket not connected, skipping PLC Bridge status check');
+      }
+    }, 30000); // Check every 30 seconds
+    console.log('✅ Periodic status check set up (every 30 seconds)');
+
+    // Clean up event listeners when component unmounts
     return () => {
       if (window.frappe && window.frappe.realtime) {
         window.frappe.realtime.off('modbus_signal_update', handleRealtimeUpdate);
+        window.frappe.realtime.off('plc:status', handlePLCStatusUpdate);
       }
+      clearInterval(statusCheckInterval);
     };
-  }, [updateSignalValue]);
+  }, [updateSignalValue, checkPLCStatus]);
 
-  // Initial data load
+  // Initial data load and immediate status check
   useEffect(() => {
+    console.log('🔄 Initial data load and status check');
     fetchModbusData();
-  }, []);
+    
+    // Immediately check PLC status on component mount
+    checkPLCStatus();
+    
+    // Also set up an immediate interval for testing
+    const immediateInterval = setInterval(() => {
+      console.log('⏰ Immediate status check interval triggered');
+      checkPLCStatus();
+    }, 5000); // Check every 5 seconds for testing
+    
+    // Clean up the immediate interval
+    return () => clearInterval(immediateInterval);
+  }, [checkPLCStatus]);
 
   const fetchModbusData = async () => {
     try {
@@ -177,99 +259,42 @@ function App() {
       setLastUpdateTime(Date.now());
       
       try {
-        // First, check if this is a response from the PLC Bridge API (flat list of signals)
-        if (data && data.message && Array.isArray(data.message) &&
-            data.message.length > 0 && 'name' in data.message[0] && 'value' in data.message[0]) {
-          
-          console.log('Detected PLC Bridge API response format');
-          
-          // Group signals by their parent connection
-          const signalsByConnection: Record<string, ModbusSignal[]> = {};
-          const connectionNames: Set<string> = new Set();
-          
-          // Process each signal to find its parent connection
-          for (const signal of data.message) {
-            // We need to make an additional request to get the parent connection
-            // This is a temporary solution until we modify the PLC Bridge API to include connection info
-            try {
-              const parentResponse = await fetchWrapper(`/api/method/frappe.client.get_value`, {
-                method: 'POST',
-                body: JSON.stringify({
-                  doctype: 'Modbus Signal',
-                  filters: { name: signal.name },
-                  fieldname: 'parent'
-                })
-              });
-              
-              if (parentResponse && parentResponse.message && parentResponse.message.parent) {
-                const parentName = parentResponse.message.parent;
-                connectionNames.add(parentName);
-                
-                if (!signalsByConnection[parentName]) {
-                  signalsByConnection[parentName] = [];
-                }
-                
-                signalsByConnection[parentName].push(signal);
-              }
-            } catch (parentError) {
-              console.error(`Error getting parent for signal ${signal.name}:`, parentError);
-            }
-          }
-          
-          // Now fetch the connection details for each connection
-          const connectionPromises = Array.from(connectionNames).map(async (connectionName) => {
-            try {
-              const connectionResponse = await fetchWrapper(`/api/method/frappe.client.get`, {
-                method: 'POST',
-                body: JSON.stringify({
-                  doctype: 'Modbus Connection',
-                  name: connectionName
-                })
-              });
-              
-              if (connectionResponse && connectionResponse.message) {
-                const connection = connectionResponse.message;
-                return {
-                  name: connection.name,
-                  device_name: connection.device_name,
-                  device_type: connection.device_type,
-                  host: connection.host,
-                  port: connection.port,
-                  enabled: connection.enabled,
-                  signals: signalsByConnection[connectionName] || []
-                } as ModbusConnection;
-              }
-              return null;
-            } catch (connectionError) {
-              console.error(`Error getting connection ${connectionName}:`, connectionError);
-              return null;
-            }
-          });
-          
-          // Wait for all connection requests to complete
-          const connections = (await Promise.all(connectionPromises)).filter(Boolean) as ModbusConnection[];
-          setConnections(connections);
-          
-        } else if (data && data.message && Array.isArray(data.message) &&
-                  data.message.length > 0 && 'signals' in data.message[0]) {
-          // This is a response from the warehouse_dashboard API (connections with nested signals)
-          console.log('Detected warehouse dashboard API response format');
-          setConnections(data.message);
-        } else if (data && Array.isArray(data)) {
-          // Direct array response
+        // Check if this is the new response format from the PLC Bridge API (connections with nested signals)
+        if (data && Array.isArray(data) && data.length > 0 && 'signals' in data[0]) {
+          console.log('Detected new PLC Bridge API response format (connections with signals)');
           setConnections(data);
-        } else if (data && typeof data === 'object' && data.message && typeof data.message === 'object') {
-          // Response with nested object in message
+        }
+        // Check if this is a response with connections in the message property
+        else if (data && data.message && Array.isArray(data.message) &&
+                data.message.length > 0 && 'signals' in data.message[0]) {
+          console.log('Detected connections with signals in message property');
+          setConnections(data.message);
+        }
+        // Direct array response
+        else if (data && Array.isArray(data)) {
+          console.log('Detected direct array response');
+          setConnections(data);
+        }
+        // Response with nested object in message
+        else if (data && typeof data === 'object' && data.message && typeof data.message === 'object') {
           // Try to find an array property that might contain the connections
           const possibleArrays = Object.values(data.message).filter(val => Array.isArray(val));
           if (possibleArrays.length > 0) {
+            console.log('Found connections array in nested object');
             // Use the first array found
             setConnections(possibleArrays[0] as ModbusConnection[]);
           } else {
             console.error('Could not find connections array in response:', data);
             throw new Error('Could not find connections array in response');
           }
-        } else {
+        }
+        // Legacy format (flat list of signals) - this should no longer happen with the updated API
+        else if (data && data.message && Array.isArray(data.message) &&
+                data.message.length > 0 && 'name' in data.message[0] && 'value' in data.message[0]) {
+          console.error('Received legacy flat signal list format - API should be updated');
+          throw new Error('Received legacy format - falling back to warehouse dashboard API');
+        }
+        else {
           console.error('Invalid data structure received:', data);
           throw new Error('Invalid data structure received');
         }

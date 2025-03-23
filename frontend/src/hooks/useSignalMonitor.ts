@@ -112,19 +112,56 @@ export function useSignalMonitor() {
 
   // Load initial signals
   useEffect(() => {
-    // First try to get signals from the PLC Bridge API
+    // Get signals from the PLC Bridge API
     fetch('/api/method/epibus.api.plc.get_signals')
       .then(response => response.json())
       .then(data => {
         const initialSignals: Record<string, SignalValue> = {};
         
-        if (data.message && Array.isArray(data.message)) {
-          data.message.forEach((signal: any) => {
-            initialSignals[signal.name] = {
-              value: signal.value,
-              timestamp: Date.now()
-            };
+        // Handle different response formats
+        if (Array.isArray(data) && data.length > 0 && 'signals' in data[0]) {
+          // New format: array of connections with nested signals
+          console.log('Processing new format: connections with nested signals');
+          data.forEach((connection: any) => {
+            if (connection.signals && Array.isArray(connection.signals)) {
+              connection.signals.forEach((signal: any) => {
+                initialSignals[signal.name] = {
+                  value: signal.value,
+                  timestamp: Date.now()
+                };
+              });
+            }
           });
+          
+          setSignals(initialSignals);
+          console.log(`✅ Loaded ${Object.keys(initialSignals).length} signals from PLC Bridge API (new format)`);
+        }
+        else if (data.message && Array.isArray(data.message)) {
+          // Check if it's connections with signals
+          if (data.message.length > 0 && 'signals' in data.message[0]) {
+            // Format: connections with nested signals in message property
+            console.log('Processing format: connections with nested signals in message property');
+            data.message.forEach((connection: any) => {
+              if (connection.signals && Array.isArray(connection.signals)) {
+                connection.signals.forEach((signal: any) => {
+                  initialSignals[signal.name] = {
+                    value: signal.value,
+                    timestamp: Date.now()
+                  };
+                });
+              }
+            });
+          }
+          // Legacy format: flat list of signals
+          else if (data.message.length > 0 && 'name' in data.message[0] && 'value' in data.message[0]) {
+            console.log('Processing legacy format: flat list of signals');
+            data.message.forEach((signal: any) => {
+              initialSignals[signal.name] = {
+                value: signal.value,
+                timestamp: Date.now()
+              };
+            });
+          }
           
           setSignals(initialSignals);
           console.log(`✅ Loaded ${Object.keys(initialSignals).length} signals from PLC Bridge API`);

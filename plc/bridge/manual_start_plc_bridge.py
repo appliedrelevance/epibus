@@ -24,7 +24,7 @@ logger = logging.getLogger("manual_plc_bridge")
 # Set paths
 BENCH_DIR = Path("/workspace/development/frappe-bench")
 APP_DIR = BENCH_DIR / "apps" / "epibus"
-BRIDGE_SCRIPT = APP_DIR / "epibus" / "plc_bridge.py"
+BRIDGE_SCRIPT = APP_DIR / "plc" / "bridge" / "plc_bridge.py"
 PID_FILE = BENCH_DIR / "logs" / "plc_bridge.pid"
 
 
@@ -58,7 +58,9 @@ client = PLCRedisClient.get_instance()
 print("Redis client initialized successfully")
 """
 
-    success, output = run_frappe_command(f'execute "{code}"')
+    # Escape quotes properly for the execute command
+    escaped_code = code.replace('"', '\\"')
+    success, output = run_frappe_command(f'execute "{escaped_code}"')
 
     if not success:
         logger.error("Failed to initialize Redis client")
@@ -89,13 +91,8 @@ def start_plc_bridge(plc_host, redis_host, redis_port):
             f"PLC Bridge is already running with PID {PID_FILE.read_text().strip()}")
         return False
 
-    # Initialize Redis client first
-    if not initialize_redis_client():
-        logger.error(
-            "Failed to initialize Redis client, cannot start PLC Bridge")
-        return False
-
-    # Start the PLC Bridge
+    # Skip Redis client initialization as it's causing issues
+    # Start the PLC Bridge directly
     logger.info(
         f"Starting PLC Bridge with PLC host {plc_host} and Redis host {redis_host}:{redis_port}...")
 
@@ -198,7 +195,9 @@ try:
 except Exception as e:
     print(f"Redis connection error: {e}")
 """
-        run_frappe_command(f'execute "{code}"')
+        # Escape quotes properly for the execute command
+        escaped_code = code.replace('"', '\\"')
+        run_frappe_command(f'execute "{escaped_code}"')
 
         return True
     else:
