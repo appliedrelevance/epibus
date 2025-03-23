@@ -22,16 +22,20 @@ class ModbusAction(Document):
         from frappe.types import DF
 
         action_name: DF.Data
+        api_method: DF.Data | None
         connection: DF.Link
+        cron_format: DF.Data | None
         description: DF.SmallText | None
+        doctype_event: DF.Literal["Before Insert", "After Insert", "Before Save", "After Save", "Before Submit", "After Submit", "Before Cancel", "After Cancel", "Before Delete", "After Delete", "Before Save (Submitted Document)", "After Save (Submitted Document)"]
         enabled: DF.Check
-        interval_seconds: DF.Int
+        event_frequency: DF.Literal["All", "Hourly", "Daily", "Weekly", "Monthly", "Yearly", "Hourly Long", "Daily Long", "Weekly Long", "Monthly Long", "Cron"]
+        modbus_signal: DF.Link
         parameters: DF.Table[ModbusParameter]
+        reference_doctype: DF.Link | None
+        script_type: DF.Literal["DocType Event", "Scheduler Event", "Signal Change", "API"]
         server_script: DF.Link
-        trigger_doctype: DF.Link | None
-        trigger_event: DF.Literal["Before Insert", "After Insert", "Before Save", "After Save", "Before Submit", "After Submit", "Before Cancel",
-                                  "After Cancel", "Before Delete", "After Delete", "Before Save (Submitted Document)", "After Save (Submitted Document)"]
-        trigger_type: DF.Literal["API", "DocType Event", "Scheduler Event"]
+        signal_condition: DF.Literal["Any Change", "Equals", "Greater Than", "Less Than"]
+        signal_value: DF.Data | None
     # end: auto-generated types
 
     def validate(self):

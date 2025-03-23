@@ -267,38 +267,104 @@ class PLCRedisClient:
         except Exception as e:
             logger.error(f"❌ Error handling command: {str(e)}")
 
-    def _process_signal_actions(self, signal_name, value):
-        """Process actions triggered by a signal update"""
-        try:
-            # Find applicable actions
-            actions = frappe.get_all(
-                "Modbus Action",
-                filters={
-                    "signal": signal_name,
-                    "enabled": 1,
-                    "trigger_type": "Signal Change"
-                },
-                fields=["name", "server_script"]
-            )
 
-            # Process each action
-            for action in actions:
-                try:
+def _process_signal_actions(self, signal_name, value):
+    """Process actions triggered by a signal update"""
+    try:
+        # Find applicable actions with direct signal link
+        actions = frappe.get_all(
+            "Modbus Action",
+            filters={
+                "signal": signal_name,
+                "enabled": 1,
+                "trigger_type": "Signal Change"
+            },
+            fields=["name", "signal_condition",
+                    "signal_value", "server_script"]
+        )
+
+        logger.info(
+            f"Found {len(actions)} potential actions for signal {signal_name}")
+
+        # Process each action based on condition
+        for action in actions:
+            try:
+                # Check if condition is met
+                condition_met = False
+                condition_desc = "unknown"
+
+                if not action.signal_condition or action.signal_condition == "Any Change":
+                    condition_met = True
+                    condition_desc = "any change"
+                elif action.signal_condition == "Equals":
+                    try:
+                        # Handle different value types
+                        if isinstance(value, bool):
+                            # Boolean comparison
+                            target_value = action.signal_value.lower() == "true"
+                            condition_met = value == target_value
+                        elif "." in action.signal_value:
+                            # Float comparison
+                            target_value = float(action.signal_value)
+                            condition_met = float(value) == target_value
+                        else:
+                            # Integer comparison
+                            target_value = int(action.signal_value)
+                            condition_met = int(value) == target_value
+
+                        condition_desc = f"equals {target_value}"
+                    except (ValueError, TypeError):
+                        # Handle conversion errors
+                        logger.warning(
+                            f"⚠️ Invalid value comparison: {value} == {action.signal_value}")
+                        # Fall back to string comparison
+                        condition_met = str(value) == action.signal_value
+                        condition_desc = f"string equals {action.signal_value}"
+
+                elif action.signal_condition == "Greater Than":
+                    try:
+                        target_value = float(action.signal_value)
+                        condition_met = float(value) > target_value
+                        condition_desc = f"greater than {target_value}"
+                    except (ValueError, TypeError):
+                        logger.error(
+                            f"❌ Invalid comparison for non-numeric value: {value} > {action.signal_value}")
+
+                elif action.signal_condition == "Less Than":
+                    try:
+                        target_value = float(action.signal_value)
+                        condition_met = float(value) < target_value
+                        condition_desc = f"less than {target_value}"
+                    except (ValueError, TypeError):
+                        logger.error(
+                            f"❌ Invalid comparison for non-numeric value: {value} < {action.signal_value}")
+
+                # Execute action if condition is met
+                if condition_met:
+                    logger.info(
+                        f"✅ Condition met for action {action.name}: {condition_desc}")
+
                     # Queue action execution with minimal delay
                     frappe.enqueue(
                         'epibus.utils.plc_redis_client.execute_action',
                         action_name=action.name,
                         signal_name=signal_name,
                         value=value,
+                        condition_desc=condition_desc,
                         queue='short',
                         timeout=30
                     )
-                except Exception as e:
-                    logger.error(
-                        f"❌ Error enqueueing action {action.name}: {str(e)}")
+                else:
+                    logger.debug(
+                        f"⏭️ Condition not met for action {action.name}: {condition_desc}")
 
-        except Exception as e:
-            logger.error(f"❌ Error processing signal actions: {str(e)}")
+            except Exception as e:
+                logger.error(
+                    f"❌ Error processing action {action.name}: {str(e)}")
+
+    except Exception as e:
+        logger.error(f"❌ Error processing signal actions: {str(e)}")
+        logger.error(f"❌ Error processing signal actions: {str(e)}")
 
 # Module level functions for background workers
 
@@ -335,7 +401,7 @@ def pubsub_worker():
         )
 
 
-def execute_action(action_name, signal_name, value):
+def execute_action(action_name, signal_name, value, condition_desc=None):
     """Execute a Modbus Action"""
     try:
         # Get the action document
@@ -349,10 +415,19 @@ def execute_action(action_name, signal_name, value):
 
         # Setup context for the script
         frappe.flags.modbus_context = {
+            "action": action_doc,
             "device": device_doc,
             "signal": signal_doc,
-            "value": value
+            "value": value,
+            "params": {p.parameter: p.value for p in action_doc.parameters},
+            "logger": logger  # Provide logger to scripts
         }
+
+        # Log the action execution start
+        logger.info(
+            f"🔄 Executing action {action_name} for signal {signal_name} = {value}")
+        if condition_desc:
+            logger.info(f"Trigger condition: {condition_desc}")
 
         # Execute the script
         result = None
@@ -361,14 +436,42 @@ def execute_action(action_name, signal_name, value):
                 "Server Script", action_doc.server_script)
             result = script_doc.execute_method()
 
+            # Log the execution
+            frappe.get_doc({
+                "doctype": "Modbus Event",
+                "event_type": "Action Execution",
+                "device": device_doc.name,
+                "signal": signal_name,
+                "action": action_name,
+                "new_value": str(value),
+                "status": "Success"
+            }).insert(ignore_permissions=True)
+
         # Clear context
         frappe.flags.modbus_context = None
 
-        logger.info(f"✅ Executed action {action_name}")
+        logger.info(f"✅ Executed action {action_name} successfully")
         return result
 
     except Exception as e:
         logger.error(f"❌ Error executing action {action_name}: {str(e)}")
+
+        # Log the error
+        try:
+            frappe.get_doc({
+                "doctype": "Modbus Event",
+                "event_type": "Action Execution",
+                "device": device_doc.name if 'device_doc' in locals() else None,
+                "signal": signal_name,
+                "action": action_name,
+                "new_value": str(value) if 'value' in locals() else None,
+                "status": "Failed",
+                "error_message": str(e),
+                "stack_trace": frappe.get_traceback()
+            }).insert(ignore_permissions=True)
+        except Exception as log_error:
+            logger.error(f"❌ Error logging action failure: {str(log_error)}")
+
         frappe.log_error(
             f"Error executing Modbus Action {action_name}: {str(e)}")
         return {"success": False, "error": str(e)}
