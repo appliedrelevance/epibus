@@ -53,7 +53,7 @@ def check_modbus_signals():
 
         # Check if the Redis client is working
         try:
-            from epibus.utils.plc_redis_client_consolidated import PLCRedisClient
+            from epibus.utils.plc_redis_client import PLCRedisClient
             client = PLCRedisClient.get_instance()
             print("Redis client initialized successfully")
 

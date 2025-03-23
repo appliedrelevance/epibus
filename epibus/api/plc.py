@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 # Initialize the Redis client when this module is imported
 try:
     # Import the PLCRedisClient class
-    from epibus.utils.plc_redis_client_consolidated import PLCRedisClient
+    from epibus.utils.plc_redis_client import PLCRedisClient
 
     redis_client = PLCRedisClient.get_instance()
     logger.info("✅ Redis client initialized on import")

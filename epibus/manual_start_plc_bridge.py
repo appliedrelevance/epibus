@@ -51,7 +51,7 @@ def initialize_redis_client():
     # Execute Python code in Frappe environment
     code = """
 import frappe
-from epibus.utils.plc_redis_client_consolidated import PLCRedisClient
+from epibus.utils.plc_redis_client import PLCRedisClient
 
 # Initialize the Redis client
 client = PLCRedisClient.get_instance()

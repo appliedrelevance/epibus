@@ -3,7 +3,7 @@
 # For license information, please see license.txt
 
 import frappe
-from epibus.utils.plc_redis_client_consolidated import PLCRedisClient
+from epibus.utils.plc_redis_client import PLCRedisClient
 from epibus.epibus.utils.epinomy_logger import get_logger
 
 logger = get_logger(__name__)

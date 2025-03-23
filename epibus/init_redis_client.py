@@ -2,7 +2,7 @@
 # init_redis_client.py - Script to initialize the Redis client
 
 import frappe
-from epibus.utils.plc_redis_client_consolidated import PLCRedisClient
+from epibus.utils.plc_redis_client import PLCRedisClient
 
 
 def init_redis_client():
