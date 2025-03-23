@@ -9,10 +9,9 @@ interface ConnectionCardProps {
     deviceType: string;
     signalType: string;
   };
-  pollCount?: number; // Optional poll count prop
 }
 
-const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection, activeFilters, pollCount }) => {
+const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection, activeFilters }) => {
   // Filter signals based on active filters
   const filteredSignals = React.useMemo(() => {
     // Using useMemo to avoid unnecessary filtering on each render
@@ -22,7 +21,7 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({ connection, activeFilte
       }
       return true;
     });
-  }, [connection.signals, activeFilters.signalType, pollCount]); // Re-compute when signals, filters, or pollCount changes
+  }, [connection.signals, activeFilters.signalType]); // Re-compute when signals or filters change
 
   return (
     <div className="col-12 mb-4">

@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { ModbusConnection } from '../App';
 import Filters from './Filters';
-import PollIndicator from './PollIndicator';
 import LoadingIndicator from './LoadingIndicator';
 import ErrorMessage from './ErrorMessage';
 import ConnectionCard from './ConnectionCard';
+import ConnectionStatusIndicator from './ConnectionStatusIndicator';
 import { clearAllSortPreferences } from '../utils/storageUtils';
 import './ModbusDashboard.css';
 
@@ -12,43 +12,30 @@ interface ModbusDashboardProps {
   connections: ModbusConnection[];
   loading: boolean;
   error: string | null;
-  onRefresh: () => void;
+  connected: boolean;
+  lastUpdateTime?: number;
 }
 
 const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
   connections,
   loading,
   error,
-  onRefresh
+  connected,
+  lastUpdateTime
 }) => {
-  const [pollCount, setPollCount] = useState<number>(0);
   const [activeFilters, setActiveFilters] = useState({
     deviceType: '',
     signalType: ''
   });
   const [filteredConnections, setFilteredConnections] = useState<ModbusConnection[]>([]);
-  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
-  const lastRefreshTime = useRef<number>(Date.now());
-  const pollInterval = 30000; // 30 seconds between auto-refreshes
   
-  // Set up polling interval for UI updates and potential data refresh
+  // Update page title
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      setPollCount(prevCount => prevCount + 1);
-      
-      // Update page title to show poll count
-      document.title = `Modbus Dashboard (Poll: ${pollCount + 1})`;
-      
-      // Check if we should auto-refresh data
-      if (autoRefresh && Date.now() - lastRefreshTime.current >= pollInterval) {
-        console.log('Auto-refreshing data due to poll interval');
-        onRefresh();
-        lastRefreshTime.current = Date.now();
-      }
-    }, 2000); // UI update every 2 seconds
-    
-    return () => clearInterval(intervalId);
-  }, [pollCount, autoRefresh, onRefresh]);
+    document.title = `Warehouse Dashboard`;
+    return () => {
+      document.title = 'Frappe';
+    };
+  }, []);
   
   // Filter connections when connections or filters change
   useEffect(() => {
@@ -82,22 +69,10 @@ const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
     }));
   };
   
-  // Handle manual refresh
-  const handleManualRefresh = () => {
-    lastRefreshTime.current = Date.now();
-    onRefresh();
-  };
-  
-  // Toggle auto-refresh
-  const toggleAutoRefresh = () => {
-    setAutoRefresh(prev => !prev);
-  };
-  
   // Reset all sorting preferences
   const handleResetSorting = () => {
     clearAllSortPreferences();
-    // Force a re-render of the component to reflect the reset
-    setPollCount(prevCount => prevCount + 1);
+    
     // Show feedback to the user
     const toast = document.createElement('div');
     toast.className = 'alert alert-success alert-dismissible fade show position-fixed';
@@ -125,24 +100,6 @@ const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
         </div>
         <div className="col-auto">
           <div className="d-flex gap-2">
-            <div className="btn-group" role="group">
-              <button
-                type="button"
-                className="btn btn-outline-primary"
-                onClick={handleManualRefresh}
-                disabled={loading}
-              >
-                <i className="fa fa-refresh"></i> Refresh
-              </button>
-              <button
-                type="button"
-                className={`btn btn-outline-${autoRefresh ? 'success' : 'secondary'}`}
-                onClick={toggleAutoRefresh}
-              >
-                <i className={`fa fa-${autoRefresh ? 'clock-o' : 'pause'}`}></i>
-                {autoRefresh ? ' Auto-refresh On' : ' Auto-refresh Off'}
-              </button>
-            </div>
             <button
               type="button"
               className="btn btn-outline-secondary"
@@ -154,6 +111,12 @@ const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Connection Status Indicator */}
+      <ConnectionStatusIndicator 
+        connected={connected} 
+        lastUpdateTime={lastUpdateTime} 
+      />
       
       {/* Loading indicator */}
       {loading && <LoadingIndicator />}
@@ -168,13 +131,6 @@ const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
       />
       
       <div id="dashboard-grid" className="row">
-        {/* Poll indicator */}
-        <PollIndicator
-          pollCount={pollCount}
-          pollInterval={2000}
-          autoRefresh={autoRefresh}
-        />
-        
         {/* No data message */}
         {!loading && filteredConnections.length === 0 && (
           <div className="col-12 text-center p-5">
@@ -188,7 +144,6 @@ const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
             key={connection.name} // Use stable key to prevent re-mounting and state loss
             connection={connection}
             activeFilters={activeFilters}
-            pollCount={pollCount} // Pass as prop instead of using in key
           />
         ))}
       </div>

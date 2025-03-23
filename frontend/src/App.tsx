@@ -34,11 +34,14 @@ function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdateSource, setLastUpdateSource] = useState<string>('');
+  const [connected, setConnected] = useState<boolean>(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
 
   // Function to update a signal value in the connections state
   const updateSignalValue = useCallback((signalId: string, newValue: boolean | number | string, source: string) => {
     console.log(`Updating signal ${signalId} to ${newValue} (source: ${source})`);
     setLastUpdateSource(source);
+    setLastUpdateTime(Date.now());
     
     setConnections(prevConnections => {
       // Create a deep copy of the connections array to avoid mutating state
@@ -94,6 +97,7 @@ function App() {
       console.log('Received real-time update:', data);
       if (data.signal && data.value !== undefined) {
         updateSignalValue(data.signal, data.value, 'realtime');
+        setConnected(true);
       }
     };
 
@@ -102,6 +106,23 @@ function App() {
       if (window.frappe && window.frappe.realtime) {
         console.log('Setting up real-time event listener');
         window.frappe.realtime.on('modbus_signal_update', handleRealtimeUpdate);
+        
+        // Set connected status based on socket connection
+        if (window.frappe.socketio && window.frappe.socketio.socket) {
+          setConnected(window.frappe.socketio.socket.connected);
+          
+          // Add connection status event listeners
+          window.frappe.socketio.socket.on('connect', () => {
+            console.log('Socket connected');
+            setConnected(true);
+          });
+          
+          window.frappe.socketio.socket.on('disconnect', () => {
+            console.log('Socket disconnected');
+            setConnected(false);
+          });
+        }
+        
         return true;
       }
       return false;
@@ -153,6 +174,7 @@ function App() {
       
       console.log('API Response:', data);
       setLastUpdateSource('api');
+      setLastUpdateTime(Date.now());
       
       try {
         // First, check if this is a response from the PLC Bridge API (flat list of signals)
@@ -289,7 +311,8 @@ function App() {
         connections={connections}
         loading={loading}
         error={error}
-        onRefresh={fetchModbusData}
+        connected={connected}
+        lastUpdateTime={lastUpdateTime}
       />
       {/* Debug info - can be removed in production */}
       <div className="debug-info" style={{
@@ -315,6 +338,12 @@ declare global {
       realtime: {
         on: (event: string, callback: (data: any) => void) => void;
         off: (event: string, callback: (data: any) => void) => void;
+      };
+      socketio: {
+        socket: {
+          connected: boolean;
+          on: (event: string, callback: () => void) => void;
+        }
       };
     };
   }
