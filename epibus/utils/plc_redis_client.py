@@ -3,6 +3,7 @@ import redis
 import frappe
 from typing import Dict, Any, List, Optional, Union
 from epibus.epibus.utils.epinomy_logger import get_logger
+import time
 
 logger = get_logger(__name__)
 
@@ -389,11 +390,7 @@ def pubsub_worker():
                     client.handle_command(message["data"])
 
             # Small sleep to prevent high CPU usage
-            time.sleep(0.01)
-            
-            frappe.db.commit()
-            # Remove redundant commit
-            # frappe.local.db.commit()
+            time.sleep(0.1)
 
     except Exception as e:
         logger.error(f"❌ Error in Redis pubsub worker: {str(e)}")
