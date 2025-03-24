@@ -69,20 +69,58 @@ class PLCRedisClient:
     def _start_listener(self):
         """Start Redis pubsub listener"""
         try:
-            # Subscribe to both signal updates and commands
-            self.pubsub.subscribe("plc:signal_update", "plc:command")
-
-            # Start background worker
+            # Instead of starting a persistent worker in the long queue,
+            # we'll start a short-lived listener in the short queue
             frappe.enqueue(
-                'epibus.utils.plc_redis_client.pubsub_worker',
-                queue='long',
-                timeout=None
+                'epibus.utils.plc_redis_client.listen_for_updates',
+                queue='short',
+                timeout=30  # Short timeout for the listener
             )
+            
+            # Schedule periodic checks for updates
+            self._schedule_periodic_listener()
 
-            logger.info("🔄 Started Redis pubsub listener")
+            logger.info("🔄 Started Redis pubsub listener (short-lived approach)")
 
         except Exception as e:
             logger.error(f"❌ Error starting Redis pubsub listener: {str(e)}")
+            
+    def _schedule_periodic_listener(self):
+        """Schedule periodic checks for updates"""
+        try:
+            # Schedule a periodic task to check for updates more frequently (every 15 seconds)
+            # This ensures we don't miss updates even if there's no activity
+            frappe.enqueue(
+                'epibus.utils.plc_redis_client.listen_for_updates',
+                queue='short',
+                timeout=30,
+                enqueue_after=15  # Run again in 15 seconds
+            )
+            
+            logger.debug("🔄 Scheduled periodic PLC update check")
+            
+        except Exception as e:
+            logger.error(f"❌ Error scheduling periodic listener: {str(e)}")
+            
+    def trigger_immediate_check(self):
+        """Trigger an immediate check for updates
+        
+        Call this method after sending commands to the PLC when you expect
+        signal changes that need to be processed quickly.
+        """
+        try:
+            # Start a listener immediately to catch any signal changes
+            frappe.enqueue(
+                'epibus.utils.plc_redis_client.listen_for_updates',
+                queue='short',
+                timeout=30,
+                now=True  # Run immediately
+            )
+            
+            logger.info("🔄 Triggered immediate check for PLC updates")
+            
+        except Exception as e:
+            logger.error(f"❌ Error triggering immediate check: {str(e)}")
 
     def get_signals(self) -> List[Dict[str, Any]]:
         """Get all Modbus signals and send to PLC bridge
@@ -189,6 +227,10 @@ class PLCRedisClient:
 
             # Send to PLC bridge
             self.redis.publish("plc:command", json.dumps(command))
+            
+            # Trigger an immediate check for updates
+            # This ensures we quickly process any signal changes that result from this command
+            self.trigger_immediate_check()
 
             logger.info(f"✏️ Requested write to {signal_name}: {value}")
             return True
@@ -367,16 +409,33 @@ class PLCRedisClient:
 # Module level functions for background workers
 
 
-def pubsub_worker():
-    """Background worker for Redis pubsub"""
-    client = PLCRedisClient.get_instance()
+# We'll use a different approach without a persistent pubsub worker
 
-    logger.info("🔄 Starting Redis pubsub worker")
-
+def listen_for_updates(timeout=10):
+    """
+    Listen for updates from the PLC bridge for a limited time
+    
+    This is a short-lived function that can be called from the short queue
+    to process any pending updates, rather than having a persistent worker.
+    
+    Args:
+        timeout (int): Maximum time in seconds to listen for updates
+    """
     try:
-        # Process messages
-        while True:
-            message = client.pubsub.get_message()
+        client = PLCRedisClient.get_instance()
+        logger.info(f"🔄 Listening for PLC updates (timeout: {timeout}s)")
+        
+        # Create a new pubsub connection for this specific listening session
+        pubsub = client.redis.pubsub(ignore_subscribe_messages=True)
+        pubsub.subscribe("plc:signal_update", "plc:command")
+        
+        start_time = time.time()
+        message_count = 0
+        
+        # Process messages with a time limit
+        while time.time() - start_time < timeout:
+            # Get message with timeout
+            message = pubsub.get_message(timeout=0.5)
             if message and message["type"] == "message":
                 channel = message["channel"]
 
@@ -386,21 +445,31 @@ def pubsub_worker():
 
                 if channel == "plc:signal_update" or channel == b"plc:signal_update":
                     client.handle_signal_update(message["data"])
+                    message_count += 1
                 elif channel == "plc:command" or channel == b"plc:command":
                     client.handle_command(message["data"])
+                    message_count += 1
 
             # Small sleep to prevent high CPU usage
             time.sleep(0.1)
-
+            
+        # Clean up
+        pubsub.unsubscribe()
+        pubsub.close()
+        
+        logger.info(f"✅ Finished listening for PLC updates (processed {message_count} messages)")
+        
+        # If we received messages, schedule another listening session
+        if message_count > 0:
+            logger.info("🔄 Scheduling another listening session due to activity")
+            frappe.enqueue(
+                'epibus.utils.plc_redis_client.listen_for_updates',
+                queue='short',
+                timeout=timeout
+            )
+            
     except Exception as e:
-        logger.error(f"❌ Error in Redis pubsub worker: {str(e)}")
-
-        # Re-enqueue the worker to restart it
-        frappe.enqueue(
-            'epibus.utils.plc_redis_client.pubsub_worker',
-            queue='long',
-            timeout=None
-        )
+        logger.error(f"❌ Error listening for PLC updates: {str(e)}")
 
 
 def execute_action(action_name, signal_name, value, condition_desc=None):

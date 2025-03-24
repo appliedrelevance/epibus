@@ -121,6 +121,23 @@
           "worker_long",
           "worker_default"
         ]
-      }
+      },
+    {
+      "name": "Debug PLC Bridge",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/plc/bridge/plc_bridge.py",
+      "args": [
+        "--plc-host", "192.168.0.11",
+        "--redis-host", "127.0.0.1",
+        "--redis-port", "6379"
+      ],
+      "cwd": "${workspaceFolder}/plc/bridge",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
     ]
-  }
+}

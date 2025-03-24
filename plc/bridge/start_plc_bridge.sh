@@ -2,15 +2,15 @@
 # start_plc_bridge.sh - Manual startup script for PLC Bridge
 
 # Set variables
-BENCH_DIR="/workspace/development/frappe-bench"
+BENCH_DIR="/home/intralogisticsuser/frappe-bench"
 APP_DIR="$BENCH_DIR/apps/epibus"
 BRIDGE_SCRIPT="$APP_DIR/plc/bridge/plc_bridge.py"
-LOG_DIR="$BENCH_DIR/logs"
+LOG_DIR="$APP_DIR/plc/bridge/logs"
 PID_FILE="$LOG_DIR/plc_bridge.pid"
 LOG_FILE="$LOG_DIR/plc_bridge.log"
 
-# Redis configuration - using Frappe's Docker network hostnames
-REDIS_HOST="redis-queue"
+# Redis configuration - using local Redis instance
+REDIS_HOST="127.0.0.1"
 REDIS_PORT="6379"
 
 # Ensure log directory exists
@@ -54,7 +54,7 @@ start_bridge() {
     
     # Install required Python packages if not already installed
     echo "📦 Checking required packages..."
-    $BENCH_DIR/env/bin/pip install redis pymodbus
+    pip3 install redis pymodbus
     
     # Ensure Redis is accessible
     if ! check_redis; then
@@ -64,7 +64,7 @@ start_bridge() {
     
     # Start the bridge in background
     echo "🔄 Launching PLC Bridge process..."
-    nohup $BENCH_DIR/env/bin/python "$BRIDGE_SCRIPT" --plc-host openplc --redis-host $REDIS_HOST --redis-port $REDIS_PORT > "$LOG_FILE" 2>&1 &
+    nohup python3 "$BRIDGE_SCRIPT" --plc-host 192.168.0.11 --redis-host $REDIS_HOST --redis-port $REDIS_PORT > "$LOG_FILE" 2>&1 &
     
     # Save PID
     PID=$!

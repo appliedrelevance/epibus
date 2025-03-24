@@ -6,15 +6,11 @@ from epibus.epibus.utils.epinomy_logger import get_logger
 
 logger = get_logger(__name__)
 
-# Initialize the Redis client when this module is imported
-try:
-    # Import the PLCRedisClient class
-    from epibus.utils.plc_redis_client import PLCRedisClient
+# Import the PLCRedisClient class
+from epibus.utils.plc_redis_client import PLCRedisClient
 
-    redis_client = PLCRedisClient.get_instance()
-    logger.info("✅ Redis client initialized on import")
-except Exception as e:
-    logger.error(f"❌ Error initializing Redis client on import: {str(e)}")
+# We'll initialize the client on-demand rather than on import
+# This avoids unnecessary initialization and potential issues with long-running processes
 
 
 @frappe.whitelist(allow_guest=True)
@@ -71,6 +67,9 @@ def update_signal():
         # Write signal
         client = PLCRedisClient.get_instance()
         success = client.write_signal(signal_id, parsed_value)
+        
+        # Note: The write_signal method now triggers an immediate check for updates
+        # This ensures we quickly process any signal changes that result from this command
 
         if success:
             return {"success": True, "message": f"Updated signal {signal.signal_name}"}
