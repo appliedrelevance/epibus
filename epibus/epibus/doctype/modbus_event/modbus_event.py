@@ -19,10 +19,9 @@ class ModbusEvent(Document):
         from frappe.types import DF
 
         action: DF.Link | None
-        device: DF.Link
+        connection: DF.Link | None
         error_message: DF.SmallText | None
-        event_type: DF.Literal["Read", "Write",
-                               "Connection Test", "Action Execution", "Error"]
+        event_type: DF.Literal["Read", "Write", "Signal Update", "Connection Test", "Action Execution", "Error"]
         new_value: DF.Data | None
         previous_value: DF.Data | None
         signal: DF.Link | None

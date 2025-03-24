@@ -7,7 +7,7 @@
  "field_order": [
   "event_type",
   "status",
-  "device",
+  "connection",
   "signal",
   "column_break_1",
   "timestamp",
@@ -26,7 +26,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Event Type",
-   "options": "Read\nWrite\nConnection Test\nAction Execution\nError",
+   "options": "Read\nWrite\nSignal Update\nConnection Test\nAction Execution\nError",
    "reqd": 1
   },
   {
@@ -36,14 +36,6 @@
    "in_standard_filter": 1,
    "label": "Status",
    "options": "Success\nFailed",
-   "reqd": 1
-  },
-  {
-   "fieldname": "device",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Device",
-   "options": "Modbus Connection",
    "reqd": 1
   },
   {
@@ -99,11 +91,18 @@
    "fieldname": "stack_trace",
    "fieldtype": "Long Text",
    "label": "Stack Trace"
+  },
+  {
+   "fieldname": "connection",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Connection",
+   "options": "Modbus Connection"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-02-10 18:57:36.555544",
+ "modified": "2025-03-23 20:53:30.004235",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Event",

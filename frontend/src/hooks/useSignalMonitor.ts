@@ -22,19 +22,22 @@ export function useSignalMonitor() {
   useEffect(() => {
     console.log('🔌 Initializing Frappe socket connection...');
     
-    const socket = io('/', {
-      path: '/socketio'
+    // Connect to the Socket.IO server in the peer container
+    // Using window.location.hostname ensures it works in the container network
+    const socket = io(`${window.location.protocol}//${window.location.hostname}:9000`, {
+      transports: ['websocket', 'polling']
     });
 
     socket.on('connect', () => {
-      console.log('✅ Connected to Frappe socket');
+      console.log('✅ Connected to Frappe socket with ID:', socket.id);
       setConnected(true);
       
       // Emit a join event to subscribe to Frappe real-time events
-      socket.emit('join', { 
+      socket.emit('join', {
         doctype: '*',
         docname: '*'
       });
+      console.log('✅ Joined Frappe realtime channels');
     });
 
     socket.on('disconnect', () => {
@@ -43,14 +46,27 @@ export function useSignalMonitor() {
     });
 
     socket.on('modbus_signal_update', (data: SignalUpdateEvent) => {
-      console.log(`🔄 Signal update: ${data.signal} = ${data.value}`);
-      setSignals(prev => ({
-        ...prev,
-        [data.signal]: {
-          value: data.value,
-          timestamp: data.timestamp
+      console.log(`🔄 Signal update received via socket.io: ${data.signal} = ${data.value}`);
+      
+      // Check if we already have this signal in our state
+      setSignals(prev => {
+        const prevValue = prev[data.signal]?.value;
+        const hasChanged = prevValue !== data.value;
+        
+        if (hasChanged) {
+          console.log(`📊 Updating signal value: ${data.signal} from ${prevValue} to ${data.value}`);
+        } else {
+          console.log(`📊 Signal value unchanged: ${data.signal} = ${data.value}`);
         }
-      }));
+        
+        return {
+          ...prev,
+          [data.signal]: {
+            value: data.value,
+            timestamp: data.timestamp || Date.now()
+          }
+        };
+      });
     });
 
     setSocketInstance(socket);

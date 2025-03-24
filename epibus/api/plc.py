@@ -1,6 +1,7 @@
 import frappe
 import json
 from frappe.realtime import publish_realtime
+from epibus.epibus.utils.truthy import truthy,  parse_value
 import logging
 
 # Set up logger
@@ -45,18 +46,35 @@ def update_signal():
         if not signal_id:
             return {"success": False, "message": "Signal ID is required"}
 
-        # Parse value based on signal type
-        signal = frappe.get_doc("Modbus Signal", signal_id)
-        if "Digital" in signal.get("signal_type", ""):
-            value = value.lower() == "true" if isinstance(value, str) else bool(value)
-        else:
-            value = float(value)
-
         logger.info(f"🔄 Received signal update: {signal_id} = {value}")
+
+        # Parse value based on signal type using our new helper functions
+        signal = frappe.get_doc("Modbus Signal", signal_id)
+
+        # Use the JavaScript-like parsing
+        if "Digital" in signal.get("signal_type", ""):
+            # Parse digital values in a JavaScript-like way
+            parsed_value = parse_value(value)
+            # For digital values, ensure we get a boolean
+            if not isinstance(parsed_value, bool):
+                parsed_value = truthy(parsed_value)
+            logger.debug(f"📊 Parsed digital value: {value} -> {parsed_value}")
+        else:
+            # For non-digital values, convert to float
+            try:
+                parsed_value = float(value)
+                logger.debug(
+                    f"📊 Parsed analog value: {value} -> {parsed_value}")
+            except (ValueError, TypeError):
+                logger.error(f"❌ Error converting {value} to float")
+                return {"success": False, "message": f"Cannot convert {value} to a number"}
+
+        logger.info(
+            f"🔄 Writing value: {signal_id} = {parsed_value} (original: {value})")
 
         # Write signal
         client = PLCRedisClient.get_instance()
-        success = client.write_signal(signal_id, value)
+        success = client.write_signal(signal_id, parsed_value)
 
         if success:
             return {"success": True, "message": f"Updated signal {signal_id}"}

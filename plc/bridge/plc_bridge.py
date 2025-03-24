@@ -396,6 +396,8 @@ class PLCBridge:
                 # Process output coils
                 for addr, signal in coils.items():
                     new_value = self._read_signal(signal)
+                    # logger.info(
+                    #     f"🔄 Reading value: {signal.name} = {new_value}")
                     if new_value is not None and new_value != signal.value:
                         signal.value = new_value
                         signal.last_update = time.time()

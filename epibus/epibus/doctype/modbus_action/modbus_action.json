@@ -113,7 +113,6 @@
   },
   {
    "depends_on": "eval:['DocType Event', 'Permission Query'].includes(doc.script_type)",
-   "fetch_from": "server_script.reference_doctype",
    "fieldname": "reference_doctype",
    "fieldtype": "Link",
    "label": "Reference Document Type",
@@ -123,7 +122,6 @@
   },
   {
    "depends_on": "eval:doc.script_type==='DocType Event'",
-   "fetch_from": "server_script.doctype_event",
    "fieldname": "doctype_event",
    "fieldtype": "Select",
    "label": "Doctype Event",
@@ -131,7 +129,6 @@
   },
   {
    "depends_on": "eval:doc.script_type==='API'",
-   "fetch_from": "server_script.api_method",
    "fieldname": "api_method",
    "fieldtype": "Data",
    "label": "API Method",
@@ -139,7 +136,6 @@
   },
   {
    "depends_on": "eval:doc.script_type == \"Scheduler Event\"",
-   "fetch_from": "server_script.event_frequency",
    "fieldname": "event_frequency",
    "fieldtype": "Select",
    "label": "Event Frequency",
@@ -149,7 +145,6 @@
   {
    "depends_on": "eval:doc.event_frequency==='Cron'",
    "description": "<pre>*  *  *  *  *\n\u252c  \u252c  \u252c  \u252c  \u252c\n\u2502  \u2502  \u2502  \u2502  \u2502\n\u2502  \u2502  \u2502  \u2502  \u2514 day of week (0 - 6) (0 is Sunday)\n\u2502  \u2502  \u2502  \u2514\u2500\u2500\u2500\u2500\u2500 month (1 - 12)\n\u2502  \u2502  \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 day of month (1 - 31)\n\u2502  \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 hour (0 - 23)\n\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 minute (0 - 59)\n\n---\n\n* - Any value\n/ - Step values\n</pre>\n",
-   "fetch_from": "server_script.cron_format",
    "fieldname": "cron_format",
    "fieldtype": "Data",
    "label": "Cron Format",
@@ -164,7 +159,7 @@
    "options": "Any Change\nEquals\nGreater Than\nLess Than"
   },
   {
-   "depends_on": "eval:doc.script_type==='Signal Change'",
+   "depends_on": "eval:doc.script_type==='Signal Change'&&doc.signal_condition!='Any Change';",
    "fieldname": "signal_value",
    "fieldtype": "Data",
    "label": "Signal Value"
@@ -172,7 +167,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-23 17:04:16.750202",
+ "modified": "2025-03-23 18:31:10.737852",
  "modified_by": "Administrator",
  "module": "EpiBus",
  "name": "Modbus Action",
