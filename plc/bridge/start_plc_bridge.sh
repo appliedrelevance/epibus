@@ -11,7 +11,7 @@ LOG_FILE="$LOG_DIR/plc_bridge.log"
 
 # Redis configuration - using local Redis instance
 REDIS_HOST="127.0.0.1"
-REDIS_PORT="6379"
+REDIS_PORT="11000"
 
 # Ensure log directory exists
 mkdir -p "$LOG_DIR"

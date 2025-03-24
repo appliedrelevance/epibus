@@ -21,7 +21,7 @@ $BENCH_DIR/env/bin/pip install redis pymodbus
 echo "Creating supervisor configuration..."
 cat > $SUPERVISOR_CONF << EOF
 [program:plc_bridge]
-command=$BENCH_DIR/env/bin/python $BRIDGE_SCRIPT --plc-host openplc --redis-host localhost
+command=$BENCH_DIR/env/bin/python $BRIDGE_SCRIPT --plc-host openplc --redis-host localhost --redis-port 11000
 directory=$BENCH_DIR
 user=frappe
 autostart=true

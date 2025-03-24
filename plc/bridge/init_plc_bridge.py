@@ -23,7 +23,7 @@ def publish_config_to_redis():
     """Publish the US15-B10-B1-PLC configuration to Redis for the PLC bridge to load"""
     try:
         # Connect to Redis
-        r = redis.Redis(host='127.0.0.1', port=6379)
+        r = redis.Redis(host='127.0.0.1', port=11000)
         if not r.ping():
             logger.error("Failed to connect to Redis")
             return False

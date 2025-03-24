@@ -189,7 +189,7 @@ def show_status():
 import frappe
 import redis
 try:
-    r = redis.Redis(host='redis-queue', port=6379)
+    r = redis.Redis(host='redis-queue', port=11000)
     ping = r.ping()
     print(f"Redis connection: {'OK' if ping else 'Failed'}")
 except Exception as e:
@@ -215,7 +215,7 @@ def main():
     parser.add_argument("--redis-host", default="redis-queue",
                         help="Redis host address")
     parser.add_argument("--redis-port", type=int,
-                        default=6379, help="Redis port")
+                        default=11000, help="Redis port")
 
     args = parser.parse_args()
 
