@@ -2,10 +2,9 @@ import frappe
 import json
 from frappe.realtime import publish_realtime
 from epibus.epibus.utils.truthy import truthy,  parse_value
-import logging
+from epibus.epibus.utils.epinomy_logger import get_logger
 
-# Set up logger
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Initialize the Redis client when this module is imported
 try:
@@ -43,9 +42,6 @@ def update_signal():
         signal_id = frappe.local.form_dict.get('signal_id')
         value = frappe.local.form_dict.get('value')
 
-        if not signal_id:
-            return {"success": False, "message": "Signal ID is required"}
-
         logger.info(f"🔄 Received signal update: {signal_id} = {value}")
 
         # Parse value based on signal type using our new helper functions
@@ -70,16 +66,16 @@ def update_signal():
                 return {"success": False, "message": f"Cannot convert {value} to a number"}
 
         logger.info(
-            f"🔄 Writing value: {signal_id} = {parsed_value} (original: {value})")
+            f"🔄 Writing value:{signal.signal_name} ({signal_id}) = {parsed_value} (original: {value})")
 
         # Write signal
         client = PLCRedisClient.get_instance()
         success = client.write_signal(signal_id, parsed_value)
 
         if success:
-            return {"success": True, "message": f"Updated signal {signal_id}"}
+            return {"success": True, "message": f"Updated signal {signal.signal_name}"}
         else:
-            return {"success": False, "message": f"Failed to update signal {signal_id}"}
+            return {"success": False, "message": f"Failed to update signal {signal.signal_name}"}
 
     except Exception as e:
         logger.error(f"❌ Error updating signal: {str(e)}")
