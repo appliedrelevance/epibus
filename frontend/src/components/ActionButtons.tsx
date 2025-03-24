@@ -38,6 +38,42 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ signal }) => {
     );
   };
   
+  // Track the last update time to detect when real-time updates arrive
+  const [lastUpdateTime, setLastUpdateTime] = useState<number>(Date.now());
+  const [updateTimeout, setUpdateTimeout] = useState<NodeJS.Timeout | null>(null);
+  
+  // Listen for real-time updates to clear the updating state
+  useEffect(() => {
+    const handleRealTimeUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent<{signal: string, value: any, source?: string}>;
+      if (customEvent.detail.signal === signal.name) {
+        console.log(`Received real-time update for ${signal.name}:`, customEvent.detail);
+        
+        // Clear the updating state when we get a real update from the server
+        // This could be from the PLC bridge or our verification system
+        if (customEvent.detail.source === 'verification' ||
+            customEvent.detail.source === 'verification_mismatch') {
+          console.log('Clearing updating state due to verification update');
+          setIsUpdating(false);
+          
+          // Clear any pending timeout
+          if (updateTimeout) {
+            clearTimeout(updateTimeout);
+            setUpdateTimeout(null);
+          }
+        }
+        
+        // Update our last update timestamp
+        setLastUpdateTime(Date.now());
+      }
+    };
+    
+    window.addEventListener('local-signal-update', handleRealTimeUpdate);
+    return () => {
+      window.removeEventListener('local-signal-update', handleRealTimeUpdate);
+    };
+  }, [signal.name, updateTimeout]);
+
   // Handle toggle action for digital outputs
   const handleToggle = async () => {
     if (isUpdating) return;
@@ -49,6 +85,15 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ signal }) => {
       // Optimistically update UI immediately
       createSignalUpdateEvent(signal.name, newValue);
       
+      // Set a timeout to clear the updating state if we don't get a real-time update
+      // This ensures the UI doesn't get stuck in "Updating..." state
+      const timeout = setTimeout(() => {
+        console.log(`Timeout reached for ${signal.name} toggle, clearing updating state`);
+        setIsUpdating(false);
+      }, 5000); // 5 second timeout
+      
+      setUpdateTimeout(timeout);
+      
       const response = await fetchWrapper('/api/method/epibus.api.plc.update_signal', {
         method: 'POST',
         body: JSON.stringify({
@@ -58,24 +103,33 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ signal }) => {
       });
       
       // Only update if we got a valid response with a different value
-      if (response && response.message && 
-          response.message.value !== undefined && 
+      if (response && response.message &&
+          response.message.value !== undefined &&
           response.message.value !== newValue) {
         createSignalUpdateEvent(signal.name, response.message.value);
       }
       
-      // If we don't get a valid response value, assume our update was successful
-      // and keep the optimistically updated value
-      
       console.log('Toggle response:', response);
+      
+      // Note: We don't clear isUpdating here because we want to wait for the
+      // real-time update from the verification system to confirm the actual state
     } catch (error) {
       console.error('Error toggling signal:', error);
+      
+      // Clear the updating state on error
+      setIsUpdating(false);
+      
+      // Clear any pending timeout
+      if (updateTimeout) {
+        clearTimeout(updateTimeout);
+        setUpdateTimeout(null);
+      }
+      
+      // Show error message
       alert(`Error toggling signal: ${error instanceof Error ? error.message : String(error)}`);
       
       // Revert to original value on error
       createSignalUpdateEvent(signal.name, signal.value);
-    } finally {
-      setIsUpdating(false);
     }
   };
   

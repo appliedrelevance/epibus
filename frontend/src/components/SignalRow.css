@@ -54,3 +54,64 @@ code {
   font-size: 0.9em;
   color: #333;
 }
+
+/* Update source indicators */
+.update-source {
+  display: inline-block;
+  margin-left: 5px;
+  width: 16px;
+  height: 16px;
+  text-align: center;
+  line-height: 16px;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+/* Source-specific styles */
+.source-verification .update-source {
+  color: #28a745;
+}
+
+.source-mismatch .update-source {
+  color: #dc3545;
+}
+
+.source-write .update-source {
+  color: #007bff;
+}
+
+.source-realtime .update-source {
+  color: #6c757d;
+}
+
+/* Source-specific row highlights */
+tr.source-verification.row-highlight {
+  animation: verificationHighlight 1.5s ease;
+}
+
+tr.source-mismatch.row-highlight {
+  animation: mismatchHighlight 1.5s ease;
+}
+
+tr.source-write.row-highlight {
+  animation: writeHighlight 1.5s ease;
+}
+
+@keyframes verificationHighlight {
+  0% { background-color: transparent; }
+  30% { background-color: rgba(40, 167, 69, 0.15); }
+  100% { background-color: transparent; }
+}
+
+@keyframes mismatchHighlight {
+  0% { background-color: transparent; }
+  30% { background-color: rgba(220, 53, 69, 0.15); }
+  100% { background-color: transparent; }
+}
+
+@keyframes writeHighlight {
+  0% { background-color: transparent; }
+  30% { background-color: rgba(0, 123, 255, 0.15); }
+  100% { background-color: transparent; }
+}

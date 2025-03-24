@@ -101,6 +101,16 @@ class PLCRedisClient:
             
         except Exception as e:
             logger.error(f"❌ Error scheduling periodic listener: {str(e)}")
+            # Try a fallback approach without enqueue_after if that's causing issues
+            try:
+                frappe.enqueue(
+                    'epibus.utils.plc_redis_client.listen_for_updates',
+                    queue='short',
+                    timeout=30
+                )
+                logger.info("🔄 Used fallback approach for scheduling listener")
+            except Exception as fallback_error:
+                logger.error(f"❌ Error with fallback listener scheduling: {str(fallback_error)}")
             
     def trigger_immediate_check(self):
         """Trigger an immediate check for updates
@@ -231,6 +241,36 @@ class PLCRedisClient:
             # Trigger an immediate check for updates
             # This ensures we quickly process any signal changes that result from this command
             self.trigger_immediate_check()
+            
+            # Create a direct feedback loop by publishing an immediate update to the frontend
+            # This ensures the UI reflects the change even if the real-time update is missed
+            try:
+                # Publish to Frappe real-time immediately with the expected new state
+                # This provides immediate feedback while we wait for the actual PLC confirmation
+                logger.info(f"📤 Publishing immediate signal update to Frappe realtime: {signal_name} = {value}")
+                frappe.publish_realtime(
+                    event='modbus_signal_update',
+                    message={
+                        'signal': signal_name,
+                        'value': value,
+                        'timestamp': time.time(),
+                        'source': 'write_request' # Mark this as a write request update
+                    }
+                )
+                
+                # Schedule a verification check after a short delay to confirm the actual PLC state
+                frappe.enqueue(
+                    'epibus.utils.plc_redis_client.verify_signal_state',
+                    signal_name=signal_name,
+                    expected_value=value,
+                    queue='short',
+                    timeout=30,
+                    enqueue_after=2  # Check after 2 seconds to allow PLC to process
+                )
+                
+            except Exception as pub_error:
+                logger.warning(f"⚠️ Error publishing immediate update: {str(pub_error)}")
+                # Continue even if this fails - the regular update mechanism will still work
 
             logger.info(f"✏️ Requested write to {signal_name}: {value}")
             return True
@@ -276,6 +316,7 @@ class PLCRedisClient:
                 event='modbus_signal_update',
                 message={
                     'signal': signal_name,
+                    'signal_name': signal.signal_name,
                     'value': value,
                     'timestamp': data.get("timestamp")
                 }
@@ -302,6 +343,32 @@ class PLCRedisClient:
             elif command == "status":
                 # Send status update (not implemented yet)
                 pass
+            elif command == "write_signal":
+                # Handle write signal command
+                signal_name = data.get("signal")
+                value = data.get("value")
+                
+                if signal_name and value is not None:
+                    logger.info(f"📥 Processing write signal command: {signal_name} = {value}")
+                    # Get the signal document
+                    if frappe.db.exists("Modbus Signal", signal_name):
+                        signal = frappe.get_doc("Modbus Signal", signal_name)
+                        
+                        # Publish the update to Frappe real-time
+                        frappe.publish_realtime(
+                            event='modbus_signal_update',
+                            message={
+                                'signal': signal_name,
+                                'value': value,
+                                'timestamp': time.time(),
+                                'source': 'plc_bridge_write'
+                            }
+                        )
+                        logger.info(f"✅ Published write signal update to Frappe realtime: {signal_name} = {value}")
+                    else:
+                        logger.warning(f"⚠️ Signal {signal_name} not found for write command")
+                else:
+                    logger.warning(f"⚠️ Invalid write signal command: {data}")
             else:
                 logger.warning(f"⚠️ Unknown command: {command}")
 
@@ -411,7 +478,87 @@ class PLCRedisClient:
 
 # We'll use a different approach without a persistent pubsub worker
 
-def listen_for_updates(timeout=10):
+def verify_signal_state(signal_name, expected_value, max_retries=3):
+    """
+    Verify that a signal has been updated to the expected value in the PLC
+    
+    This function is called after a write operation to confirm the actual state
+    of the PLC and ensure the frontend is updated accordingly.
+    
+    Args:
+        signal_name (str): The name of the signal to verify
+        expected_value: The expected value of the signal
+        max_retries (int): Maximum number of retries if verification fails
+    """
+    try:
+        logger = get_logger(__name__)
+        logger.info(f"🔍 Verifying signal state: {signal_name} = {expected_value}")
+        
+        # Get the signal document
+        if not frappe.db.exists("Modbus Signal", signal_name):
+            logger.warning(f"⚠️ Signal {signal_name} not found for verification")
+            return
+            
+        signal = frappe.get_doc("Modbus Signal", signal_name)
+        
+        # Read the current value directly from the PLC
+        try:
+            actual_value = signal.read_signal()
+            logger.info(f"📊 Actual PLC value for {signal_name}: {actual_value}")
+            
+            # Check if the value matches the expected value
+            if actual_value == expected_value:
+                logger.info(f"✅ Signal {signal_name} verified: {actual_value} matches expected {expected_value}")
+                
+                # Publish the confirmed state to ensure frontend is updated
+                frappe.publish_realtime(
+                    event='modbus_signal_update',
+                    message={
+                        'signal': signal_name,
+                        'value': actual_value,
+                        'timestamp': time.time(),
+                        'source': 'verification' # Mark this as a verification update
+                    }
+                )
+            else:
+                logger.warning(f"⚠️ Signal {signal_name} verification failed: expected {expected_value}, got {actual_value}")
+                
+                # If the actual value doesn't match expected, publish the actual value
+                # This ensures the frontend shows the true PLC state
+                frappe.publish_realtime(
+                    event='modbus_signal_update',
+                    message={
+                        'signal': signal_name,
+                        'value': actual_value,
+                        'timestamp': time.time(),
+                        'source': 'verification_mismatch' # Mark this as a verification mismatch
+                    }
+                )
+                
+                # If we have retries left, try writing the value again
+                if max_retries > 0:
+                    logger.info(f"🔄 Retrying write operation for {signal_name} (retries left: {max_retries})")
+                    client = PLCRedisClient.get_instance()
+                    client.write_signal(signal_name, expected_value)
+                    
+                    # Schedule another verification with one less retry
+                    frappe.enqueue(
+                        'epibus.utils.plc_redis_client.verify_signal_state',
+                        signal_name=signal_name,
+                        expected_value=expected_value,
+                        max_retries=max_retries-1,
+                        queue='short',
+                        timeout=30,
+                        enqueue_after=2
+                    )
+        except Exception as read_error:
+            logger.error(f"❌ Error reading signal for verification: {str(read_error)}")
+            
+    except Exception as e:
+        logger = get_logger(__name__)
+        logger.error(f"❌ Error in signal verification: {str(e)}")
+
+def listen_for_updates(timeout=10, enqueue_after=None):
     """
     Listen for updates from the PLC bridge for a limited time
     
@@ -420,6 +567,8 @@ def listen_for_updates(timeout=10):
     
     Args:
         timeout (int): Maximum time in seconds to listen for updates
+        enqueue_after (int, optional): If provided, this parameter is used by the scheduler
+                                      to determine when to run this function again
     """
     try:
         client = PLCRedisClient.get_instance()
@@ -462,11 +611,14 @@ def listen_for_updates(timeout=10):
         # If we received messages, schedule another listening session
         if message_count > 0:
             logger.info("🔄 Scheduling another listening session due to activity")
-            frappe.enqueue(
-                'epibus.utils.plc_redis_client.listen_for_updates',
-                queue='short',
-                timeout=timeout
-            )
+            try:
+                frappe.enqueue(
+                    'epibus.utils.plc_redis_client.listen_for_updates',
+                    queue='short',
+                    timeout=timeout
+                )
+            except Exception as e:
+                logger.error(f"❌ Error scheduling follow-up listener: {str(e)}")
             
     except Exception as e:
         logger.error(f"❌ Error listening for PLC updates: {str(e)}")

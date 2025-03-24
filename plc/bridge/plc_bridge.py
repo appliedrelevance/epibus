@@ -274,6 +274,7 @@ class PLCBridge:
             # Prepare message
             message = {
                 "name": signal.name,
+                "signal_name": signal.signal_name,
                 "value": signal.value,
                 "timestamp": signal.last_update
             }
