@@ -27,8 +27,8 @@ class ModbusSignal:
     name: str
     address: int
     type: str
+    signal_name: Optional[str] = None
     value: Optional[Union[bool, int, float]] = None
-    last_update: float = 0
     last_update: float = 0
 
 
@@ -113,7 +113,8 @@ class PLCBridge:
                             signal = ModbusSignal(
                                 name=signal_data["name"],
                                 address=signal_data["modbus_address"],
-                                type=signal_data["signal_type"]
+                                type=signal_data["signal_type"],
+                                signal_name=signal_data.get("signal_name", signal_data["name"])
                             )
                             self.signals[signal.name] = signal
                             signal_count += 1
@@ -139,7 +140,8 @@ class PLCBridge:
                 signal = ModbusSignal(
                     name=signal_data["name"],
                     address=signal_data["modbus_address"],
-                    type=signal_data["signal_type"]
+                    type=signal_data["signal_type"],
+                    signal_name=signal_data.get("signal_name", signal_data["name"])
                 )
                 self.signals[signal.name] = signal
 

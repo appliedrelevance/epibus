@@ -3,6 +3,7 @@
 *.egg-info
 *.swp
 *.log
+*.pid
 tags
 epibus/docs/current
 node_modules/
