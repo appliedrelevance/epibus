@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Standalone PLC Signal Monitor</title>
+  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: monospace;
+      margin: 20px;
+      background-color: #f5f5f5;
+    }
+    #app {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
+      background-color: #333;
+      color: white;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .status {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .connected {
+      background-color: #4CAF50;
+    }
+    .disconnected {
+      background-color: #F44336;
+    }
+    .message-list {
+      height: 600px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      background-color: white;
+      border-radius: 4px;
+    }
+    .message {
+      margin-bottom: 8px;
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    .message pre {
+      margin: 5px 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .timestamp {
+      color: #666;
+      font-size: 0.8em;
+    }
+    .controls {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .config-panel {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #e9e9e9;
+      border-radius: 4px;
+    }
+    .config-panel input {
+      padding: 8px;
+      margin-right: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .config-panel label {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  
+  <!-- React and ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- App Script -->
+  <script type="text/babel">
+    // Simple React component to monitor PLC signals
+    const { useState, useEffect, useRef } = React;
+
+    function App() {
+      const [connected, setConnected] = useState(false);
+      const [messages, setMessages] = useState([]);
+      const [error, setError] = useState(null);
+      const messagesEndRef = useRef(null);
+      const [socketStatus, setSocketStatus] = useState('Disconnected');
+      const [serverUrl, setServerUrl] = useState('http://spring2025.intralogistics.local');
+      const [redisHost, setRedisHost] = useState('127.0.0.1');
+      const [redisPort, setRedisPort] = useState('11000');
+      const [redisChannel, setRedisChannel] = useState('plc:signal_update');
+      const socketRef = useRef(null);
+      const redisClientRef = useRef(null);
+
+      // Scroll to bottom of messages
+      const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      };
+
+      useEffect(() => {
+        scrollToBottom();
+      }, [messages]);
+
+      // Clear messages
+      const clearMessages = () => {
+        setMessages([]);
+      };
+
+      // Connect to Socket.IO server
+      const connectSocket = () => {
+        try {
+          // Disconnect existing socket if any
+          if (socketRef.current) {
+            socketRef.current.disconnect();
+          }
+
+          setSocketStatus('Connecting...');
+          setError(null);
+          
+          // Create new socket connection
+          const socket = io(serverUrl, {
+            transports: ['websocket'],
+            upgrade: false,
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000,
+          });
+          
+          socketRef.current = socket;
+          
+          // Socket event handlers
+          socket.on('connect', () => {
+            console.log('Socket connected');
+            setConnected(true);
+            setSocketStatus('Connected');
+            addMessage('system', 'Socket connected');
+            
+            // Subscribe to Redis channel
+            subscribeToRedis();
+          });
+          
+          socket.on('disconnect', () => {
+            console.log('Socket disconnected');
+            setConnected(false);
+            setSocketStatus('Disconnected');
+            addMessage('system', 'Socket disconnected');
+          });
+          
+          socket.on('error', (err) => {
+            console.error('Socket error:', err);
+            setError(`Socket error: ${err.message || err}`);
+            addMessage('error', `Socket error: ${err.message || err}`);
+          });
+          
+          socket.on('reconnect_attempt', (attempt) => {
+            console.log(`Reconnection attempt ${attempt}`);
+            setSocketStatus(`Reconnecting (attempt ${attempt})...`);
+            addMessage('system', `Reconnection attempt ${attempt}`);
+          });
+          
+          socket.on('reconnect_failed', () => {
+            console.log('Reconnection failed');
+            setSocketStatus('Reconnection failed');
+            setError('Failed to reconnect to server');
+            addMessage('error', 'Failed to reconnect to server');
+          });
+          
+          // Listen for Redis messages
+          socket.on('redis_message', (channel, message) => {
+            console.log(`Received message on channel ${channel}:`, message);
+            try {
+              const parsedMessage = typeof message === 'string' ? JSON.parse(message) : message;
+              addMessage(channel, parsedMessage);
+            } catch (err) {
+              addMessage(channel, message);
+            }
+          });
+          
+        } catch (err) {
+          console.error('Error connecting to socket:', err);
+          setError(`Error connecting to socket: ${err.message}`);
+          setSocketStatus('Connection Error');
+          addMessage('error', `Error connecting to socket: ${err.message}`);
+        }
+      };
+      
+      // Subscribe to Redis channel
+      const subscribeToRedis = () => {
+        if (!socketRef.current || !socketRef.current.connected) {
+          setError('Socket not connected');
+          return;
+        }
+        
+        try {
+          // Create a direct Redis client connection
+          socketRef.current.emit('redis_subscribe', {
+            host: redisHost,
+            port: parseInt(redisPort),
+            channel: redisChannel
+          });
+          
+          addMessage('system', `Subscribed to Redis channel: ${redisChannel}`);
+        } catch (err) {
+          console.error('Error subscribing to Redis:', err);
+          setError(`Error subscribing to Redis: ${err.message}`);
+          addMessage('error', `Error subscribing to Redis: ${err.message}`);
+        }
+      };
+
+      // Add a message to the list
+      const addMessage = (type, data) => {
+        const timestamp = new Date().toISOString();
+        setMessages(prevMessages => [
+          ...prevMessages,
+          { type, data, timestamp }
+        ]);
+      };
+
+      // Format message data as JSON
+      const formatData = (data) => {
+        try {
+          if (typeof data === 'string') {
+            return data;
+          }
+          return JSON.stringify(data, null, 2);
+        } catch (err) {
+          return `Error formatting data: ${err.message}`;
+        }
+      };
+
+      return (
+        <div>
+          <div className="header">
+            <h1>Standalone PLC Signal Monitor</h1>
+            <div>
+              <span className={`status ${connected ? 'connected' : 'disconnected'}`}></span>
+              {socketStatus}
+            </div>
+          </div>
+
+          <div className="config-panel">
+            <div style={{ marginBottom: '10px' }}>
+              <label>Server URL:</label>
+              <input 
+                type="text" 
+                value={serverUrl} 
+                onChange={(e) => setServerUrl(e.target.value)} 
+                placeholder="http://localhost:3000"
+                style={{ width: '300px' }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: '10px' }}>
+              <label>Redis Host:</label>
+              <input 
+                type="text" 
+                value={redisHost} 
+                onChange={(e) => setRedisHost(e.target.value)} 
+                placeholder="127.0.0.1"
+              />
+              
+              <label>Redis Port:</label>
+              <input 
+                type="text" 
+                value={redisPort} 
+                onChange={(e) => setRedisPort(e.target.value)} 
+                placeholder="6379"
+                style={{ width: '80px' }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: '10px' }}>
+              <label>Redis Channel:</label>
+              <input 
+                type="text" 
+                value={redisChannel} 
+                onChange={(e) => setRedisChannel(e.target.value)} 
+                placeholder="plc:signal_update"
+                style={{ width: '200px' }}
+              />
+            </div>
+            
+            <div>
+              <button onClick={connectSocket}>
+                Connect
+              </button>
+              
+              <button 
+                onClick={subscribeToRedis} 
+                disabled={!connected}
+                style={{ marginLeft: '10px' }}
+              >
+                Subscribe
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <div style={{ color: 'red', marginBottom: '10px', padding: '10px', backgroundColor: '#ffeeee', borderRadius: '4px' }}>
+              Error: {error}
+            </div>
+          )}
+
+          <div className="message-list">
+            {messages.length === 0 ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                Waiting for messages...
+              </div>
+            ) : (
+              messages.map((msg, index) => (
+                <div key={index} className="message">
+                  <div className="timestamp">
+                    [{msg.timestamp}] - {msg.type}
+                  </div>
+                  <pre>{formatData(msg.data)}</pre>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="controls">
+            <button onClick={clearMessages}>
+              Clear Messages
+            </button>
+          </div>
+          
+          <div style={{ marginTop: '20px', fontSize: '12px', color: '#666' }}>
+            <p>
+              <strong>Note:</strong> This standalone monitor requires a Socket.IO server that can proxy Redis pub/sub messages.
+              You may need to set up a simple Node.js server with Socket.IO and Redis client to use this monitor.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // Render the app
+    ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+  </script>
+</body>
+</html>
