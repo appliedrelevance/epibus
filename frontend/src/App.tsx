@@ -106,8 +106,8 @@ function App() {
       setConnected(false);
     });
   }, []);
-
-  // Set up real-time event listener
+  
+  // Set up real-time event listener using Frappe's socketio client
   useEffect(() => {
     // Function to handle real-time updates
     const handleRealtimeUpdate = (data: SignalUpdate) => {
@@ -123,9 +123,6 @@ function App() {
     // Function to handle PLC Bridge status updates
     const handlePLCStatusUpdate = (data: any) => {
       console.log('📥 Received PLC Bridge status update:', data);
-      console.log('Status data type:', typeof data);
-      console.log('Status data keys:', data ? Object.keys(data) : 'null');
-      
       if (data && typeof data.connected === 'boolean') {
         console.log(`🔄 Setting connected state to: ${data.connected}`);
         setConnected(data.connected);
@@ -136,94 +133,74 @@ function App() {
       }
     };
 
-    // Set up the event listener for Frappe's real-time events
-    const setupSocketListener = () => {
+    // Set up Frappe's real-time event listeners
+    const setupFrappeListeners = () => {
       if (window.frappe && window.frappe.realtime) {
-        console.log('🔄 Setting up real-time event listeners');
+        console.log('🔄 Setting up Frappe realtime event listeners');
         
         // Listen for signal updates
-        console.log('🔄 Setting up modbus_signal_update listener');
         window.frappe.realtime.on('modbus_signal_update', handleRealtimeUpdate);
-        console.log('✅ modbus_signal_update listener set up');
         
         // Listen for PLC Bridge status updates
-        console.log('🔄 Setting up plc:status listener');
         window.frappe.realtime.on('plc:status', handlePLCStatusUpdate);
-        console.log('✅ plc:status listener set up');
         
-        // Set connected status based on socket connection
+        // Check connection status
         if (window.frappe.socketio && window.frappe.socketio.socket) {
-          const socketConnected = window.frappe.socketio.socket.connected;
-          console.log('🔌 Socket connection status:', socketConnected);
+          setConnected(window.frappe.socketio.socket.connected);
           
-          // Add connection status event listeners
-          console.log('🔄 Setting up socket connect event listener');
+          // Set up connection listeners
           window.frappe.socketio.socket.on('connect', () => {
-            console.log('🔌 Socket connected');
-            // When socket connects, check PLC Bridge status
-            console.log('🔄 Checking PLC Bridge status after socket connect');
+            console.log('🔌 Frappe socket connected');
+            setConnected(true);
             checkPLCStatus();
           });
-          console.log('✅ Socket connect event listener set up');
           
-          console.log('🔄 Setting up socket disconnect event listener');
           window.frappe.socketio.socket.on('disconnect', () => {
-            console.log('🔌 Socket disconnected');
-            console.log('🔄 Setting connected state to false due to socket disconnect');
+            console.log('🔌 Frappe socket disconnected');
             setConnected(false);
           });
-          console.log('✅ Socket disconnect event listener set up');
         }
         
         return true;
       }
       return false;
     };
-
-    // Try to set up the listener immediately
-    let isSetup = setupSocketListener();
     
-    // If not successful, try again after a delay (Frappe might not be fully loaded)
+    // Try to set up listeners immediately
+    let isSetup = setupFrappeListeners();
+    let intervalId: number | undefined;
+    
+    // If not ready, try again periodically
     if (!isSetup) {
-      const intervalId = setInterval(() => {
-        isSetup = setupSocketListener();
-        if (isSetup) {
-          clearInterval(intervalId);
-          console.log('Real-time event listener set up successfully');
+      intervalId = window.setInterval(() => {
+        isSetup = setupFrappeListeners();
+        if (isSetup && intervalId) {
+          window.clearInterval(intervalId);
         }
       }, 1000);
-      
-      // Clean up interval if component unmounts
-      return () => {
-        clearInterval(intervalId);
-        if (window.frappe && window.frappe.realtime) {
-          window.frappe.realtime.off('modbus_signal_update', handleRealtimeUpdate);
-          window.frappe.realtime.off('plc:status', handlePLCStatusUpdate);
-        }
-      };
     }
     
     // Set up periodic status check
-    console.log('🔄 Setting up periodic PLC Bridge status check');
-    const statusCheckInterval = setInterval(() => {
-      console.log('⏰ Periodic status check triggered');
-      if (window.frappe && window.frappe.socketio && window.frappe.socketio.socket &&
-          window.frappe.socketio.socket.connected) {
-        console.log('🔄 Socket is connected, checking PLC Bridge status');
+    const statusCheckInterval = window.setInterval(() => {
+      if (window.frappe && window.frappe.socketio && 
+          window.frappe.socketio.socket && window.frappe.socketio.socket.connected) {
+        console.log('⏰ Periodic status check');
         checkPLCStatus();
-      } else {
-        console.log('⚠️ Socket not connected, skipping PLC Bridge status check');
       }
-    }, 30000); // Check every 30 seconds
-    console.log('✅ Periodic status check set up (every 30 seconds)');
-
-    // Clean up event listeners when component unmounts
+    }, 30000); // Every 30 seconds
+    
+    // Clean up
     return () => {
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
+      
+      window.clearInterval(statusCheckInterval);
+      
       if (window.frappe && window.frappe.realtime) {
         window.frappe.realtime.off('modbus_signal_update', handleRealtimeUpdate);
         window.frappe.realtime.off('plc:status', handlePLCStatusUpdate);
       }
-      clearInterval(statusCheckInterval);
     };
   }, [updateSignalValue, checkPLCStatus]);
 
@@ -231,18 +208,7 @@ function App() {
   useEffect(() => {
     console.log('🔄 Initial data load and status check');
     fetchModbusData();
-    
-    // Immediately check PLC status on component mount
     checkPLCStatus();
-    
-    // Also set up an immediate interval for testing
-    const immediateInterval = setInterval(() => {
-      console.log('⏰ Immediate status check interval triggered');
-      checkPLCStatus();
-    }, 5000); // Check every 5 seconds for testing
-    
-    // Clean up the immediate interval
-    return () => clearInterval(immediateInterval);
   }, [checkPLCStatus]);
 
   const fetchModbusData = async () => {
@@ -320,7 +286,6 @@ function App() {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
       setError(errorMessage);
       console.error('Error fetching Modbus data:', err);
-      // Log additional details for debugging
       console.error('Error details:', {
         errorType: err instanceof Error ? err.constructor.name : typeof err,
         errorStack: err instanceof Error ? err.stack : 'No stack trace available'
@@ -354,24 +319,6 @@ function App() {
       </div>
     </div>
   );
-}
-
-// Add TypeScript interface for Frappe's global object
-declare global {
-  interface Window {
-    frappe: {
-      realtime: {
-        on: (event: string, callback: (data: any) => void) => void;
-        off: (event: string, callback: (data: any) => void) => void;
-      };
-      socketio: {
-        socket: {
-          connected: boolean;
-          on: (event: string, callback: () => void) => void;
-        }
-      };
-    };
-  }
 }
 
 export default App

@@ -1,228 +1,207 @@
 import { useState, useEffect, useCallback } from 'react';
-import io, { Socket } from 'socket.io-client';
 
 interface SignalValue {
   value: boolean | number;
   timestamp: number;
 }
 
-interface SignalUpdateEvent {
-  signal: string;
+interface ModbusSignal {
+  name: string;
+  signal_name?: string;
+  signal_type?: string;
+  modbus_address?: number;
   value: boolean | number;
-  timestamp: number;
+}
+
+interface ModbusConnection {
+  name?: string;
+  device_name?: string;
+  signals: ModbusSignal[];
 }
 
 export function useSignalMonitor() {
   const [signals, setSignals] = useState<Record<string, SignalValue>>({});
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [socketInstance, setSocketInstance] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
 
-  // Initialize socket connection
+  // Connect to Frappe's socket service
   useEffect(() => {
-    console.log('🔌 Initializing Frappe socket connection...');
-    
-    // Connect to the Socket.IO server in the peer container
-    // Using window.location.hostname ensures it works in the container network
-    const socket = io(`${window.location.protocol}//${window.location.hostname}:9000`, {
-      transports: ['websocket', 'polling']
-    });
-
-    socket.on('connect', () => {
-      console.log('✅ Connected to Frappe socket with ID:', socket.id);
-      setConnected(true);
+    // Setup Frappe socket event listeners
+    const setupListeners = () => {
+      if (!window.frappe?.socketio?.socket) return false;
       
-      // Emit a join event to subscribe to Frappe real-time events
-      socket.emit('join', {
-        doctype: '*',
-        docname: '*'
-      });
-      console.log('✅ Joined Frappe realtime channels');
-    });
-
-    socket.on('disconnect', () => {
-      console.log('❌ Disconnected from Frappe socket');
-      setConnected(false);
-    });
-
-    socket.on('modbus_signal_update', (data: SignalUpdateEvent) => {
-      console.log(`🔄 Signal update received via socket.io: ${data.signal} = ${data.value}`);
+      // Set initial connection state
+      setConnected(window.frappe.socketio.socket.connected);
       
-      // Check if we already have this signal in our state
-      setSignals(prev => {
-        const prevValue = prev[data.signal]?.value;
-        const hasChanged = prevValue !== data.value;
+      // Signal update handler
+      const handleSignalUpdate = (data: {
+        signal: string;
+        value: boolean | number;
+        timestamp?: number;
+      }) => {
+        if (!data?.signal) return;
         
-        if (hasChanged) {
-          console.log(`📊 Updating signal value: ${data.signal} from ${prevValue} to ${data.value}`);
-        } else {
-          console.log(`📊 Signal value unchanged: ${data.signal} = ${data.value}`);
-        }
-        
-        return {
+        setSignals(prev => ({
           ...prev,
           [data.signal]: {
             value: data.value,
             timestamp: data.timestamp || Date.now()
           }
-        };
-      });
-    });
-
-    setSocketInstance(socket);
-
-    return () => {
-      console.log('👋 Closing socket connection');
-      socket.close();
-    };
-  }, []);
-
-  // Function to write a signal value
-  const writeSignal = useCallback((signalName: string, value: boolean | number) => {
-    console.log(`✏️ Writing signal: ${signalName} = ${value}`);
-    
-    // First try to write using the PLC Bridge API
-    return fetch('/api/method/epibus.api.plc.update_signal', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Frappe-CSRF-Token': localStorage.getItem('csrf_token') || ''
-      },
-      body: JSON.stringify({
-        signal_id: signalName,
-        value: value
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      console.log('Signal write response from PLC Bridge API:', data);
-      return data.success;
-    })
-    .catch(error => {
-      console.error('❌ Error writing signal via PLC Bridge API:', error);
-      console.log('Falling back to warehouse dashboard API...');
+        }));
+      };
       
-      // Fallback to the warehouse dashboard API
-      return fetch('/api/method/epibus.www.warehouse_dashboard.set_signal_value', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Frappe-CSRF-Token': localStorage.getItem('csrf_token') || ''
-        },
-        body: JSON.stringify({
-          signal_id: signalName,
-          value: value
-        })
-      })
-      .then(response => response.json())
-      .then(fallbackData => {
-        console.log('Signal write response from fallback API:', fallbackData);
-        return fallbackData.status === 'success';
-      })
-      .catch(fallbackError => {
-        console.error('❌ Error writing signal via fallback API:', fallbackError);
-        return false;
+      // Socket connection handlers
+      window.frappe.socketio.socket.on('connect', () => setConnected(true));
+      window.frappe.socketio.socket.on('disconnect', () => setConnected(false));
+      
+      // Subscribe to events
+      window.frappe.realtime.on('modbus_signal_update', handleSignalUpdate);
+      window.frappe.realtime.on('plc:status', (data: { connected?: boolean }) => {
+        if (data?.connected !== undefined) setConnected(data.connected);
       });
-    });
+      
+      // Request initial PLC status
+      fetch('/api/method/epibus.api.plc.get_plc_status').catch(() => {});
+      
+      return true;
+    };
+
+    // Try to set up immediately or wait for Frappe to load
+    let initialized = setupListeners();
+    let intervalId: number | undefined;
+    
+    if (!initialized) {
+      intervalId = window.setInterval(() => {
+        if (setupListeners() && intervalId) {
+          window.clearInterval(intervalId);
+        }
+      }, 1000);
+    }
+    
+    // Cleanup function
+    return () => {
+      if (intervalId) window.clearInterval(intervalId);
+      if (window.frappe?.realtime) {
+        window.frappe.realtime.off('modbus_signal_update');
+        window.frappe.realtime.off('plc:status');
+      }
+    };
   }, []);
 
   // Load initial signals
   useEffect(() => {
-    // Get signals from the PLC Bridge API
     fetch('/api/method/epibus.api.plc.get_signals')
       .then(response => response.json())
       .then(data => {
         const initialSignals: Record<string, SignalValue> = {};
         
-        // Handle different response formats
-        if (Array.isArray(data) && data.length > 0 && 'signals' in data[0]) {
-          // New format: array of connections with nested signals
-          console.log('Processing new format: connections with nested signals');
-          data.forEach((connection: any) => {
-            if (connection.signals && Array.isArray(connection.signals)) {
-              connection.signals.forEach((signal: any) => {
+        // Handle connection-based format (most common)
+        if (Array.isArray(data) && data[0]?.signals) {
+          (data as ModbusConnection[]).forEach(connection => {
+            connection.signals?.forEach((signal: ModbusSignal) => {
+              initialSignals[signal.name] = {
+                value: signal.value,
+                timestamp: Date.now()
+              };
+            });
+          });
+        }
+        // Handle message wrapper format
+        else if (data?.message && Array.isArray(data.message)) {
+          if (data.message[0]?.signals) {
+            // Connection-based format in message
+            (data.message as ModbusConnection[]).forEach(connection => {
+              connection.signals?.forEach((signal: ModbusSignal) => {
                 initialSignals[signal.name] = {
                   value: signal.value,
                   timestamp: Date.now()
                 };
               });
-            }
-          });
-          
-          setSignals(initialSignals);
-          console.log(`✅ Loaded ${Object.keys(initialSignals).length} signals from PLC Bridge API (new format)`);
-        }
-        else if (data.message && Array.isArray(data.message)) {
-          // Check if it's connections with signals
-          if (data.message.length > 0 && 'signals' in data.message[0]) {
-            // Format: connections with nested signals in message property
-            console.log('Processing format: connections with nested signals in message property');
-            data.message.forEach((connection: any) => {
-              if (connection.signals && Array.isArray(connection.signals)) {
-                connection.signals.forEach((signal: any) => {
-                  initialSignals[signal.name] = {
-                    value: signal.value,
-                    timestamp: Date.now()
-                  };
-                });
-              }
             });
           }
-          // Legacy format: flat list of signals
-          else if (data.message.length > 0 && 'name' in data.message[0] && 'value' in data.message[0]) {
-            console.log('Processing legacy format: flat list of signals');
-            data.message.forEach((signal: any) => {
+          // Flat signal list
+          else if (data.message[0]?.name && 'value' in data.message[0]) {
+            (data.message as ModbusSignal[]).forEach((signal: ModbusSignal) => {
               initialSignals[signal.name] = {
                 value: signal.value,
                 timestamp: Date.now()
               };
             });
           }
-          
+        }
+        
+        if (Object.keys(initialSignals).length > 0) {
           setSignals(initialSignals);
-          console.log(`✅ Loaded ${Object.keys(initialSignals).length} signals from PLC Bridge API`);
         } else {
-          throw new Error('Invalid response format from PLC Bridge API');
+          throw new Error('No signals found in response');
         }
       })
-      .catch(error => {
-        console.error('❌ Error loading signals from PLC Bridge API:', error);
-        console.log('Falling back to warehouse dashboard API...');
-        
-        // Fallback to the warehouse dashboard API
+      .catch(() => {
+        // Fallback to warehouse dashboard API
         fetch('/api/method/epibus.www.warehouse_dashboard.get_modbus_data')
           .then(response => response.json())
           .then(data => {
-            const fallbackSignals: Record<string, SignalValue> = {};
+            if (!data?.message) return;
             
-            if (data.message && Array.isArray(data.message)) {
-              // Process connections and their signals
-              data.message.forEach((connection: any) => {
-                if (connection.signals && Array.isArray(connection.signals)) {
-                  connection.signals.forEach((signal: any) => {
-                    fallbackSignals[signal.name] = {
-                      value: signal.value,
-                      timestamp: Date.now()
-                    };
-                  });
-                }
+            const fallbackSignals: Record<string, SignalValue> = {};
+            (data.message as ModbusConnection[]).forEach(connection => {
+              connection.signals?.forEach((signal: ModbusSignal) => {
+                fallbackSignals[signal.name] = {
+                  value: signal.value,
+                  timestamp: Date.now()
+                };
               });
-              
-              setSignals(fallbackSignals);
-              console.log(`✅ Loaded ${Object.keys(fallbackSignals).length} signals from fallback API`);
-            } else {
-              console.error('❌ Invalid response format from fallback API');
-            }
-          })
-          .catch(fallbackError => {
-            console.error('❌ Error loading signals from fallback API:', fallbackError);
+            });
+            
+            setSignals(fallbackSignals);
           });
       });
   }, []);
 
-  return {
-    signals,
-    writeSignal,
-    connected
-  };
+  // Function to write signal values
+  const writeSignal = useCallback((signalName: string, value: boolean | number) => {
+    return fetch('/api/method/epibus.api.plc.update_signal', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Frappe-CSRF-Token': localStorage.getItem('csrf_token') || ''
+      },
+      body: JSON.stringify({ signal_id: signalName, value: value })
+    })
+    .then(response => response.json())
+    .then(data => data.success)
+    .catch(() => {
+      // Fallback to warehouse dashboard API
+      return fetch('/api/method/epibus.www.warehouse_dashboard.set_signal_value', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Frappe-CSRF-Token': localStorage.getItem('csrf_token') || ''
+        },
+        body: JSON.stringify({ signal_id: signalName, value: value })
+      })
+      .then(response => response.json())
+      .then(data => data.status === 'success')
+      .catch(() => false);
+    });
+  }, []);
+
+  return { signals, writeSignal, connected };
+}
+
+// TypeScript interface for Frappe's global object
+declare global {
+  interface Window {
+    frappe?: {
+      realtime: {
+        on: (event: string, callback: (data: any) => void) => void;
+        off: (event: string, callback?: (data: any) => void) => void;
+      };
+      socketio?: {
+        socket: {
+          connected: boolean;
+          on: (event: string, callback: () => void) => void;
+        }
+      };
+    };
+  }
 }

@@ -57,10 +57,15 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ signal }) => {
         })
       });
       
-      // Update with actual response value if different from our optimistic update
-      if (response && response.message && response.message.value !== newValue) {
+      // Only update if we got a valid response with a different value
+      if (response && response.message && 
+          response.message.value !== undefined && 
+          response.message.value !== newValue) {
         createSignalUpdateEvent(signal.name, response.message.value);
       }
+      
+      // If we don't get a valid response value, assume our update was successful
+      // and keep the optimistically updated value
       
       console.log('Toggle response:', response);
     } catch (error) {
@@ -92,8 +97,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ signal }) => {
         })
       });
       
-      // Update with actual response value if different from our optimistic update
-      if (response && response.message && response.message.value !== inputValue) {
+      // Only update if we got a valid response with a different value
+      if (response && response.message && 
+          response.message.value !== undefined && 
+          response.message.value !== inputValue) {
         createSignalUpdateEvent(signal.name, response.message.value);
         setInputValue(response.message.value);
       }

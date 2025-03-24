@@ -379,13 +379,21 @@ def pubsub_worker():
             if message and message["type"] == "message":
                 channel = message["channel"]
 
-                if channel == b"plc:signal_update":
+                # Convert bytes to string if needed
+                if isinstance(channel, bytes):
+                    channel = channel.decode('utf-8')
+
+                if channel == "plc:signal_update" or channel == b"plc:signal_update":
                     client.handle_signal_update(message["data"])
-                elif channel == b"plc:command":
+                elif channel == "plc:command" or channel == b"plc:command":
                     client.handle_command(message["data"])
 
+            # Small sleep to prevent high CPU usage
+            time.sleep(0.01)
+            
             frappe.db.commit()
-            frappe.local.db.commit()  # Ensure DB changes are committed
+            # Remove redundant commit
+            # frappe.local.db.commit()
 
     except Exception as e:
         logger.error(f"❌ Error in Redis pubsub worker: {str(e)}")
