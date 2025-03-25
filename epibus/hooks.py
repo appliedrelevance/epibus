@@ -52,7 +52,14 @@ scheduler_events = {
 }
 
 # Setup signal monitor on app install/update
-after_install = "epibus.epibus.utils.signal_monitor.setup_scheduler_job"
+after_install = "epibus.utils.signal_monitor.setup_scheduler_job"
+after_app_install = "epibus.utils.plc_worker_job.start_plc_worker"
+after_app_restore = "epibus.utils.plc_worker_job.start_plc_worker"
+
+# Also start on system startup
+on_session_creation = [
+    "epibus.utils.plc_worker_job.start_plc_worker"
+]
 
 # Whitelisted methods
 api_methods = {

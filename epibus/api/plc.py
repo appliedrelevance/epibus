@@ -1,34 +1,71 @@
 import frappe
 import json
 from frappe.realtime import publish_realtime
-from epibus.epibus.utils.truthy import truthy,  parse_value
-from epibus.epibus.utils.epinomy_logger import get_logger
+from epibus.utils.truthy import truthy, parse_value
+from epibus.utils.epinomy_logger import get_logger
+from epibus.utils.plc_command_handler import handle_plc_command, write_signal as write_signal_command
 
 logger = get_logger(__name__)
 
-# Import the PLCRedisClient class
-from epibus.utils.plc_redis_client import PLCRedisClient
-
-# We'll initialize the client on-demand rather than on import
-# This avoids unnecessary initialization and potential issues with long-running processes
-
-
 @frappe.whitelist(allow_guest=True)
 def get_signals():
-    """Get all Modbus signals for the React dashboard
-
-    Returns the complete Modbus Connection document structure with nested signals
-    """
+    """Get all Modbus signals for the React dashboard"""
     try:
         # Get connections with nested signals
-        client = PLCRedisClient.get_instance()
-        connections = client.get_signals()
-        return connections
-
+        connections = frappe.get_all(
+            "Modbus Connection",
+            filters={"enabled": 1},
+            fields=["name", "device_name", "device_type", "host", "port", "enabled"]
+        )
+        
+        connection_data = []
+        
+        # Get signals for each connection
+        for conn in connections:
+            # Get basic signal information
+            conn_signals = frappe.get_all(
+                "Modbus Signal",
+                filters={"parent": conn.name},
+                fields=["name", "signal_name", "signal_type", "modbus_address"]
+            )
+            
+            # Process each signal
+            processed_signals = []
+            for signal in conn_signals:
+                try:
+                    # Get the full document to access methods and virtual fields
+                    signal_doc = frappe.get_doc("Modbus Signal", signal["name"])
+                    
+                    # Use the document's read_signal method to get the current value
+                    try:
+                        value = signal_doc.read_signal()
+                        signal["value"] = value
+                    except Exception as e:
+                        logger.warning(f"⚠️ Error reading signal {signal['signal_name']}: {str(e)}")
+                        # Fallback to default values based on signal type
+                        signal["value"] = False if "Digital" in signal["signal_type"] else 0
+                    
+                    # Add the PLC address virtual field
+                    signal["plc_address"] = signal_doc.get_plc_address()
+                    
+                except Exception as e:
+                    logger.error(f"❌ Error processing signal {signal['name']}: {str(e)}")
+                    # Set default values
+                    signal["value"] = False if "Digital" in signal["signal_type"] else 0
+                    signal["plc_address"] = None
+                
+                processed_signals.append(signal)
+            
+            # Add signals to the connection
+            conn_data = conn.copy()
+            conn_data["signals"] = processed_signals
+            connection_data.append(conn_data)
+        
+        return connection_data
+        
     except Exception as e:
         logger.error(f"❌ Error getting signals: {str(e)}")
         return {"success": False, "message": str(e)}
-
 
 @frappe.whitelist(allow_guest=True)
 def update_signal():
@@ -37,12 +74,12 @@ def update_signal():
         # Get parameters
         signal_id = frappe.local.form_dict.get('signal_id')
         value = frappe.local.form_dict.get('value')
-
+        
         logger.info(f"🔄 Received signal update: {signal_id} = {value}")
-
-        # Parse value based on signal type using our new helper functions
+        
+        # Parse value based on signal type
         signal = frappe.get_doc("Modbus Signal", signal_id)
-
+        
         # Use the JavaScript-like parsing
         if "Digital" in signal.get("signal_type", ""):
             # Parse digital values in a JavaScript-like way
@@ -55,100 +92,51 @@ def update_signal():
             # For non-digital values, convert to float
             try:
                 parsed_value = float(value)
-                logger.debug(
-                    f"📊 Parsed analog value: {value} -> {parsed_value}")
+                logger.debug(f"📊 Parsed analog value: {value} -> {parsed_value}")
             except (ValueError, TypeError):
                 logger.error(f"❌ Error converting {value} to float")
                 return {"success": False, "message": f"Cannot convert {value} to a number"}
-
-        logger.info(
-            f"🔄 Writing value:{signal.signal_name} ({signal_id}) = {parsed_value} (original: {value})")
-
-        # Write signal
-        client = PLCRedisClient.get_instance()
-        success = client.write_signal(signal_id, parsed_value)
         
-        # Note: The write_signal method now triggers an immediate check for updates
-        # This ensures we quickly process any signal changes that result from this command
-
-        if success:
+        logger.info(f"🔄 Writing value:{signal.signal_name} ({signal_id}) = {parsed_value} (original: {value})")
+        
+        # Write signal using the command handler
+        result = write_signal_command(signal_id, parsed_value)
+        
+        if result.get("success"):
             return {"success": True, "message": f"Updated signal {signal.signal_name}"}
         else:
             return {"success": False, "message": f"Failed to update signal {signal.signal_name}"}
-
+        
     except Exception as e:
         logger.error(f"❌ Error updating signal: {str(e)}")
         return {"success": False, "message": str(e)}
-
 
 @frappe.whitelist(allow_guest=True)
 def get_plc_status():
     """Get current PLC status"""
     try:
-        # Request status from PLC bridge
-        client = PLCRedisClient.get_instance()
-        logger.info("🔄 Requesting PLC Bridge status")
-        client.redis.publish("plc:command", json.dumps({
+        # Request status from PLC worker
+        handle_plc_command({
             "command": "status"
-        }))
-        logger.info("✅ Sent status request to PLC Bridge")
-
-        # Subscribe to the plc:status channel to forward the status to the frontend
-        def forward_status_to_frontend(channel, message):
-            try:
-                logger.info(
-                    f"📥 Received PLC status on channel {channel}: {message}")
-                status_data = json.loads(message)
-                logger.info(f"🔄 Parsed status data: {status_data}")
-
-                # Forward the status to the frontend via Frappe's realtime
-                logger.info(f"📤 Publishing status to frontend via realtime")
-                publish_realtime('plc:status', status_data)
-                logger.info(
-                    f"✅ Forwarded PLC status to frontend: {status_data}")
-            except Exception as e:
-                logger.error(f"❌ Error forwarding PLC status: {str(e)}")
-                logger.error(
-                    f"Error details: {e.__class__.__name__}: {str(e)}")
-                import traceback
-                logger.error(f"Traceback: {traceback.format_exc()}")
-
-        # Set up a temporary subscription to forward the next status message
-        pubsub = client.redis.pubsub()
-        pubsub.subscribe(**{'plc:status': forward_status_to_frontend})
-
-        # Start a background thread to listen for the status message
-        pubsub_thread = pubsub.run_in_thread(sleep_time=1, daemon=True)
-
-        # Schedule the thread to be stopped after a timeout
-        def stop_pubsub_thread():
-            pubsub_thread.stop()
-            pubsub.unsubscribe('plc:status')
-            logger.info("✅ Stopped PLC status listener thread")
-
-        # Stop the thread after 5 seconds (timeout)
-        frappe.enqueue(stop_pubsub_thread, queue='short',
-                       timeout=10, now=False, enqueue_after=5)
-
+        })
+        
         return {"success": True}
-
+        
     except Exception as e:
         logger.error(f"❌ Error getting PLC status: {str(e)}")
         return {"success": False, "message": str(e)}
 
-
 @frappe.whitelist()
 def reload_signals(allow_guest=True):
-    """Reload signals in the PLC bridge"""
+    """Reload signals in the PLC worker"""
     try:
-        # Request reload from PLC bridge
-        client = PLCRedisClient.get_instance()
-        client.redis.publish("plc:command", json.dumps({
+        # Request reload from PLC worker
+        handle_plc_command({
             "command": "reload_signals"
-        }))
-
+        })
+        
         return {"success": True, "message": "Signal reload requested"}
-
+        
     except Exception as e:
         logger.error(f"❌ Error requesting signal reload: {str(e)}")
         return {"success": False, "message": str(e)}

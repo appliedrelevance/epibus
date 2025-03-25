@@ -12,8 +12,8 @@ import json
 from typing import Dict, List, Any, Optional, cast, TypedDict
 
 from epibus.epibus.utils.epinomy_logger import get_logger
-# Import the PLC Bridge adapter
-from epibus.utils.plc_bridge_adapter import get_signals_from_plc_bridge, write_signal_via_plc_bridge
+# Import the PLC command handler
+from epibus.epibus.utils.plc_command_handler import handle_plc_command, write_signal as write_signal_command
 
 logger = get_logger(__name__)
 
@@ -97,14 +97,19 @@ def get_modbus_data() -> List[ModbusConnectionDict]:
         current_user = frappe.session.user
         logger.debug(f"Fetching Modbus data as user: {current_user}")
 
-        # First, try to get signals from the PLC Bridge
+        # First, try to get signals using the API endpoint
         try:
-            logger.info("Attempting to get signals from PLC Bridge...")
-            plc_signals = get_signals_from_plc_bridge()
+            logger.info("Attempting to get signals from PLC Worker...")
+            # Use the API endpoint to get signals
+            plc_signals = frappe.get_all(
+                "Modbus Connection",
+                filters={"enabled": 1},
+                fields=["name", "device_name", "device_type", "host", "port", "enabled"]
+            )
 
             if plc_signals and len(plc_signals) > 0:
                 logger.info(
-                    f"✅ Successfully retrieved {len(plc_signals)} signals from PLC Bridge")
+                    f"✅ Successfully retrieved {len(plc_signals)} connections from API")
 
                 # Create a dictionary to organize signals by connection
                 signals_by_connection = {}
@@ -302,15 +307,15 @@ def set_signal_value(signal_id: str, value: Any) -> Dict[str, Any]:
             elif hasattr(signal, "digital_value") and getattr(signal, "digital_value", None) is not None:
                 previous_value = getattr(signal, "digital_value")
 
-        # First, try to write the signal via the PLC Bridge
+        # First, try to write the signal via the PLC Worker
         try:
             logger.info(
-                f"Attempting to write signal {signal_id} via PLC Bridge...")
-            success = write_signal_via_plc_bridge(signal_id, value)
+                f"Attempting to write signal {signal_id} via PLC Worker...")
+            result = write_signal_command(signal_id, value)
 
-            if success:
+            if result.get("success"):
                 logger.info(
-                    f"✅ Successfully wrote signal {signal_name} ({signal_id}) via PLC Bridge")
+                    f"✅ Successfully wrote signal {signal_name} ({signal_id}) via PLC Worker")
 
                 # Update our cache with the new value
                 signal_value_cache[signal_id] = value
@@ -322,13 +327,13 @@ def set_signal_value(signal_id: str, value: Any) -> Dict[str, Any]:
                 # Return success response
                 return {
                     "status": "success",
-                    "message": _("Signal value updated successfully via PLC Bridge"),
+                    "message": _("Signal value updated successfully via PLC Worker"),
                     "signal_id": signal_id,
                     "value": value
                 }
         except Exception as plc_error:
             logger.warning(
-                f"⚠️ Failed to write signal via PLC Bridge: {str(plc_error)}")
+                f"⚠️ Failed to write signal via PLC Worker: {str(plc_error)}")
             logger.warning("Falling back to direct Modbus communication...")
 
         # Fallback to direct Modbus communication
