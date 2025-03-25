@@ -1,5 +1,6 @@
 import frappe
 import json
+import time
 from frappe.realtime import publish_realtime
 from epibus.epibus.utils.truthy import truthy,  parse_value
 from epibus.epibus.utils.epinomy_logger import get_logger
@@ -10,7 +11,6 @@ logger = get_logger(__name__)
 from epibus.utils.plc_redis_client import PLCRedisClient
 
 # We'll initialize the client on-demand rather than on import
-# This avoids unnecessary initialization and potential issues with long-running processes
 
 
 @frappe.whitelist(allow_guest=True)
@@ -151,4 +151,110 @@ def reload_signals(allow_guest=True):
 
     except Exception as e:
         logger.error(f"❌ Error requesting signal reload: {str(e)}")
+        return {"success": False, "message": str(e)}
+
+@frappe.whitelist(allow_guest=False)
+def get_all_signals():
+    """Get all signals with their connections in a single call"""
+    try:
+        # Get enabled Modbus Connections with all fields
+        connections = frappe.get_all(
+            "Modbus Connection",
+            filters={"enabled": 1},
+            fields=["name", "device_name", "device_type", "host", "port", "enabled"]
+        )
+        
+        # Initialize connections list with signals
+        connection_data = []
+        
+        # Get signals for each connection
+        for conn in connections:
+            # Get basic signal information
+            conn_signals = frappe.get_all(
+                "Modbus Signal",
+                filters={"parent": conn.name},
+                fields=["name", "signal_name", "signal_type", "modbus_address"]
+            )
+            
+            # Process each signal
+            processed_signals = []
+            for signal in conn_signals:
+                try:
+                    # Get the full document to access methods and virtual fields
+                    signal_doc = frappe.get_doc("Modbus Signal", signal["name"])
+                    
+                    # Use the document's read_signal method to get the current value
+                    try:
+                        value = signal_doc.read_signal()
+                        signal["value"] = value
+                    except Exception as e:
+                        logger.warning(f"⚠️ Error reading signal {signal['signal_name']}: {str(e)}")
+                        # Fallback to default values based on signal type
+                        signal["value"] = False if "Digital" in signal["signal_type"] else 0
+                    
+                    # Add the PLC address virtual field
+                    signal["plc_address"] = signal_doc.get_plc_address()
+                    
+                except Exception as e:
+                    logger.error(f"❌ Error processing signal {signal['name']}: {str(e)}")
+                    # Set default values
+                    signal["value"] = False if "Digital" in signal["signal_type"] else 0
+                    signal["plc_address"] = None
+                
+                processed_signals.append(signal)
+            
+            # Add signals to the connection
+            conn_data = conn.copy()
+            conn_data["signals"] = processed_signals
+            connection_data.append(conn_data)
+        
+        return {
+            "success": True,
+            "data": connection_data
+        }
+    except Exception as e:
+        logger.error(f"Error getting all signals: {str(e)}")
+        return {"success": False, "message": str(e)}
+
+@frappe.whitelist(allow_guest=False)
+def signal_update():
+    """Handle a signal update from the PLC Bridge"""
+    try:
+        data = frappe.local.form_dict
+        signal_name = data.get("name")
+        value = data.get("value")
+        
+        if not signal_name or value is None:
+            return {"success": False, "message": "Invalid signal update"}
+        
+        # Get signal document
+        if not frappe.db.exists("Modbus Signal", signal_name):
+            return {"success": False, "message": f"Signal {signal_name} not found"}
+        
+        signal = frappe.get_doc("Modbus Signal", signal_name)
+        
+        # Log the update
+        frappe.get_doc({
+            "doctype": "Modbus Event",
+            "event_type": "Signal Update",
+            "connection": signal.parent,
+            "signal": signal_name,
+            "value": str(value)
+        }).insert(ignore_permissions=True)
+        
+        # Broadcast to Frappe real-time
+        frappe.publish_realtime(
+            event='modbus_signal_update',
+            message={
+                'signal': signal_name,
+                'signal_name': signal.signal_name,
+                'value': value,
+                'timestamp': data.get("timestamp", time.time())
+            }
+        )
+        
+        return {"success": True}
+        
+    except Exception as e:
+        logger.error(f"Error handling signal update: {str(e)}")
         return {"success": False, "message": str(e)}
