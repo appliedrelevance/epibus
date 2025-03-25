@@ -84,6 +84,33 @@ def read_bool_signal(signal: 'ModbusSignal') -> bool:
     return value
 
 
+@frappe.whitelist()
+def is_signal_writable(signal_id: str) -> bool:
+    """Check if a signal is writable based on its type
+
+    Args:
+        signal_id (str): The name of the ModbusSignal document to check
+
+    Returns:
+        bool: True if the signal is writable, False otherwise
+
+    Raises:
+        ValueError: If signal_id is None or empty
+    """
+    if not signal_id:
+        frappe.throw(_("Signal id cannot be empty"))
+
+    signal = cast(ModbusSignal, frappe.get_doc("Modbus Signal", signal_id))
+    
+    # Check if the signal type has write access
+    signal_config = SIGNAL_TYPE_MAPPINGS.get(signal.signal_type, {})
+    is_writable = signal_config.get("access", "") == "RW"
+    
+    logger.debug(f"Signal {signal.signal_name} ({signal.signal_type}) is writable: {is_writable}")
+    
+    return is_writable
+
+
 @frappe.whitelist(methods=['POST'])
 def toggle_signal(signal_id: str, value: Optional[bool] = None) -> bool:
     """Toggle a digital signal between True/False or set to specific value
@@ -103,6 +130,10 @@ def toggle_signal(signal_id: str, value: Optional[bool] = None) -> bool:
         frappe.throw(_("Signal id cannot be empty"))
 
     signal = cast(ModbusSignal, frappe.get_doc("Modbus Signal", signal_id))
+
+    # Check if the signal is writable
+    if not is_signal_writable(signal_id):
+        frappe.throw(_("Cannot write to read-only signal type: {0}").format(signal.signal_type))
 
     if not SIGNAL_TYPE_MAPPINGS[signal.signal_type]["bit_addressed"]:
         frappe.throw(_("Can only toggle digital signals"))

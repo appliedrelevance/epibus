@@ -6,6 +6,7 @@ import logging
 import threading
 import argparse
 import requests
+import json
 from typing import Dict, List, Union, Optional
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
@@ -187,12 +188,15 @@ class PLCBridge:
                 # Group signals by connection for efficient polling
                 signals_by_connection = {}
                 for signal_name, signal in self.signals.items():
-                    # Get the connection name from the signal name (parent doctype)
-                    parts = signal_name.split("-")
-                    if len(parts) >= 2:
-                        connection_name = parts[0]
-                    else:
-                        # Use MCP to get the parent connection
+                    # Robust connection name extraction
+                    connection_name = None
+                    
+                    # Try method 1: Split by hyphen
+                    if "-" in signal_name:
+                        connection_name = signal_name.split("-")[0]
+                    
+                    # Try method 2: API call to get parent
+                    if not connection_name:
                         try:
                             response = self.session.get(
                                 f"{self.frappe_url}/api/resource/Modbus Signal/{signal_name}",
@@ -202,8 +206,17 @@ class PLCBridge:
                             data = response.json()
                             connection_name = data.get('data', {}).get('parent')
                         except Exception as e:
-                            self.logger.error(f"Error getting connection for signal {signal_name}: {e}")
-                            continue
+                            self.logger.warning(f"Could not retrieve parent for signal {signal_name}: {e}")
+                    
+                    # Try method 3: Use first Modbus client as default
+                    if not connection_name and self.modbus_clients:
+                        connection_name = list(self.modbus_clients.keys())[0]
+                        self.logger.warning(f"Using default connection {connection_name} for signal {signal_name}")
+                    
+                    # If still no connection, log error and skip
+                    if not connection_name:
+                        self.logger.error(f"Cannot determine connection for signal {signal_name}")
+                        continue
                     
                     if connection_name not in signals_by_connection:
                         signals_by_connection[connection_name] = []
@@ -220,8 +233,16 @@ class PLCBridge:
                         new_value = self._read_signal(connection_name, signal)
                         
                         if new_value is not None and new_value != signal.value:
+                            old_value = signal.value
                             signal.value = new_value
                             signal.last_update = time.time()
+                            
+                            # Log detailed signal change
+                            self.logger.info(
+                                f"Signal Change: {signal.signal_name} "
+                                f"(Address: {signal.address}, Type: {signal.type}) "
+                                f"changed from {old_value} to {new_value}"
+                            )
                             
                             # Send update to Frappe
                             self._publish_signal_update(signal)
@@ -251,7 +272,10 @@ class PLCBridge:
                 result = client.read_discrete_inputs(
                     address=signal.address, count=1)
                 if result.isError():
-                    self.logger.error(f"Error reading {signal.name}: {result}")
+                    self.logger.error(
+                        f"Error reading Digital Input Contact {signal.name}: "
+                        f"Address {signal.address}, Error: {result}"
+                    )
                     return None
                 return result.bits[0]
             
@@ -259,7 +283,10 @@ class PLCBridge:
                 result = client.read_coils(
                     address=signal.address, count=1)
                 if result.isError():
-                    self.logger.error(f"Error reading {signal.name}: {result}")
+                    self.logger.error(
+                        f"Error reading Digital Output Coil {signal.name}: "
+                        f"Address {signal.address}, Error: {result}"
+                    )
                     return None
                 return result.bits[0]
             
@@ -267,7 +294,10 @@ class PLCBridge:
                 result = client.read_holding_registers(
                     address=signal.address, count=1)
                 if result.isError():
-                    self.logger.error(f"Error reading {signal.name}: {result}")
+                    self.logger.error(
+                        f"Error reading Holding Register {signal.name}: "
+                        f"Address {signal.address}, Error: {result}"
+                    )
                     return None
                 return result.registers[0]
             
@@ -275,12 +305,19 @@ class PLCBridge:
                 result = client.read_input_registers(
                     address=signal.address, count=1)
                 if result.isError():
-                    self.logger.error(f"Error reading {signal.name}: {result}")
+                    self.logger.error(
+                        f"Error reading Analog Input Register {signal.name}: "
+                        f"Address {signal.address}, Error: {result}"
+                    )
                     return None
                 return result.registers[0]
             
             else:
-                self.logger.warning(f"Unknown signal type: {signal.type}")
+                self.logger.warning(
+                    f"Unsupported signal type for {signal.name}: {signal.type}. "
+                    "Supported types: Digital Input Contact, Digital Output Coil, "
+                    "Holding Register, Analog Input Register"
+                )
                 return None
                 
         except ModbusException as e:
@@ -352,6 +389,7 @@ class PLCBridge:
     def _publish_signal_update(self, signal: ModbusSignal):
         """Publish a signal update to Frappe"""
         try:
+            # 1. Send the signal update to Frappe
             update_data = {
                 'name': signal.name,
                 'value': signal.value,
@@ -359,11 +397,93 @@ class PLCBridge:
             }
             
             response = self.session.post(
-                f"{self.frappe_url}/api/method/epibus.api.plc.signal_update", 
+                f"{self.frappe_url}/api/method/epibus.api.plc.signal_update",
                 json=update_data,
                 timeout=10
             )
             response.raise_for_status()
+            
+            # 2. Find any Modbus Action documents with this signal linked
+            self.logger.info(f"Looking for Modbus Actions linked to signal: {signal.name}")
+            try:
+                # First, get the signal document to find its ID
+                signal_response = self.session.get(
+                    f"{self.frappe_url}/api/resource/Modbus Signal/{signal.name}",
+                    timeout=10
+                )
+                signal_response.raise_for_status()
+                signal_data = signal_response.json().get('data', {})
+                
+                # Log the signal data for debugging
+                self.logger.debug(f"Signal data: {json.dumps(signal_data, indent=2)}")
+                
+                # The signal ID might be in the 'name' field of the signal document
+                signal_id = signal_data.get('name')
+                if not signal_id:
+                    self.logger.error(f"Could not determine signal ID for {signal.name}")
+                    return
+                
+                self.logger.info(f"Using signal ID: {signal_id} to find Modbus Actions")
+                
+                # Query for Modbus Actions using the signal ID
+                action_response = self.session.get(
+                    f"{self.frappe_url}/api/resource/Modbus Action",
+                    params={"filters": json.dumps([["modbus_signal", "=", signal_id]])},
+                    timeout=10
+                )
+                action_response.raise_for_status()
+                actions_data = action_response.json()
+                
+                # Log the actions data for debugging
+                self.logger.debug(f"Actions data: {json.dumps(actions_data, indent=2)}")
+                
+                if 'data' in actions_data:
+                    actions = actions_data['data']
+                    self.logger.info(f"Found {len(actions)} Modbus Actions for signal {signal.name}")
+                    
+                    # 3. For each Modbus Action, execute the linked Server Script
+                    for action in actions:
+                        action_name = action.get('name')
+                        
+                        # Get the full Modbus Action document to find the linked Server Script
+                        action_detail_response = self.session.get(
+                            f"{self.frappe_url}/api/resource/Modbus Action/{action_name}",
+                            timeout=10
+                        )
+                        action_detail_response.raise_for_status()
+                        action_detail = action_detail_response.json().get('data', {})
+                        
+                        server_script = action_detail.get('server_script')
+                        if server_script:
+                            self.logger.info(f"Executing Server Script '{server_script}' for Modbus Action '{action_name}'")
+                            
+                            # Execute the Server Script
+                            script_data = {
+                                'signal_name': signal.name,
+                                'signal_value': signal.value,
+                                'action_name': action_name
+                            }
+                            
+                            # Use our new endpoint to execute the script
+                            script_response = self.session.post(
+                                f"{self.frappe_url}/api/method/epibus.epibus.doctype.modbus_action.modbus_action.test_action_script",
+                                json={
+                                    "action_name": action_name
+                                },
+                                timeout=30
+                            )
+                            
+                            if script_response.status_code == 200:
+                                self.logger.info(f"Successfully executed Server Script '{server_script}'")
+                            else:
+                                self.logger.error(f"Error executing Server Script '{server_script}': {script_response.text}")
+                        else:
+                            self.logger.warning(f"No Server Script linked to Modbus Action '{action_name}'")
+                else:
+                    self.logger.info(f"No Modbus Actions found for signal {signal.name}")
+                    
+            except Exception as action_error:
+                self.logger.error(f"Error processing Modbus Actions for signal {signal.name}: {action_error}")
         
         except Exception as e:
             self.logger.error(f"Error publishing signal update: {e}")
@@ -378,6 +498,54 @@ class PLCBridge:
         if not self.load_signals():
             self.logger.error("Failed to load signals - check logs above for details")
             return
+        
+        # Print initial connection and signal states
+        self.logger.info("Initial Modbus Connections:")
+        for conn_name, conn_info in self.modbus_clients.items():
+            self.logger.info(f"Connection: {conn_name}")
+            self.logger.info(f"  Host: {conn_info['host']}:{conn_info['port']}")
+            self.logger.info(f"  Connected: {conn_info['connected']}")
+        
+        self.logger.info("\nInitial Signal States:")
+        for signal_name, signal in self.signals.items():
+            # Robust connection name extraction
+            connection_name = None
+            
+            # Try method 1: Split by hyphen
+            if "-" in signal_name:
+                connection_name = signal_name.split("-")[0]
+            
+            # Try method 2: API call to get parent
+            if not connection_name:
+                try:
+                    response = self.session.get(
+                        f"{self.frappe_url}/api/resource/Modbus Signal/{signal_name}",
+                        timeout=5
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                    connection_name = data.get('data', {}).get('parent')
+                except Exception as e:
+                    self.logger.warning(f"Could not retrieve parent for signal {signal_name}: {e}")
+            
+            # Try method 3: Use first Modbus client as default
+            if not connection_name and self.modbus_clients:
+                connection_name = list(self.modbus_clients.keys())[0]
+                self.logger.warning(f"Using default connection {connection_name} for signal {signal_name}")
+            
+            # If still no connection, log error
+            if not connection_name:
+                self.logger.error(f"Cannot determine connection for signal {signal_name}")
+                continue
+            
+            # Read initial signal value
+            initial_value = self._read_signal(connection_name, signal)
+            
+            self.logger.info(f"Signal: {signal.signal_name} ({signal_name})")
+            self.logger.info(f"  Connection: {connection_name}")
+            self.logger.info(f"  Type: {signal.type}")
+            self.logger.info(f"  Address: {signal.address}")
+            self.logger.info(f"  Initial Value: {initial_value}")
         
         # Start polling
         self.running = True

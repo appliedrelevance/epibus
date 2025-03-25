@@ -1,0 +1,1 @@
+GET http://spring2025.intralogistics.local/api/method/epibus.epibus.doctype.modbus_action.modbus_action.test_action_script?action_name=EPI-ACT-00717

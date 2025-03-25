@@ -133,6 +133,55 @@ class ModbusAction(Document):
             frappe.flags.modbus_context = None
 
 
+@frappe.whitelist(methods=['GET', 'POST'])
+def test_action_script(action_name):
+    """
+    Execute the server script for a Modbus Action
+    
+    Args:
+        action_name (str): The name of the Modbus Action document
+        
+    Returns:
+        dict: Result of script execution
+    """
+    logger.info(f"Testing script for Modbus Action: {action_name}")
+    
+    try:
+        # Get the Modbus Action document
+        action_doc = frappe.get_doc("Modbus Action", action_name)
+        
+        # Check if the action has a signal and if it's read-only
+        if action_doc.modbus_signal:
+            # Get the connection document
+            connection_doc = frappe.get_doc("Modbus Connection", action_doc.connection)
+            
+            # Find the signal in the connection's signals table
+            signal = None
+            for s in connection_doc.signals:
+                if s.name == action_doc.modbus_signal:
+                    signal = s
+                    break
+            
+            if signal:
+                # Check if the signal type is read-only
+                read_only_types = ['Digital Input Contact', 'Analog Input Register']
+                if signal.signal_type in read_only_types:
+                    return {
+                        "status": "error",
+                        "error": f"Cannot write to read-only signal type: {signal.signal_type}"
+                    }
+        
+        # Execute the script
+        return action_doc.execute_script()
+    
+    except Exception as e:
+        logger.exception(f"Error testing script for Modbus Action {action_name}: {str(e)}")
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
+
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
 def get_signals_for_connection(doctype, txt, searchfield, start, page_len, filters):

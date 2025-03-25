@@ -1,0 +1,14 @@
+
+
+
+POST http://spring2025.intralogistics.local/api/method/frappe.desk.form.run_method.run_method HTTP/1.1
+content-type: application/json
+
+{
+  "doctype": "Modbus Action",
+  "name": "EPI-ACT-00717",
+  "method": "execute_script"
+}
+
+
+

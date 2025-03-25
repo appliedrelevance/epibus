@@ -178,92 +178,75 @@ function testScript(frm) {
 
 // Test Signal Change script by triggering a write to the signal
 function testSignalChangeScript(frm) {
-    if (!frm.doc.modbus_signal || !frm.doc.connection) {
+    if (!frm.doc.server_script) {
         frappe.msgprint({
             title: __('Error'),
-            message: __('Modbus Connection and Signal are required for testing Signal Change scripts'),
+            message: __('Server Script is required for testing'),
             indicator: 'red'
         });
         return;
     }
 
-    // Fetch the current signal value and details
-    frappe.model.with_doc('Modbus Connection', frm.doc.connection, function() {
-        const conn_doc = frappe.get_doc('Modbus Connection', frm.doc.connection);
-        
-        if (!conn_doc || !conn_doc.signals) {
-            frappe.msgprint({
-                title: __('Error'),
-                message: __('Could not retrieve signal information'),
-                indicator: 'red'
-            });
-            return;
-        }
-        
-        const signal = conn_doc.signals.find(s => s.name === frm.doc.modbus_signal);
-        
-        if (!signal) {
-            frappe.msgprint({
-                title: __('Error'),
-                message: __(`Signal ${frm.doc.modbus_signal} not found in connection ${frm.doc.connection}`),
-                indicator: 'red'
-            });
-            return;
-        }
-        
-        // Determine the new value to write based on signal type
-        let newValue;
-        if (signal.signal_type.includes('Digital')) {
-            // Toggle boolean value
-            newValue = signal.digital_value ? 0 : 1;
-        } else {
-            // Increment numeric value or set to 1 if not a number
-            newValue = (parseFloat(signal.float_value) || 0) + 1;
-        }
-        
-        // Show confirmation dialog
-        frappe.confirm(
-            __(`This will write a value of <strong>${newValue}</strong> to signal <strong>${signal.signal_name}</strong>. Continue?`),
-            () => {
-                // User confirmed, proceed with write
-                frappe.show_alert({
-                    message: __(`Writing ${newValue} to ${signal.signal_name}...`),
-                    indicator: 'blue'
+    console.log(`🧪 Testing script for Modbus Action: ${frm.doc.name}`);
+    
+    // Show a loading message
+    frappe.show_alert({
+        message: __(`Testing script for ${frm.doc.action_name}...`),
+        indicator: 'blue'
+    });
+    
+    // Call our new endpoint to test the script
+    frappe.call({
+        method: 'epibus.epibus.doctype.modbus_action.modbus_action.test_action_script',
+        args: {
+            action_name: frm.doc.name
+        },
+        freeze: true,
+        freeze_message: __('Testing Script...'),
+        callback: function(r) {
+            if (r.exc) {
+                // Handle error from the server
+                console.error(`❌ Error testing script: ${r.exc}`);
+                frappe.msgprint({
+                    title: __('Script Test Failed'),
+                    message: __(`Failed to test script: ${r.exc}`),
+                    indicator: 'red'
                 });
-                
-                // Call the PLC Bridge API instead of direct connection
-                frappe.call({
-                    method: 'epibus.api.plc.update_signal',
-                    args: {
-                        signal_id: frm.doc.modbus_signal,
-                        value: newValue
-                    },
-                    freeze: true,
-                    freeze_message: __('Writing to signal...'),
-                    callback: function(r) {
-                        if (r.exc || (r.message && !r.message.success)) {
-                            // Handle error
-                            console.error(`❌ Error writing to signal: ${r.exc || (r.message && r.message.message)}`);
-                            frappe.msgprint({
-                                title: __('Signal Write Failed'),
-                                message: __(`Failed to write to signal: ${r.exc || (r.message && r.message.message)}`),
-                                indicator: 'red'
-                            });
-                            return;
-                        }
-                        
-                        console.log(`✅ Successfully wrote ${newValue} to signal ${signal.signal_name}`);
-                        
-                        // Now check if the script executed via the event log
-                        setTimeout(() => {
-                            checkEventLog(frm, signal.signal_name);
-                        }, 2000); // Wait 2 seconds for event processing
-                    }
-                });
+                return;
             }
-        );
+            
+            const result = r.message;
+            
+            if (result.status === 'error') {
+                // Handle error from the script execution
+                console.error(`❌ Script execution error: ${result.error}`);
+                frappe.msgprint({
+                    title: __('Script Execution Failed'),
+                    message: __(`${result.error}`),
+                    indicator: 'red'
+                });
+                return;
+            }
+            
+            // Success case
+            console.log(`✅ Script executed successfully: ${JSON.stringify(result)}`);
+            frappe.msgprint({
+                title: __('Script Execution Successful'),
+                message: __(`Result: ${JSON.stringify(result.value || {})}`),
+                indicator: 'green'
+            });
+            
+            // Check for events if this is a Signal Change script
+            if (frm.doc.script_type === 'Signal Change' && frm.doc.modbus_signal) {
+                setTimeout(() => {
+                    checkEventLog(frm, frm.doc.modbus_signal);
+                }, 2000); // Wait 2 seconds for event processing
+            }
+        }
     });
 }
+
+// Function removed - functionality integrated directly into testSignalChangeScript
 
 // Test DocType Event script by simulating the event
 function testDocTypeEventScript(frm) {
