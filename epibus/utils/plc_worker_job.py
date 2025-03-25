@@ -1,15 +1,15 @@
 import frappe
 import time
 from frappe.utils.background_jobs import enqueue
-from epibus.epibus.utils.plc_worker import PLCWorker
+from epibus.utils.plc_worker import PLCWorker
 
 def start_plc_worker():
     """Start the PLC worker job"""
     # Enqueue the long-running worker job in the 'plc' queue
     enqueue(
-        'epibus.epibus.utils.plc_worker_job.run_plc_worker',
+        'epibus.utils.plc_worker_job.run_plc_worker',
         queue='plc',
-        timeout=None  # Long-running job
+        timeout=86400  # 24 hours timeout - long enough for a day's operation
     )
     frappe.logger().info("🚀 Enqueued PLC worker job")
 

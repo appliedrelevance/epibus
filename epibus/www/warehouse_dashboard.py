@@ -11,9 +11,9 @@ from frappe.utils import cint
 import json
 from typing import Dict, List, Any, Optional, cast, TypedDict
 
-from epibus.epibus.utils.epinomy_logger import get_logger
+from epibus.utils.epinomy_logger import get_logger
 # Import the PLC command handler
-from epibus.epibus.utils.plc_command_handler import handle_plc_command, write_signal as write_signal_command
+from epibus.utils.plc_command_handler import handle_plc_command, write_signal as write_signal_command
 
 logger = get_logger(__name__)
 
