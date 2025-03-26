@@ -15,6 +15,7 @@
   "section_break_1",
   "previous_value",
   "new_value",
+  "message",
   "section_break_2",
   "error_message",
   "stack_trace"
@@ -76,6 +77,11 @@
    "fieldname": "new_value",
    "fieldtype": "Data",
    "label": "New Value"
+  },
+  {
+   "fieldname": "message",
+   "fieldtype": "Text",
+   "label": "Message"
   },
   {
    "fieldname": "section_break_2",

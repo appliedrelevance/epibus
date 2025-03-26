@@ -32,7 +32,7 @@ class ModbusEvent(Document):
 
     @staticmethod
     def log_event(event_type, device, status="Success", signal=None, action=None,
-                  previous_value=None, new_value=None, error=None):
+                  previous_value=None, new_value=None, error=None, message=None):
         """Create a new Modbus Event log entry
 
         Args:
@@ -42,8 +42,9 @@ class ModbusEvent(Document):
             signal (str, optional): Name of Modbus Signal
             action (str, optional): Name of Modbus Action
             previous_value (str, optional): Previous signal value
-            new_value (str, optional): New signal value 
+            new_value (str, optional): New signal value
             error (Exception, optional): Exception if event failed
+            message (str, optional): Narrative description of the event
         """
         try:
             event: ModbusEvent = cast(ModbusEvent, frappe.get_doc({
@@ -57,7 +58,8 @@ class ModbusEvent(Document):
                 "new_value": str(new_value) if new_value is not None else None,
                 "timestamp": now(),
                 "stack_trace": None,
-                "error_message": ""
+                "error_message": "",
+                "message": message
             }))
 
             if error:

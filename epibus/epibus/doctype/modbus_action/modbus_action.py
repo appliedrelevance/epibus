@@ -346,7 +346,8 @@ def test_doctype_event(self):
                 "reference_name": self.name,
                 "signal": self.modbus_signal or "N/A",
                 "value": "Test DocType Event",
-                "details": f"Test execution of {self.doctype_event} event on {self.reference_doctype}"
+                "details": f"Test execution of {self.doctype_event} event on {self.reference_doctype}",
+                "message": f"Test execution of action '{self.name}' for {self.doctype_event} event on {self.reference_doctype}"
             }).insert(ignore_permissions=True)
 
             return {
@@ -429,7 +430,8 @@ def test_scheduler_event(self):
                 "reference_name": self.name,
                 "signal": self.modbus_signal or "N/A",
                 "value": "Test Scheduler Event",
-                "details": f"Test execution of {self.event_frequency} scheduler event"
+                "details": f"Test execution of {self.event_frequency} scheduler event",
+                "message": f"Test execution of scheduler action '{self.name}' with frequency {self.event_frequency}"
             }).insert(ignore_permissions=True)
 
             return {

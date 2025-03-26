@@ -275,6 +275,7 @@ class ModbusSignal(Document):
                 signal=self.name,
                 status="Failed",
                 error=e,
+                message=f"Failed to read signal {self.signal_name} (Address: {self.modbus_address}, Type: {self.signal_type})"
             )
             raise
 
@@ -338,6 +339,7 @@ class ModbusSignal(Document):
                     signal=self.name,
                     previous_value=current_value,
                     new_value=new_value,
+                    message=f"Successfully wrote value {new_value} to signal {self.signal_name} (Address: {self.modbus_address}, Type: {self.signal_type})"
                 )
 
                 # Publish immediate update
@@ -355,6 +357,7 @@ class ModbusSignal(Document):
                 previous_value=current_value,
                 status="Failed",
                 error=e,
+                message=f"Failed to write value to signal {self.signal_name} (Address: {self.modbus_address}, Type: {self.signal_type})"
             )
             raise
 
