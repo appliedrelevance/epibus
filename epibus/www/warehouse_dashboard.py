@@ -13,7 +13,7 @@ from typing import Dict, List, Any, Optional, cast, TypedDict
 
 from epibus.epibus.utils.epinomy_logger import get_logger
 # Import the PLC Bridge adapter
-from epibus.utils.plc_bridge_adapter import get_signals_from_plc_bridge, write_signal_via_plc_bridge
+from epibus.epibus.utils.plc_bridge_adapter import get_signals_from_plc_bridge, write_signal_via_plc_bridge
 
 logger = get_logger(__name__)
 

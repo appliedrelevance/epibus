@@ -45,18 +45,11 @@ web_include_css = [
 ]
 
 # Scheduler configuration for signal monitoring
-scheduler_events = {
-    "all": [
-        "epibus.epibus.utils.signal_monitor.check_signals"
-    ]
-}
 
 # Setup signal monitor on app install/update
-after_install = "epibus.epibus.utils.signal_monitor.setup_scheduler_job"
 
 # Whitelisted methods
 api_methods = {
-    "epibus.epibus.utils.signal_monitor.start_monitoring": ["POST"],
     "epibus.www.warehouse_dashboard.get_modbus_data": ["GET"],
     "epibus.www.warehouse_dashboard.set_signal_value": ["POST"],
     "epibus.api.plc.get_signals": ["GET"],
