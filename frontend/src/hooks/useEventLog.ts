@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useEventSource } from './useEventSource';
-import { SSE_EVENTS_ENDPOINT, SSE_EVENTS_HISTORY_ENDPOINT } from '../config';
+import { SSE_EVENTS_HISTORY_ENDPOINT } from '../config';
+
+// IMPORTANT: We're no longer importing useEventSource to avoid creating duplicate connections
+// Event log entries will now be added via the global event listener
 
 interface EventLogEntry {
   id?: string;
@@ -34,20 +36,26 @@ export function useEventLog(maxEvents = 100) {
     });
   }, [maxEvents]);
   
-  // Event handlers for SSE
-  const eventHandlers = {
-    event_log: (data: EventLogEntry) => {
-      addEvent({
-        ...data,
-        timestamp: data.timestamp || Date.now()
-      });
-    }
-  };
-  
-  // Connect to SSE
-  useEventSource(SSE_EVENTS_ENDPOINT, {
-    eventHandlers
-  });
+  // Set up event listener for event_log events from useSignalMonitor
+  useEffect(() => {
+    const handleEventLog = (event: Event) => {
+      const customEvent = event as CustomEvent<EventLogEntry>;
+      if (customEvent.detail) {
+        addEvent({
+          ...customEvent.detail,
+          timestamp: customEvent.detail.timestamp || Date.now()
+        });
+      }
+    };
+    
+    // Add event listener for event_log events
+    window.addEventListener('event-log-update', handleEventLog);
+    
+    // Clean up event listener when component unmounts
+    return () => {
+      window.removeEventListener('event-log-update', handleEventLog);
+    };
+  }, [addEvent]);
   
   // Load initial events
   useEffect(() => {

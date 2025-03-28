@@ -43,6 +43,7 @@ class SSEServer:
         self.app = Flask(__name__)
         self.clients = set()
         self.plc_bridge = plc_bridge
+        self.logger = logging.getLogger(__name__)
         
         # Configure CORS
         CORS(self.app)
@@ -52,36 +53,87 @@ class SSEServer:
         self.app.route('/signals')(self.get_signals)
         self.app.route('/write_signal', methods=['POST'])(self.write_signal)
         self.app.route('/events/history')(self.get_event_history)
+        self.app.route('/shutdown')(self.shutdown)
         
+    def _cleanup_stale_connections(self):
+        """Periodically clean up stale connections"""
+        while True:
+            try:
+                # Log current connection count
+                self.logger.info(f"Connection cleanup check - Current clients: {len(self.clients)}")
+                
+                # Sleep for a while
+                time.sleep(60)  # Check every minute
+            except Exception as e:
+                self.logger.error(f"Error in connection cleanup: {e}")
+                time.sleep(5)  # Prevent tight error loop
+    
     def start(self):
         """Start the SSE server in a separate thread"""
+        # Check if the port is available
+        try:
+            # Try to create a socket on the port to check if it's available
+            import socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.bind((self.host, self.port))
+            s.close()
+            # Port is available
+            self.logger.info(f"Starting SSE server on http://{self.host}:{self.port}")
+        except socket.error:
+            # Port is not available
+            self.logger.error(f"Port {self.port} is already in use. Cannot start SSE server.")
+            self.logger.error("Please ensure all other instances of the PLC Bridge are stopped.")
+            self.logger.error("You can use 'pkill -f \"python bridge.py\"' to kill all instances.")
+            raise RuntimeError(f"Port {self.port} is already in use. Cannot start SSE server.")
+        
+        # Start the Flask app in a separate thread
         threading.Thread(target=self.app.run,
                          kwargs={'host': self.host, 'port': self.port, 'threaded': True},
                          daemon=True).start()
         
+        # Start the connection cleanup thread
+        threading.Thread(target=self._cleanup_stale_connections,
+                         daemon=True).start()
+        
     def sse_stream(self):
-        """SSE stream endpoint"""
+        """SSE stream endpoint with proper event formatting and connection cleanup"""
         def event_stream():
             client = SSEClient()
+            client_id = id(client)  # Get unique ID for this client
             self.clients.add(client)
+            self.logger.info(f"New SSE client connected (ID: {client_id}). Total clients: {len(self.clients)}")
+            
             try:
-                # Send initial connection message
-                yield f"data: {json.dumps({'type': 'connection', 'status': 'connected'})}\n\n"
+                # Send initial connection message (properly formatted)
+                yield "data: {}\n\n".format(json.dumps({'type': 'connection', 'status': 'connected'}))
                 
-                # Keep connection alive
+                # Keep connection alive with timeout detection
+                heartbeat_count = 0
+                max_missed_heartbeats = 3  # Consider connection dead after 3 missed heartbeats
+                
                 while True:
                     if client.has_event():
                         event = client.get_event()
-                        yield f"event: {event['type']}\n"
-                        yield f"data: {json.dumps(event['data'])}\n\n"
+                        # Yield complete event in one statement
+                        yield "event: {}\ndata: {}\n\n".format(event['type'], json.dumps(event['data']))
                     else:
-                        # Send heartbeat every 2 seconds
-                        yield f"event: heartbeat\ndata: {time.time()}\n\n"
-                        time.sleep(2)
-            except:
-                pass
+                        # Send heartbeat every 5 seconds
+                        yield "event: heartbeat\ndata: {}\n\n".format(time.time())
+                        heartbeat_count += 1
+                        
+                        # Check if client is still connected every few heartbeats
+                        if heartbeat_count >= max_missed_heartbeats:
+                            heartbeat_count = 0
+                            # This will raise an exception if the client is disconnected
+                            yield ""
+                            
+                        time.sleep(5)
+            except Exception as e:
+                self.logger.error(f"Error in SSE stream for client {client_id}: {e}")
             finally:
-                self.clients.remove(client)
+                if client in self.clients:
+                    self.clients.remove(client)
+                    self.logger.info(f"SSE client disconnected (ID: {client_id}). Remaining clients: {len(self.clients)}")
                 
         return Response(event_stream(), mimetype="text/event-stream")
     
@@ -132,27 +184,151 @@ class SSEServer:
             
         except Exception as e:
             return jsonify({"success": False, "message": str(e)})
-    
     def get_event_history(self):
         """API endpoint to get event history"""
         if not self.plc_bridge:
             return jsonify({"events": [], "error": "PLC Bridge not initialized"})
             
         return jsonify({"events": self.plc_bridge.event_history})
+    
+    def shutdown(self):
+        """Shutdown the Flask server"""
+        self.logger.info("Shutdown request received")
         
+        # Function to shutdown the Werkzeug server
+        func = request.environ.get('werkzeug.server.shutdown')
+        if func is None:
+            self.logger.warning("Not running with Werkzeug server, cannot shut down cleanly")
+            return jsonify({"status": "error", "message": "Not running with Werkzeug server"})
+            
+        func()
+        return jsonify({"status": "success", "message": "Server shutting down..."})
+        return jsonify({"events": self.plc_bridge.event_history})
+        
+    def stop(self):
+        """Stop the SSE server and release resources"""
+        self.logger.info("Stopping SSE server...")
+        
+        # Clear all clients
+        self.clients.clear()
+        
+        # Attempt to shutdown the Flask server
+        try:
+            # Get the werkzeug server
+            import requests
+            # Make a request to shut down the server
+            try:
+                requests.get(f"http://localhost:{self.port}/shutdown", timeout=1)
+            except:
+                pass
+            
+            # Try to manually close any sockets on this port
+            import socket
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(1)
+                s.connect(('localhost', self.port))
+                s.close()
+            except:
+                pass
+            
+            self.logger.info(f"SSE server on port {self.port} stopped")
+        except Exception as e:
+            self.logger.error(f"Error stopping SSE server: {e}")
+    
     def publish_event(self, event_type, data):
-        """Publish an event to all connected clients"""
-        # Make a copy of the clients set to avoid "Set changed size during iteration" error
-        clients_copy = self.clients.copy()
+        """Publish an event to all connected clients with proper error handling and throttling"""
+        # Skip if no clients are connected
+        if not self.clients:
+            return
+            
+        # Initialize throttling data structures if they don't exist
+        if not hasattr(self, '_last_event_updates'):
+            self._last_event_updates = {}
+        if not hasattr(self, '_event_counts'):
+            self._event_counts = {}
+        if not hasattr(self, '_last_event_log_time'):
+            self._last_event_log_time = time.time()
+            
+        # Get the current time
+        now = time.time()
+        
+        # Define throttling intervals for different event types (in seconds)
+        throttle_intervals = {
+            'signal_update': 1.0,        # Max 1 update per second per signal
+            'signal_updates_batch': 1.0,  # Max 1 batch per second
+            'status_update': 5.0,        # Max 1 status update every 5 seconds
+            'heartbeat': 10.0,           # Max 1 heartbeat every 10 seconds
+            'event_log': 2.0,            # Max 1 event log every 2 seconds
+            'error': 5.0,                # Max 1 error event every 5 seconds
+            'default': 1.0               # Default for other event types
+        }
+        
+        # Get the appropriate throttle interval
+        throttle_interval = throttle_intervals.get(event_type, throttle_intervals['default'])
+        
+        # For signal updates, throttle by signal name
+        if event_type == 'signal_update':
+            signal_name = data.get('name', '')
+            if signal_name:
+                # Check if we've published this signal recently
+                last_update = self._last_event_updates.get(f"signal:{signal_name}", 0)
+                if now - last_update < throttle_interval:
+                    return
+                
+                # Update the last update time
+                self._last_event_updates[f"signal:{signal_name}"] = now
+        # For other event types, throttle by event type
+        else:
+            # Check if we've published this event type recently
+            last_update = self._last_event_updates.get(event_type, 0)
+            if now - last_update < throttle_interval:
+                return
+                
+            # Update the last update time
+            self._last_event_updates[event_type] = now
+            
+        # Count events for logging
+        self._event_counts[event_type] = self._event_counts.get(event_type, 0) + 1
+        
+        # Log event counts periodically
+        if now - self._last_event_log_time > 10.0:  # Every 10 seconds
+            if self._event_counts:
+                self.logger.info(f"Events published in last 10s: {self._event_counts}")
+            self._event_counts = {}
+            self._last_event_log_time = now
+        
+        # Make a copy of the clients set to avoid "set changed size during iteration" errors
+        clients_copy = set(self.clients)
+        
+        # Skip if no clients
+        if not clients_copy:
+            return
+            
+        # Track how many clients we successfully sent to
+        success_count = 0
+        
         for client in clients_copy:
             try:
-                client.add_event({'type': event_type, 'data': data})
+                client.add_event({
+                    'type': event_type,
+                    'data': data
+                })
+                success_count += 1
             except Exception as e:
-                # Handle any errors that might occur when adding an event to a client
-                print(f"Error sending event to client: {e}")
-                # If the client is no longer valid, remove it from the original set
-                if client in self.clients:
-                    self.clients.remove(client)
+                # If we can't add an event to a client, it's likely disconnected
+                self.logger.warning(f"Failed to add event to client (ID: {id(client)}): {e}")
+                # Try to remove the client from the set
+                try:
+                    if client in self.clients:
+                        self.clients.remove(client)
+                        self.logger.info(f"Removed stale client (ID: {id(client)}). Remaining clients: {len(self.clients)}")
+                except Exception as remove_error:
+                    self.logger.error(f"Error removing stale client: {remove_error}")
+        
+        # Log summary
+        if success_count > 0:
+            self.logger.debug(f"Published {event_type} event to {success_count}/{len(clients_copy)} clients")
 
 class ModbusSignal:
     """Representation of a Modbus signal"""
@@ -355,38 +531,75 @@ class PLCBridge:
             return False
     
     def _connect_client(self, connection_name):
-        """Connect to a Modbus client"""
+        """Connect to a Modbus client with improved error handling and throttling"""
         if connection_name not in self.modbus_clients:
             self.logger.error(f"Unknown connection: {connection_name}")
             return False
             
         client_info = self.modbus_clients[connection_name]
+        
+        # If already connected, return True
         if client_info['connected']:
             return True
             
+        # Check if we've tried to connect recently
+        now = time.time()
+        last_attempt = client_info.get('last_connect_attempt', 0)
+        retry_interval = client_info.get('retry_interval', 5.0)  # Start with 5 seconds
+        
+        # If we've tried recently, don't try again yet
+        if now - last_attempt < retry_interval:
+            return False
+            
+        # Update last attempt time
+        client_info['last_connect_attempt'] = now
+        
+        # Try to connect
         try:
             client = client_info['client']
+            host = client_info['host']
+            port = client_info['port']
+            
+            # Try to connect
             if client.connect():
                 client_info['connected'] = True
-                self.logger.info(f"Connected to {connection_name} at {client_info['host']}:{client_info['port']}")
+                client_info['retry_interval'] = 5.0  # Reset retry interval on success
+                client_info['connect_failures'] = 0  # Reset failure count
+                self.logger.info(f"Connected to {connection_name} at {host}:{port}")
                 return True
             else:
-                self.logger.error(f"Failed to connect to {connection_name}")
+                # Increment failure count and increase retry interval
+                failures = client_info.get('connect_failures', 0) + 1
+                client_info['connect_failures'] = failures
+                
+                # Exponential backoff with max of 60 seconds
+                client_info['retry_interval'] = min(retry_interval * 1.5, 60.0)
+                
+                self.logger.error(f"Failed to connect to {connection_name} (attempt {failures}). Will retry in {client_info['retry_interval']:.1f}s")
                 return False
+                
         except Exception as e:
-            self.logger.error(f"Error connecting to {connection_name}: {e}")
+            # Increment failure count and increase retry interval
+            failures = client_info.get('connect_failures', 0) + 1
+            client_info['connect_failures'] = failures
+            
+            # Exponential backoff with max of 60 seconds
+            client_info['retry_interval'] = min(retry_interval * 1.5, 60.0)
+            
+            self.logger.error(f"Error connecting to {connection_name} (attempt {failures}): {e}")
             return False
     
     def _poll_signals(self):
-        """Continuously poll signals and update via SSE"""
+        """Continuously poll signals and update via SSE with improved throttling"""
         last_status_update = 0
-        status_update_interval = 2  # Send status updates every 2 seconds
+        status_update_interval = 10  # Send status updates every 10 seconds (increased from 2)
         
         while self.running:
             try:
-                # Publish status update periodically
+                # Publish status update periodically (only if there are clients)
                 current_time = time.time()
                 if current_time - last_status_update > status_update_interval:
+                    # The _publish_status_update method now checks for clients
                     self._publish_status_update()
                     last_status_update = current_time
                 
@@ -592,8 +805,14 @@ class PLCBridge:
             return False
     
     def _publish_signal_update(self, signal: ModbusSignal):
-        """Publish a signal update via SSE"""
+        """Publish a signal update via SSE with improved batching and throttling"""
         try:
+            # Initialize batch collection if it doesn't exist
+            if not hasattr(self, '_signal_update_batch'):
+                self._signal_update_batch = []
+                self._last_batch_time = time.time()
+                self._batch_sizes = []  # Track batch sizes for logging
+                
             # Create event data
             update_data = {
                 'name': signal.name,
@@ -603,10 +822,45 @@ class PLCBridge:
                 'source': 'plc_bridge'
             }
             
-            # Publish via SSE
-            self.sse_server.publish_event('signal_update', update_data)
+            # Add to batch
+            self._signal_update_batch.append(update_data)
             
-            # Log the event
+            # Check if it's time to send the batch
+            now = time.time()
+            batch_interval = 1.0  # Send batch every 1 second (increased from 0.5)
+            max_batch_size = 25   # Maximum batch size (increased from 10)
+            
+            # Only send batches if there are clients connected
+            if self.sse_server.clients and (now - getattr(self, '_last_batch_time', 0) >= batch_interval or
+                                           len(self._signal_update_batch) >= max_batch_size):
+                # Send the batch
+                if len(self._signal_update_batch) > 1:
+                    # Send as batch
+                    self.sse_server.publish_event('signal_updates_batch', {'updates': self._signal_update_batch})
+                    self.logger.debug(f"Published batch of {len(self._signal_update_batch)} signal updates")
+                    
+                    # Track batch sizes for logging
+                    self._batch_sizes.append(len(self._signal_update_batch))
+                    if len(self._batch_sizes) > 10:
+                        avg_batch_size = sum(self._batch_sizes) / len(self._batch_sizes)
+                        self.logger.info(f"Average batch size: {avg_batch_size:.1f} signals (last 10 batches)")
+                        self._batch_sizes = []
+                        
+                elif len(self._signal_update_batch) == 1:
+                    # Send as single update
+                    self.sse_server.publish_event('signal_update', self._signal_update_batch[0])
+                
+                # Reset batch
+                self._signal_update_batch = []
+                self._last_batch_time = now
+            # If no clients are connected, periodically clear the batch to prevent memory buildup
+            elif not self.sse_server.clients and (now - getattr(self, '_last_batch_time', 0) >= 5.0 or
+                                                 len(self._signal_update_batch) >= 100):
+                self.logger.debug(f"No clients connected, discarding batch of {len(self._signal_update_batch)} signal updates")
+                self._signal_update_batch = []
+                self._last_batch_time = now
+            
+            # Log the event (but don't send individual event_log events for each signal update)
             event_data = {
                 'event_type': 'Signal Update',
                 'status': 'Success',
@@ -620,8 +874,9 @@ class PLCBridge:
             # Add to event history
             self._add_event_to_history(event_data)
             
-            # Publish event log via SSE
-            self.sse_server.publish_event('event_log', event_data)
+            # Only send event_log events very occasionally to reduce traffic
+            if random.random() < 0.01:  # Only send ~1% of event logs (reduced from 10%)
+                self.sse_server.publish_event('event_log', event_data)
             
             # Process any actions triggered by this signal
             self._process_signal_actions(signal.name, signal.value)
@@ -748,7 +1003,22 @@ class PLCBridge:
             self.logger.error(f"Error processing actions for signal {signal_name}: {e}")
     
     def _publish_status_update(self):
-        """Publish PLC Bridge status update"""
+        """Publish PLC Bridge status update with client check"""
+        # Only publish if there are clients connected
+        if not self.sse_server.clients:
+            return
+            
+        # Initialize last status update time if it doesn't exist
+        if not hasattr(self, '_last_status_update_time'):
+            self._last_status_update_time = 0
+            
+        # Throttle status updates to once every 5 seconds
+        now = time.time()
+        if now - getattr(self, '_last_status_update_time', 0) < 5.0:
+            return
+            
+        self._last_status_update_time = now
+        
         status_data = {
             'connected': self.running,
             'connections': [
@@ -759,7 +1029,7 @@ class PLCBridge:
                 }
                 for conn_name, conn_info in self.modbus_clients.items()
             ],
-            'timestamp': time.time()
+            'timestamp': now
         }
         
         # Publish via SSE
@@ -770,6 +1040,30 @@ class PLCBridge:
         if self.running:
             self.logger.warning("Bridge already running")
             return
+            
+        # Check for existing processes using port 7654
+        try:
+            import socket
+            import psutil
+            
+            # Try to create a socket on port 7654 to check if it's available
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.bind(('0.0.0.0', 7654))
+            s.close()
+            self.logger.info("Port 7654 is available")
+        except socket.error:
+            self.logger.warning("Port 7654 is already in use, checking for processes")
+            
+            # Find processes using port 7654
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    for conn in proc.connections(kind='inet'):
+                        if conn.laddr.port == 7654:
+                            self.logger.warning(f"Process using port 7654: PID={proc.pid}, Name={proc.name()}, Command={' '.join(proc.cmdline())}")
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
+        except ImportError:
+            self.logger.warning("psutil module not available, cannot check for processes using port 7654")
         
         # Load signals
         if not self.load_signals():
@@ -842,6 +1136,8 @@ class PLCBridge:
     
     def stop(self):
         """Stop the PLC bridge"""
+        self.logger.info("Stopping PLC Bridge...")
+        
         # Publish final status update
         try:
             self._publish_status_update()
@@ -850,10 +1146,21 @@ class PLCBridge:
             
         self.running = False
         
+        # Stop the polling thread
         if self.poll_thread:
+            self.logger.info("Waiting for polling thread to stop...")
             self.poll_thread.join(timeout=2)
+            if self.poll_thread.is_alive():
+                self.logger.warning("Polling thread did not stop gracefully within timeout")
         
-        # Disconnect all clients
+        # Stop the SSE server
+        try:
+            self.logger.info("Stopping SSE server...")
+            self.sse_server.stop()
+        except Exception as e:
+            self.logger.error(f"Error stopping SSE server: {e}")
+        
+        # Disconnect all Modbus clients
         for connection_name, client_info in self.modbus_clients.items():
             if client_info['connected']:
                 try:
@@ -864,7 +1171,7 @@ class PLCBridge:
                     self.logger.error(f"Error disconnecting from {connection_name}: {e}")
         
         # Log final shutdown message
-        self.logger.info("PLC Bridge stopped")
+        self.logger.info("PLC Bridge stopped successfully")
 
 def main():
     """Entry point for PLC Bridge"""
@@ -883,6 +1190,18 @@ def main():
         poll_interval=args.poll_interval
     )
     
+    # Set up signal handlers for graceful shutdown
+    import signal
+    
+    def signal_handler(sig, frame):
+        print(f"Received signal {sig}, shutting down gracefully...")
+        bridge.stop()
+        sys.exit(0)
+    
+    # Register signal handlers for both SIGINT (Ctrl+C) and SIGTERM (kill, supervisor stop)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
     try:
         bridge.start()
         
@@ -891,6 +1210,7 @@ def main():
             time.sleep(1)
     
     except KeyboardInterrupt:
+        # This is a fallback in case the signal handler doesn't catch it
         bridge.stop()
     except Exception as e:
         print(f"Unhandled exception: {e}")
