@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSignalMonitor } from '../hooks/useSignalMonitor';
+import { useSignalMonitorContext } from '../contexts/SignalMonitorContext';
 
 interface SignalControlProps {
   signalName: string;
@@ -7,12 +7,12 @@ interface SignalControlProps {
   className?: string;
 }
 
-export const SignalControl: React.FC<SignalControlProps> = ({ 
-  signalName, 
+export const SignalControl: React.FC<SignalControlProps> = ({
+  signalName,
   label,
-  className = '' 
+  className = ''
 }) => {
-  const { signals, writeSignal } = useSignalMonitor();
+  const { signals, writeSignal } = useSignalMonitorContext();
   const [isWriting, setIsWriting] = useState(false);
   
   // Get signal value

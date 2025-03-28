@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useEventSource } from './useEventSource';
 import {
   SSE_EVENTS_ENDPOINT,
@@ -36,47 +36,89 @@ export function useSignalMonitor() {
   const [connected, setConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<StatusUpdate | null>(null);
   
-  // Unified signal update function with priority handling
+  // Simplified signal update function with cleaner priority handling
   const updateSignal = useCallback((signal: string, value: any, source = 'sse', timestamp = Date.now()) => {
     setSignals(prev => {
-      // Skip if we have a higher priority recent update
       const current = prev[signal];
-      const priority = { verification: 3, plc_bridge_write: 2, sse: 1, write_request: 0 };
-      if (current && 
-          (priority[current.source as keyof typeof priority] || -1) > (priority[source as keyof typeof priority] || -1) &&
+      
+      // Simplified priority system - clear hierarchy with fewer levels
+      const priorities = { verification: 3, plc_bridge: 2, sse: 1, write_request: 0 };
+      const currentPriority = current?.source ? (priorities[current.source as keyof typeof priorities] ?? -1) : -1;
+      const newPriority = priorities[source as keyof typeof priorities] ?? -1;
+      
+      // Skip update if current value has higher priority and is recent (within 3 seconds)
+      if (current &&
+          currentPriority > newPriority &&
           current.timestamp > timestamp - 3000) {
         return prev;
       }
       
       // Update signal and dispatch local event
       const newValue = { value, timestamp, source };
-      window.dispatchEvent(new CustomEvent('local-signal-update', { 
-        detail: { signal, value, timestamp, source } 
-      }));
+      
+      // Only dispatch event if value actually changed
+      if (!current || current.value !== value) {
+        window.dispatchEvent(new CustomEvent('local-signal-update', {
+          detail: { signal, value, timestamp, source }
+        }));
+      }
       
       return { ...prev, [signal]: newValue };
     });
   }, []);
   
-  // Event handlers for SSE
+  // Unified handler for both single and batch signal updates
+  const handleSignalUpdates = useCallback((updates: SignalUpdate | SignalUpdate[]) => {
+    // Convert single update to array for unified processing
+    const updatesArray = Array.isArray(updates) ? updates : [updates];
+    
+    // Process all updates in a single state update for better performance
+    setSignals(prev => {
+      const newSignals = { ...prev };
+      
+      updatesArray.forEach(update => {
+        if (!update?.name) return;
+        
+        // Use the source from the event or default to 'plc_bridge'
+        const source = update.source || 'plc_bridge';
+        const timestamp = update.timestamp * 1000;
+        
+        // Create new value object
+        const newValue = {
+          value: update.value,
+          timestamp,
+          source
+        };
+        
+        // Store in the new signals object
+        newSignals[update.name] = newValue;
+        
+        // Dispatch local event only if value changed
+        const current = prev[update.name];
+        if (!current || current.value !== update.value) {
+          window.dispatchEvent(new CustomEvent('local-signal-update', {
+            detail: { signal: update.name, value: update.value, timestamp, source }
+          }));
+        }
+      });
+      
+      return newSignals;
+    });
+  }, []);
+  
+  // Simplified event handlers with unified signal update handling
   const eventHandlers = {
     signal_update: (data: SignalUpdate) => {
       if (data?.name) {
-        updateSignal(data.name, data.value, data.source, data.timestamp * 1000);
+        handleSignalUpdates(data);
       }
     },
     signal_updates_batch: (data: { updates: SignalUpdate[] }) => {
       if (data?.updates && Array.isArray(data.updates)) {
-        console.log(`Processing batch of ${data.updates.length} signal updates`);
-        data.updates.forEach(update => {
-          if (update?.name) {
-            updateSignal(update.name, update.value, update.source, update.timestamp * 1000);
-          }
-        });
+        handleSignalUpdates(data.updates);
       }
     },
     status_update: (data: StatusUpdate) => {
-      console.log('Received status update:', data);
       setConnected(data.connected);
       setConnectionStatus(data);
     },
@@ -91,7 +133,7 @@ export function useSignalMonitor() {
     },
     error: (data: any) => {
       console.error('PLC Bridge error:', data);
-      // Also dispatch error events to be captured by useEventLog
+      
       window.dispatchEvent(new CustomEvent('event-log-update', {
         detail: {
           event_type: 'Error',
@@ -106,7 +148,7 @@ export function useSignalMonitor() {
   // Connect to SSE only if enabled
   const { connected: sseConnected } = ENABLE_SSE_CONNECTION
     ? useEventSource(SSE_EVENTS_ENDPOINT, {
-        onOpen: () => console.log('Connected to PLC Bridge SSE - Ready to receive updates'),
+        onOpen: () => console.log('Connected to PLC Bridge SSE'),
         onError: (error) => console.error('PLC Bridge SSE error:', error),
         eventHandlers
       })
@@ -114,12 +156,7 @@ export function useSignalMonitor() {
   
   // Update connected state based on SSE connection
   useEffect(() => {
-    if (!ENABLE_SSE_CONNECTION) {
-      console.warn('PLC Bridge SSE connection is disabled in config. Using mock or fallback data.');
-      setConnected(false);
-    } else {
-      setConnected(sseConnected);
-    }
+    setConnected(ENABLE_SSE_CONNECTION ? sseConnected : false);
   }, [sseConnected]);
   
   // Load initial data
@@ -127,14 +164,12 @@ export function useSignalMonitor() {
     const loadInitialData = async () => {
       try {
         if (!ENABLE_SSE_CONNECTION) {
-          console.warn('PLC Bridge is disabled. Using mock data for signals.');
-          // Create some mock signals for testing when PLC Bridge is unavailable
-          const mockSignals: Record<string, SignalValue> = {
+          // Simplified mock data for testing when PLC Bridge is unavailable
+          setSignals({
             'mock_signal_1': { value: true, timestamp: Date.now(), source: 'mock' },
             'mock_signal_2': { value: false, timestamp: Date.now(), source: 'mock' },
             'mock_signal_3': { value: 42, timestamp: Date.now(), source: 'mock' }
-          };
-          setSignals(mockSignals);
+          });
           return;
         }
         
@@ -157,12 +192,6 @@ export function useSignalMonitor() {
         }
       } catch (error) {
         console.error('Failed to load initial signals:', error);
-        
-        if (ENABLE_SSE_CONNECTION) {
-          // If we're trying to use the real PLC Bridge but it failed,
-          // suggest disabling it in the config
-          console.warn('Consider setting ENABLE_SSE_CONNECTION to false in config.ts if the PLC Bridge is unavailable');
-        }
       }
     };
     
@@ -176,11 +205,8 @@ export function useSignalMonitor() {
     
     // If SSE is disabled, just return a mock success response
     if (!ENABLE_SSE_CONNECTION) {
-      console.log('PLC Bridge is disabled. Mock signal write:', { signalName, value });
-      // Simulate a successful write with a delay
       return new Promise<boolean>(resolve => {
         setTimeout(() => {
-          // Update the signal with a "verification" source to simulate the PLC confirming the change
           updateSignal(signalName, value, 'verification');
           resolve(true);
         }, 500);

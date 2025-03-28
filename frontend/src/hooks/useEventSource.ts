@@ -50,18 +50,11 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
     eventCountRef.current = {};
     lastLogTimeRef.current = Date.now();
     
-    // Log event stats periodically
+    // No need for event stats logging in production
     const statsInterval = setInterval(() => {
-      const now = Date.now();
-      const elapsed = (now - lastLogTimeRef.current) / 1000;
-      
-      if (Object.keys(eventCountRef.current).length > 0) {
-        console.log(`SSE Events in last ${elapsed.toFixed(1)}s:`, { ...eventCountRef.current });
-      }
-      
-      // Reset counters
+      // Reset counters silently
       eventCountRef.current = {};
-      lastLogTimeRef.current = now;
+      lastLogTimeRef.current = Date.now();
     }, 5000);
     
     // Check connection health periodically
@@ -72,8 +65,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
       // If we haven't received any events (including heartbeats) for too long,
       // the connection is probably stale
       if (timeSinceLastEvent > connectionTimeout && eventSourceRef.current) {
-        console.warn(`Connection appears stale (${(timeSinceLastEvent/1000).toFixed(1)}s since last event). Reconnecting...`);
-        
         // Force reconnection
         if (eventSourceRef.current) {
           eventSourceRef.current.close();
@@ -94,8 +85,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
     connectionHealthTimer = window.setInterval(checkConnectionHealth, 5000);
     
     const createEventSource = () => {
-      console.log(`Creating EventSource connection to ${url}`);
-      
       // Close any existing connection first
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
@@ -110,7 +99,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
         lastEventTime = Date.now();
         
         eventSource.onopen = () => {
-          console.log('EventSource connection opened');
           setConnected(true);
           retryCount = 0; // Reset retry count on successful connection
           lastEventTime = Date.now(); // Reset timer
@@ -118,12 +106,10 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
         };
         
         eventSource.onerror = (error) => {
-          console.error('EventSource error:', error);
           totalRetries++;
           
           // Give up completely after too many total retries
           if (totalRetries >= maxTotalRetries) {
-            console.error(`Giving up after ${totalRetries} total connection attempts. SSE server appears to be unavailable.`);
             setConnected(false);
             options.onError?.(error);
             return; // Don't retry anymore
@@ -143,7 +129,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
           } else {
             // Try to reconnect
             retryCount++;
-            console.log(`Retrying EventSource connection (attempt ${retryCount}/${maxRetries}, total: ${totalRetries}/${maxTotalRetries})...`);
             
             // Close the current connection
             eventSource.close();
@@ -151,7 +136,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
             
             // Reconnect after a delay with exponential backoff
             const delay = Math.min(retryDelay * Math.pow(1.5, retryCount), maxRetryDelay);
-            console.log(`Will retry in ${delay/1000} seconds`);
             
             if (reconnectTimer) window.clearTimeout(reconnectTimer);
             reconnectTimer = window.setTimeout(() => {
@@ -162,19 +146,16 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
         
         return eventSource;
       } catch (error) {
-        console.error('Error creating EventSource:', error);
         setConnected(false);
         totalRetries++;
         
         // Give up completely after too many total retries
         if (totalRetries >= maxTotalRetries) {
-          console.error(`Giving up after ${totalRetries} total connection attempts. SSE server appears to be unavailable.`);
           return null;
         }
         
         // Try again after a delay with exponential backoff
         const delay = Math.min(retryDelay * Math.pow(1.5, retryCount), maxRetryDelay);
-        console.log(`Error creating EventSource. Will retry in ${delay/1000} seconds (total attempts: ${totalRetries}/${maxTotalRetries})`);
         
         if (reconnectTimer) window.clearTimeout(reconnectTimer);
         reconnectTimer = window.setTimeout(() => {
@@ -194,21 +175,7 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
         // Update last event time on any activity
         lastEventTime = Date.now();
         
-        // Log all events for debugging
-        console.log(`[DEBUG] Received ${eventName} event:`, {
-          eventName,
-          data: event.data,
-          dataLength: event.data?.length || 0,
-          eventType: event.type,
-          eventTarget: event.target,
-          eventCurrentTarget: event.currentTarget,
-          eventOrigin: event.origin,
-          eventSource: event.source,
-          eventPorts: event.ports,
-          eventLastEventId: event.lastEventId,
-          eventTimestamp: new Date().toISOString(),
-          url: url
-        });
+        // Skip detailed logging for production
         
         // Skip empty events
         if (!event.data || event.data.length === 0) {
@@ -230,8 +197,7 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
         const throttleInterval = throttleIntervalRef.current[eventName] || throttleIntervalRef.current.default;
         
         if (now - lastTime < throttleInterval) {
-          // Skip this event due to throttling
-          console.log(`[DEBUG] Throttling ${eventName} event (last: ${lastTime}, now: ${now}, interval: ${throttleInterval})`);
+          // Skip this event due to throttling (no logging needed)
           return;
         }
         
@@ -240,32 +206,31 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
         
         // Process the event
         try {
-          console.log(`[DEBUG] Processing ${eventName} event data:`, event.data);
           const data = JSON.parse(event.data);
-          console.log(`[DEBUG] Parsed ${eventName} event data:`, data);
-          handlersRef.current[eventName]?.(data);
+          
+          if (handlersRef.current[eventName]) {
+            handlersRef.current[eventName](data);
+          } else {
+            console.warn(`No handler found for ${eventName} event`);
+          }
         } catch (error) {
           console.error(`Error parsing ${eventName} event data:`, error);
+          console.error(`Raw event data: ${event.data}`);
         }
       };
       
       // Only set up listeners if we have a valid EventSource
       if (eventSource) {
-        // Default message handler with debugging
-        console.log(`[DEBUG] Setting up onmessage handler for EventSource at ${url}`);
+        // Default message handler
         eventSource.onmessage = (event) => {
-          console.log(`[DEBUG] onmessage event received from ${url}`);
           processEvent('message', event);
         };
         
-        // Add handlers for specific events with debugging
+        // Add handlers for specific events
         if (handlersRef.current) {
-          console.log(`[DEBUG] Setting up event handlers for EventSource at ${url}:`, Object.keys(handlersRef.current));
           Object.entries(handlersRef.current).forEach(([eventName, _handler]) => {
             if (eventName !== 'message') {
-              console.log(`[DEBUG] Adding event listener for ${eventName} on EventSource at ${url}`);
               eventSource.addEventListener(eventName, (event: MessageEvent) => {
-                console.log(`[DEBUG] ${eventName} event received from ${url}`);
                 processEvent(eventName, event);
               });
             }
@@ -287,7 +252,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
       
       // Close connection
       if (eventSourceRef.current) {
-        console.log('Closing EventSource connection');
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
@@ -298,7 +262,6 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
   // Method to manually close the connection
   const close = useCallback(() => {
     if (eventSourceRef.current) {
-      console.log('Manually closing EventSource connection');
       eventSourceRef.current.close();
       eventSourceRef.current = null;
       setConnected(false);

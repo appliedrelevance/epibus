@@ -1,12 +1,12 @@
 import React from 'react';
-import { useSignalMonitor } from '../hooks/useSignalMonitor';
+import { useSignalMonitorContext } from '../contexts/SignalMonitorContext';
 
 interface PLCStatusProps {
   className?: string;
 }
 
 export const PLCStatus: React.FC<PLCStatusProps> = ({ className = '' }) => {
-  const { signals, connected, connectionStatus } = useSignalMonitor();
+  const { signals, connected, connectionStatus } = useSignalMonitorContext();
   
   // Check if PLC cycle is running
   const cycleRunning = signals['WAREHOUSE-ROBOT-1-CYCLE_RUNNING']?.value === true;

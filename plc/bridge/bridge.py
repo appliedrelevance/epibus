@@ -67,23 +67,63 @@ class SSEServer:
             except Exception as e:
                 self.logger.error(f"Error in connection cleanup: {e}")
                 time.sleep(5)  # Prevent tight error loop
-    
     def start(self):
         """Start the SSE server in a separate thread"""
         # Check if the port is available
         try:
             # Try to create a socket on the port to check if it's available
             import socket
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.bind((self.host, self.port))
-            s.close()
-            # Port is available
+            import subprocess
+            
+            # First, check if the port is in use
+            try:
+                # Try to bind to the port without SO_REUSEADDR to check if it's truly available
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.bind((self.host, self.port))
+                s.close()
+                self.logger.info(f"Port {self.port} is available")
+            except socket.error:
+                self.logger.warning(f"Port {self.port} is already in use, checking for processes")
+            
+            # Try to find and kill any processes using this port
+            try:
+                result = subprocess.run(
+                    f"lsof -i :{self.port} -t",
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True
+                )
+                
+                if result.stdout.strip():
+                    pids = result.stdout.strip().split('\n')
+                    self.logger.info(f"Found processes using port {self.port}: {pids}")
+                    
+                    # Kill each process
+                    for pid in pids:
+                        if pid.strip():
+                            try:
+                                self.logger.info(f"Killing process {pid} using port {self.port}")
+                                subprocess.run(f"kill -9 {pid}", shell=True)
+                            except Exception as kill_error:
+                                self.logger.warning(f"Error killing process {pid}: {kill_error}")
+                    
+                    # Wait a moment for the processes to be killed
+                    import time
+                    time.sleep(1)
+            except Exception as proc_error:
+                self.logger.warning(f"Error checking/killing processes: {proc_error}")
+            
+            # Now try to bind to the port without SO_REUSEADDR
+            # This was already done at the beginning of this method, so we can skip it here
+            # and just start the server
             self.logger.info(f"Starting SSE server on http://{self.host}:{self.port}")
         except socket.error:
             # Port is not available
             self.logger.error(f"Port {self.port} is already in use. Cannot start SSE server.")
             self.logger.error("Please ensure all other instances of the PLC Bridge are stopped.")
             self.logger.error("You can use 'pkill -f \"python bridge.py\"' to kill all instances.")
+            raise RuntimeError(f"Port {self.port} is already in use. Cannot start SSE server.")
             raise RuntimeError(f"Port {self.port} is already in use. Cannot start SSE server.")
         
         # Start the Flask app in a separate thread
@@ -218,19 +258,43 @@ class SSEServer:
             import requests
             # Make a request to shut down the server
             try:
-                requests.get(f"http://localhost:{self.port}/shutdown", timeout=1)
-            except:
-                pass
+                requests.get(f"http://localhost:{self.port}/shutdown", timeout=2)
+                # Wait a moment for the server to process the shutdown request
+                import time
+                time.sleep(1)
+            except Exception as req_error:
+                self.logger.warning(f"Error requesting server shutdown: {req_error}")
             
-            # Try to manually close any sockets on this port
-            import socket
+            # Force kill any processes using this port
+            import subprocess
+            import os
             try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(1)
-                s.connect(('localhost', self.port))
-                s.close()
-            except:
-                pass
+                # Find processes using the port
+                self.logger.info(f"Checking for processes using port {self.port}")
+                result = subprocess.run(
+                    f"lsof -i :{self.port} -t",
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True
+                )
+                
+                if result.stdout.strip():
+                    pids = result.stdout.strip().split('\n')
+                    self.logger.info(f"Found processes using port {self.port}: {pids}")
+                    
+                    # Kill each process
+                    for pid in pids:
+                        if pid.strip():
+                            try:
+                                # Check if this is our own process
+                                if int(pid.strip()) != os.getpid():
+                                    self.logger.info(f"Killing process {pid} using port {self.port}")
+                                    subprocess.run(f"kill -9 {pid}", shell=True)
+                            except Exception as kill_error:
+                                self.logger.warning(f"Error killing process {pid}: {kill_error}")
+            except Exception as proc_error:
+                self.logger.warning(f"Error checking/killing processes: {proc_error}")
             
             self.logger.info(f"SSE server on port {self.port} stopped")
         except Exception as e:
@@ -819,8 +883,11 @@ class PLCBridge:
                 'signal_name': signal.signal_name,
                 'value': signal.value,
                 'timestamp': signal.last_update,
-                'source': 'plc_bridge'
+                'source': 'plc_bridge'  # Explicitly set source to 'plc_bridge'
             }
+            
+            # Log the update data for debugging
+            self.logger.debug(f"Signal update data: {update_data}")
             
             # Add to batch
             self._signal_update_batch.append(update_data)
@@ -1161,14 +1228,74 @@ class PLCBridge:
         # Stop the polling thread
         if self.poll_thread:
             self.logger.info("Waiting for polling thread to stop...")
-            self.poll_thread.join(timeout=2)
+            self.poll_thread.join(timeout=3)
             if self.poll_thread.is_alive():
                 self.logger.warning("Polling thread did not stop gracefully within timeout")
+                # Force terminate if possible
+                import ctypes
+                try:
+                    thread_id = self.poll_thread.ident
+                    if thread_id:
+                        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+                            ctypes.c_long(thread_id),
+                            ctypes.py_object(SystemExit)
+                        )
+                        if res > 1:
+                            ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread_id), None)
+                            self.logger.error("Failed to terminate polling thread")
+                except Exception as thread_error:
+                    self.logger.error(f"Error terminating polling thread: {thread_error}")
         
         # Stop the SSE server
         try:
             self.logger.info("Stopping SSE server...")
             self.sse_server.stop()
+            
+            # Verify the port is actually released
+            import socket
+            import time
+            max_retries = 5
+            retry_count = 0
+            port_released = False
+            
+            while retry_count < max_retries and not port_released:
+                try:
+                    # Try to bind to the port to check if it's released
+                    # Do not use SO_REUSEADDR to ensure the port is truly available
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.bind(('0.0.0.0', self.sse_server.port))
+                    s.close()
+                    port_released = True
+                    self.logger.info(f"Confirmed port {self.sse_server.port} is released")
+                except socket.error:
+                    retry_count += 1
+                    self.logger.warning(f"Port {self.sse_server.port} still in use, retrying ({retry_count}/{max_retries})...")
+                    time.sleep(1)
+            
+            if not port_released:
+                self.logger.error(f"Failed to release port {self.sse_server.port} after {max_retries} attempts")
+                self.logger.error("This may cause issues when restarting the PLC Bridge")
+                self.logger.error("Please check for any processes still using the port and stop them manually")
+                
+                # List processes using the port for diagnostic purposes
+                import subprocess
+                try:
+                    self.logger.info(f"Processes using port {self.sse_server.port}:")
+                    list_result = subprocess.run(
+                        f"lsof -i :{self.sse_server.port}",
+                        shell=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True
+                    )
+                    if list_result.stdout:
+                        for line in list_result.stdout.splitlines():
+                            self.logger.info(line)
+                    else:
+                        self.logger.info("No processes found using lsof")
+                except Exception as list_error:
+                    self.logger.error(f"Error listing processes: {list_error}")
+                    
         except Exception as e:
             self.logger.error(f"Error stopping SSE server: {e}")
         

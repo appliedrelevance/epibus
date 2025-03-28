@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import ModbusDashboard from './components/ModbusDashboard'
-import { useSignalMonitor } from './hooks/useSignalMonitor'
+import { SignalMonitorProvider } from './contexts/SignalMonitorContext'
 import './App.css'
 
 // Define the types for our Modbus data
@@ -27,9 +27,6 @@ function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdateSource, setLastUpdateSource] = useState<string>('');
-  
-  // Use our new SignalMonitor hook
-  const { signals, connected, connectionStatus } = useSignalMonitor();
 
   // Set up local event listener for immediate UI updates
   useEffect(() => {
@@ -41,7 +38,6 @@ function App() {
         source: string;
       }>;
       
-      console.log('Received local update event:', customEvent.detail);
       setLastUpdateSource(customEvent.detail.source || 'local');
     };
 
@@ -56,7 +52,6 @@ function App() {
 
   // Initial data load
   useEffect(() => {
-    console.log('🔄 Initial data load and status check');
     fetchModbusData();
   }, []);
 
@@ -75,8 +70,6 @@ function App() {
             return response.json();
           });
         
-        console.log('API Response:', fallbackData);
-        
         if (fallbackData && fallbackData.message && Array.isArray(fallbackData.message)) {
           setConnections(fallbackData.message);
           setLastUpdateSource('api');
@@ -93,26 +86,28 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      <ModbusDashboard
-        connections={connections}
-        loading={loading}
-        error={error}
-      />
-      {/* Debug info - can be removed in production */}
-      <div className="debug-info" style={{
-        position: 'fixed',
-        bottom: '5px',
-        right: '5px',
-        fontSize: '10px',
-        color: '#999',
-        backgroundColor: 'rgba(0,0,0,0.05)',
-        padding: '2px 5px',
-        borderRadius: '3px'
-      }}>
-        Last update: {lastUpdateSource || 'none'}
+    <SignalMonitorProvider>
+      <div className="app-container">
+        <ModbusDashboard
+          connections={connections}
+          loading={loading}
+          error={error}
+        />
+        {/* Debug info - can be removed in production */}
+        <div className="debug-info" style={{
+          position: 'fixed',
+          bottom: '5px',
+          right: '5px',
+          fontSize: '10px',
+          color: '#999',
+          backgroundColor: 'rgba(0,0,0,0.05)',
+          padding: '2px 5px',
+          borderRadius: '3px'
+        }}>
+          Last update: {lastUpdateSource || 'none'}
+        </div>
       </div>
-    </div>
+    </SignalMonitorProvider>
   );
 }
 

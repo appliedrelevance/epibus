@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ModbusSignal } from '../App';
 import ValueDisplay from './ValueDisplay';
 import ActionButtons from './ActionButtons';
-import { useSignalMonitor } from '../hooks/useSignalMonitor';
+import { useSignalMonitorContext } from '../contexts/SignalMonitorContext';
 import './SignalRow.css';
 
 interface SignalRowProps {
@@ -12,7 +12,7 @@ interface SignalRowProps {
 const SignalRow: React.FC<SignalRowProps> = ({ signal }) => {
   const [isHighlighted, setIsHighlighted] = useState<boolean>(false);
   const [updateSource, setUpdateSource] = useState<string>('');
-  const { signals: realtimeSignals } = useSignalMonitor();
+  const { signals: realtimeSignals } = useSignalMonitorContext();
   
   // Get the real-time value if available, otherwise use the prop value
   const realtimeValue = realtimeSignals[signal.name]?.value;
@@ -20,6 +20,8 @@ const SignalRow: React.FC<SignalRowProps> = ({ signal }) => {
   
   // Get the update source if available
   const source = realtimeSignals[signal.name]?.source || '';
+  
+  // No debug logging needed in production
   
   const previousValue = useRef<any>(displayValue);
   
@@ -43,7 +45,6 @@ const SignalRow: React.FC<SignalRowProps> = ({ signal }) => {
   useEffect(() => {
     // Only highlight if the value has actually changed
     if (previousValue.current !== displayValue) {
-      console.log(`Signal ${signal.name} value changed: ${previousValue.current} -> ${displayValue} (source: ${source})`);
       setIsHighlighted(true);
       
       // Update the source for visual feedback

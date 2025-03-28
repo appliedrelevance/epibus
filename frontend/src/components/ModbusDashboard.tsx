@@ -7,7 +7,7 @@ import ConnectionCard from './ConnectionCard';
 import ConnectionStatusIndicator from './ConnectionStatusIndicator';
 import { EventLog } from './EventLog';
 import { PLCStatus } from './PLCStatus';
-import { useSignalMonitor } from '../hooks/useSignalMonitor';
+import { useSignalMonitorContext } from '../contexts/SignalMonitorContext';
 import { clearAllSortPreferences } from '../utils/storageUtils';
 import './ModbusDashboard.css';
 
@@ -22,7 +22,7 @@ const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
   loading,
   error
 }) => {
-  const { connected, connectionStatus } = useSignalMonitor();
+  const { connected, connectionStatus } = useSignalMonitorContext();
   const [activeFilters, setActiveFilters] = useState({
     deviceType: '',
     signalType: ''
