@@ -822,12 +822,19 @@ export const EventLog: React.FC<EventLogProps> = ({
 - Updated useSignalMonitor and useEventLog hooks to use the configuration
 - Fixed all API endpoint URLs to work with both local and remote machines
 - Successfully built and deployed the updated frontend
-
 ### 2025-03-28: PLC Bridge Connection and UI Layout Fixes
 - Fixed issue with PLC Bridge showing "Disconnected" status
 - Identified that the PLC Bridge was still trying to log events to Frappe API, causing errors
 - Removed the call to _log_event_to_frappe in the _publish_signal_update method
 - Moved the EventLog component to the bottom of the page and made it full width
+- Improved the layout of the dashboard for better usability
+
+### 2025-03-28: Final Refinements
+- Removed the "PLC Status" header from the PLCStatus component
+- Improved the connection status message to be more descriptive
+- Reduced the status update interval from 10 seconds to 2 seconds for more responsive updates
+- Modified the SSE heartbeat interval from 30 seconds to 2 seconds
+- Added filtering in the useEventSource hook to ignore heartbeat events and reduce console noise
 - Improved the layout of the dashboard for better usability
 - Successfully built and deployed the updated frontend
 - The dashboard is fully functional with the new SSE-based implementation
