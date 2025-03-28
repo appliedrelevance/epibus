@@ -74,7 +74,7 @@ export function useSignalMonitor() {
   
   // Connect to SSE
   const { connected: sseConnected } = useEventSource(SSE_EVENTS_ENDPOINT, {
-    onOpen: () => console.log('Connected to PLC Bridge SSE'),
+    onOpen: () => console.log('Connected to PLC Bridge SSE - Ready to receive updates'),
     onError: (error) => console.error('PLC Bridge SSE error:', error),
     eventHandlers
   });

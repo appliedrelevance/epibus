@@ -48,11 +48,14 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
         Object.entries(handlersRef.current).forEach(([eventName, handler]) => {
           if (eventName !== 'message') {
             eventSource.addEventListener(eventName, (event: MessageEvent) => {
-              try {
-                const data = JSON.parse(event.data);
-                handler(data);
-              } catch (error) {
-                console.error(`Error parsing ${eventName} event data:`, error);
+              // Only process non-heartbeat events to reduce console noise
+              if (eventName !== 'heartbeat') {
+                try {
+                  const data = JSON.parse(event.data);
+                  handler(data);
+                } catch (error) {
+                  console.error(`Error parsing ${eventName} event data:`, error);
+                }
               }
             });
           }

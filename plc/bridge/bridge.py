@@ -75,9 +75,9 @@ class SSEServer:
                         yield f"event: {event['type']}\n"
                         yield f"data: {json.dumps(event['data'])}\n\n"
                     else:
-                        # Send heartbeat every 30 seconds
+                        # Send heartbeat every 2 seconds
                         yield f"event: heartbeat\ndata: {time.time()}\n\n"
-                        time.sleep(30)
+                        time.sleep(2)
             except:
                 pass
             finally:
@@ -371,7 +371,7 @@ class PLCBridge:
     def _poll_signals(self):
         """Continuously poll signals and update via SSE"""
         last_status_update = 0
-        status_update_interval = 10  # Send status updates every 10 seconds
+        status_update_interval = 2  # Send status updates every 2 seconds
         
         while self.running:
             try:

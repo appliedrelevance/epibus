@@ -17,11 +17,9 @@ export const PLCStatus: React.FC<PLCStatusProps> = ({ className = '' }) => {
   return (
     <div className={`plc-status ${className}`}>
       <div className="flex flex-col gap-2 p-4 bg-white rounded-lg shadow">
-        <h3 className="text-lg font-semibold">PLC Status</h3>
-        
         <div className="flex items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-          <span>{connected ? 'Connected' : 'Disconnected'}</span>
+          <span>{connected ? 'Connected to PLC Bridge' : 'Disconnected from PLC Bridge'}</span>
         </div>
         
         {/* Display connection status for each Modbus connection */}
