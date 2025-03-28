@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useEventSource } from './useEventSource';
+import { SSE_EVENTS_ENDPOINT, SSE_SIGNALS_ENDPOINT, SSE_WRITE_SIGNAL_ENDPOINT } from '../config';
 
 interface SignalValue {
   value: boolean | number | string;
@@ -72,7 +73,7 @@ export function useSignalMonitor() {
   };
   
   // Connect to SSE
-  const { connected: sseConnected } = useEventSource('http://localhost:7654/events', {
+  const { connected: sseConnected } = useEventSource(SSE_EVENTS_ENDPOINT, {
     onOpen: () => console.log('Connected to PLC Bridge SSE'),
     onError: (error) => console.error('PLC Bridge SSE error:', error),
     eventHandlers
@@ -87,7 +88,7 @@ export function useSignalMonitor() {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const response = await fetch('http://localhost:7654/signals');
+        const response = await fetch(SSE_SIGNALS_ENDPOINT);
         const data = await response.json();
         
         if (data.signals) {
@@ -117,7 +118,7 @@ export function useSignalMonitor() {
     updateSignal(signalName, value, 'write_request');
     
     // Send to PLC Bridge
-    return fetch('http://localhost:7654/write_signal', {
+    return fetch(SSE_WRITE_SIGNAL_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

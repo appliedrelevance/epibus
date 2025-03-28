@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useEventSource } from './useEventSource';
+import { SSE_EVENTS_ENDPOINT, SSE_EVENTS_HISTORY_ENDPOINT } from '../config';
 
 interface EventLogEntry {
   id?: string;
@@ -44,7 +45,7 @@ export function useEventLog(maxEvents = 100) {
   };
   
   // Connect to SSE
-  useEventSource('http://localhost:7654/events', {
+  useEventSource(SSE_EVENTS_ENDPOINT, {
     eventHandlers
   });
   
@@ -52,7 +53,7 @@ export function useEventLog(maxEvents = 100) {
   useEffect(() => {
     const loadInitialEvents = async () => {
       try {
-        const response = await fetch('http://localhost:7654/events/history');
+        const response = await fetch(SSE_EVENTS_HISTORY_ENDPOINT);
         const data = await response.json();
         
         if (data.events && Array.isArray(data.events)) {
