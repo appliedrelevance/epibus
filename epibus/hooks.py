@@ -46,6 +46,7 @@ web_include_css = [
 # Scheduler configuration for signal monitoring
 
 # Setup signal monitor on app install/update
+after_install = "epibus.epibus.install.after_install"
 
 # Whitelisted methods
 api_methods = {

@@ -2,6 +2,7 @@
 import unittest
 import time
 import threading
+import logging
 from unittest.mock import MagicMock, patch
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
@@ -82,6 +83,13 @@ class TestPLCBridge(unittest.TestCase):
         # Stop bridge if running
         if self.bridge.running:
             self.bridge.stop()
+            
+        # Clean up logging handlers to prevent resource warnings
+        logger = logging.getLogger('bridge')
+        if logger.hasHandlers():
+            for handler in logger.handlers[:]:
+                handler.close()
+                logger.removeHandler(handler)
     
     def test_load_signals(self):
         """Test loading signals from Frappe"""

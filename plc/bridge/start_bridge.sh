@@ -27,7 +27,18 @@ echo "Frappe URL: $FRAPPE_URL"
 echo "Poll Interval: ${PLC_POLL_INTERVAL:-1.0}"
 echo "Log Level: ${PLC_LOG_LEVEL:-INFO}"
 
-python bridge.py \
+# Use the Python from the Frappe bench environment
+BENCH_PYTHON="/home/intralogisticsuser/frappe-bench/env/bin/python"
+
+if [ ! -f "$BENCH_PYTHON" ]; then
+    echo "Error: Python executable not found at $BENCH_PYTHON"
+    echo "Using system Python as fallback"
+    BENCH_PYTHON="python3"
+fi
+
+echo "Using Python: $BENCH_PYTHON"
+
+$BENCH_PYTHON bridge.py \
     --frappe-url "$FRAPPE_URL" \
     --api-key "$FRAPPE_API_KEY" \
     --api-secret "$FRAPPE_API_SECRET" \
