@@ -5,6 +5,9 @@ import LoadingIndicator from './LoadingIndicator';
 import ErrorMessage from './ErrorMessage';
 import ConnectionCard from './ConnectionCard';
 import ConnectionStatusIndicator from './ConnectionStatusIndicator';
+import { EventLog } from './EventLog';
+import { PLCStatus } from './PLCStatus';
+import { useSignalMonitor } from '../hooks/useSignalMonitor';
 import { clearAllSortPreferences } from '../utils/storageUtils';
 import './ModbusDashboard.css';
 
@@ -12,17 +15,14 @@ interface ModbusDashboardProps {
   connections: ModbusConnection[];
   loading: boolean;
   error: string | null;
-  connected: boolean;
-  lastUpdateTime?: number;
 }
 
 const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
   connections,
   loading,
-  error,
-  connected,
-  lastUpdateTime
+  error
 }) => {
+  const { connected, connectionStatus } = useSignalMonitor();
   const [activeFilters, setActiveFilters] = useState({
     deviceType: '',
     signalType: ''
@@ -112,10 +112,20 @@ const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
         </div>
       </div>
       
+      {/* Status and Event Log Row */}
+      <div className="row mb-4">
+        <div className="col-md-4">
+          <PLCStatus className="h-100" />
+        </div>
+        <div className="col-md-8">
+          <EventLog className="h-100" maxHeight="250px" />
+        </div>
+      </div>
+      
       {/* Connection Status Indicator */}
-      <ConnectionStatusIndicator 
-        connected={connected} 
-        lastUpdateTime={lastUpdateTime} 
+      <ConnectionStatusIndicator
+        connected={connected}
+        lastUpdateTime={connectionStatus?.timestamp ? connectionStatus.timestamp * 1000 : undefined}
       />
       
       {/* Loading indicator */}

@@ -6,7 +6,7 @@ interface PLCStatusProps {
 }
 
 export const PLCStatus: React.FC<PLCStatusProps> = ({ className = '' }) => {
-  const { signals, connected } = useSignalMonitor();
+  const { signals, connected, connectionStatus } = useSignalMonitor();
   
   // Check if PLC cycle is running
   const cycleRunning = signals['WAREHOUSE-ROBOT-1-CYCLE_RUNNING']?.value === true;
@@ -24,6 +24,14 @@ export const PLCStatus: React.FC<PLCStatusProps> = ({ className = '' }) => {
           <span>{connected ? 'Connected' : 'Disconnected'}</span>
         </div>
         
+        {/* Display connection status for each Modbus connection */}
+        {connectionStatus && connectionStatus.connections.map(conn => (
+          <div key={conn.name} className="flex items-center gap-2">
+            <div className={`w-3 h-3 rounded-full ${conn.connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span>{conn.name}: {conn.connected ? 'Connected' : 'Disconnected'}</span>
+          </div>
+        ))}
+        
         <div className="flex items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${cycleRunning ? 'bg-green-500' : 'bg-gray-400'}`}></div>
           <span>PLC Cycle {cycleRunning ? 'Running' : 'Stopped'}</span>
@@ -33,6 +41,13 @@ export const PLCStatus: React.FC<PLCStatusProps> = ({ className = '' }) => {
           <div className="flex items-center gap-2 text-red-600">
             <div className="w-3 h-3 rounded-full bg-red-500"></div>
             <span>Error Detected</span>
+          </div>
+        )}
+        
+        {/* Last update timestamp */}
+        {connectionStatus && (
+          <div className="text-xs text-gray-500 mt-2">
+            Last Update: {new Date(connectionStatus.timestamp * 1000).toLocaleTimeString()}
           </div>
         )}
       </div>

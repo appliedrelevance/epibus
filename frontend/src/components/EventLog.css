@@ -1,0 +1,175 @@
+.event-log {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+.event-log ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.event-log li {
+  transition: background-color 0.2s;
+}
+
+.event-log li:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.event-log .text-green-500 {
+  color: #10b981;
+}
+
+.event-log .text-red-500, .event-log .text-red-600 {
+  color: #ef4444;
+}
+
+.event-log .text-gray-500 {
+  color: #6b7280;
+}
+
+.event-log .text-gray-700 {
+  color: #374151;
+}
+
+.event-log .bg-white {
+  background-color: white;
+}
+
+.event-log .rounded-lg {
+  border-radius: 0.5rem;
+}
+
+.event-log .shadow {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.event-log .p-4 {
+  padding: 1rem;
+}
+
+.event-log .mb-3 {
+  margin-bottom: 0.75rem;
+}
+
+.event-log .flex {
+  display: flex;
+}
+
+.event-log .flex-1 {
+  flex: 1 1 0%;
+}
+
+.event-log .items-center {
+  align-items: center;
+}
+
+.event-log .items-start {
+  align-items: flex-start;
+}
+
+.event-log .justify-between {
+  justify-content: space-between;
+}
+
+.event-log .gap-2 {
+  gap: 0.5rem;
+}
+
+.event-log .text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.event-log .text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.event-log .font-semibold {
+  font-weight: 600;
+}
+
+.event-log .font-medium {
+  font-weight: 500;
+}
+
+.event-log .border {
+  border-width: 1px;
+  border-style: solid;
+  border-color: #e5e7eb;
+}
+
+.event-log .border-b {
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+.event-log .border-gray-100 {
+  border-color: #f3f4f6;
+}
+
+.event-log .rounded {
+  border-radius: 0.25rem;
+}
+
+.event-log .px-2 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.event-log .py-1 {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.event-log .py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.event-log .pb-2 {
+  padding-bottom: 0.5rem;
+}
+
+.event-log .mr-2 {
+  margin-right: 0.5rem;
+}
+
+.event-log .mt-1 {
+  margin-top: 0.25rem;
+}
+
+.event-log .space-y-2 > * + * {
+  margin-top: 0.5rem;
+}
+
+.event-log .overflow-y-auto {
+  overflow-y: auto;
+}
+
+.event-log .bg-gray-200 {
+  background-color: #e5e7eb;
+}
+
+.event-log input {
+  outline: none;
+}
+
+.event-log input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.event-log button {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.event-log button:hover {
+  background-color: #d1d5db;
+}
+
+.event-log .text-center {
+  text-align: center;
+}
