@@ -142,8 +142,17 @@ class SSEServer:
         
     def publish_event(self, event_type, data):
         """Publish an event to all connected clients"""
-        for client in self.clients:
-            client.add_event({'type': event_type, 'data': data})
+        # Make a copy of the clients set to avoid "Set changed size during iteration" error
+        clients_copy = self.clients.copy()
+        for client in clients_copy:
+            try:
+                client.add_event({'type': event_type, 'data': data})
+            except Exception as e:
+                # Handle any errors that might occur when adding an event to a client
+                print(f"Error sending event to client: {e}")
+                # If the client is no longer valid, remove it from the original set
+                if client in self.clients:
+                    self.clients.remove(client)
 
 class ModbusSignal:
     """Representation of a Modbus signal"""
