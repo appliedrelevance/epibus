@@ -828,12 +828,19 @@ export const EventLog: React.FC<EventLogProps> = ({
 - Removed the call to _log_event_to_frappe in the _publish_signal_update method
 - Moved the EventLog component to the bottom of the page and made it full width
 - Improved the layout of the dashboard for better usability
-
 ### 2025-03-28: Final Refinements
 - Removed the "PLC Status" header from the PLCStatus component
 - Improved the connection status message to be more descriptive
 - Reduced the status update interval from 10 seconds to 2 seconds for more responsive updates
 - Modified the SSE heartbeat interval from 30 seconds to 2 seconds
+- Added filtering in the useEventSource hook to ignore heartbeat events and reduce console noise
+
+### 2025-03-28: Connection Handling Improvements
+- Completely removed the redundant PLCStatus component from the dashboard
+- Improved the EventSource connection handling with automatic reconnection
+- Added retry logic to handle temporary connection issues
+- Fixed issues with "Cancelled" EventSource events
+- Improved cleanup of EventSource connections to prevent memory leaks
 - Added filtering in the useEventSource hook to ignore heartbeat events and reduce console noise
 - Improved the layout of the dashboard for better usability
 - Successfully built and deployed the updated frontend
