@@ -71,7 +71,7 @@ This refactoring will be implemented as a clean slate approach without maintaini
 | 1 | Implement SSE Server | ✅ Completed | 2025-03-28 | 2025-03-28 |
 | 2 | Create Frontend Hooks | ✅ Completed | 2025-03-28 | 2025-03-28 |
 | 3 | Update ModbusDashboard | ✅ Completed | 2025-03-28 | 2025-03-28 |
-| 4 | Remove Legacy Code | 🔄 Not Started | | |
+| 4 | Remove Legacy Code | 🔄 In Progress | 2025-03-28 | |
 
 ### 4. Code to be Replaced/Removed
 
@@ -757,8 +757,8 @@ export const EventLog: React.FC<EventLogProps> = ({
 | Phase 1: SSE Server | 100% | ✅ Completed | Implemented with port 7654, added event history tracking |
 | Phase 2: Frontend Hooks | 100% | ✅ Completed | Created useEventSource, useSignalMonitor, and useEventLog hooks |
 | Phase 3: Dashboard Updates | 100% | ✅ Completed | Added EventLog component and updated PLCStatus and ModbusDashboard |
-| Phase 4: Legacy Code Removal | 0% | 🔄 Not Started | Complete replacement of SocketIO code |
-| Overall Project | 75% | 🔄 In Progress | No backward compatibility as planned |
+| Phase 4: Legacy Code Removal | 50% | 🔄 In Progress | Removed SocketIO from App.tsx and index.html |
+| Overall Project | 85% | 🔄 In Progress | No backward compatibility as planned |
 
 ## Meeting Notes
 
@@ -799,6 +799,15 @@ export const EventLog: React.FC<EventLogProps> = ({
 - Noted that the PLCStatus component is showing connection status correctly
 - Identified some expected errors related to legacy API calls that will be addressed in Phase 4
 - The dashboard is fully functional with the new SSE-based implementation
+
+### 2025-03-28: Phase 4 Implementation Progress
+- Updated App.tsx to use the new useSignalMonitor hook instead of Frappe SocketIO
+- Removed all references to window.frappe.socketio and window.frappe.realtime from App.tsx
+- Removed the Socket.IO script from index.html
+- Fixed build errors related to TypeScript type checking
+- Successfully built the frontend with the new SSE-based implementation
+- Identified that the warehouse dashboard was not appearing in the Frappe server due to build errors
+- Fixed the build process to ensure the dashboard is properly deployed
 
 ### 2025-03-28: Phase 4 Planning (Remove Legacy Code)
 The final phase of the refactoring plan involves removing all legacy SocketIO-related code and cleaning up the codebase. The following tasks need to be completed:
