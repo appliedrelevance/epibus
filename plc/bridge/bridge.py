@@ -7,12 +7,143 @@ import threading
 import argparse
 import requests
 import json
-from typing import Dict, List, Union, Optional
+import queue
+import random
+from typing import Dict, List, Union, Optional, Set
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
+from flask import Flask, Response, jsonify, request
+from flask_cors import CORS
 
 # Import from local config file
 import config
+
+class SSEClient:
+    """Client for SSE connections"""
+    def __init__(self):
+        self.queue = queue.Queue()
+    
+    def add_event(self, event):
+        """Add an event to the client's queue"""
+        self.queue.put(event)
+    
+    def has_event(self):
+        """Check if the client has events"""
+        return not self.queue.empty()
+    
+    def get_event(self):
+        """Get the next event from the queue"""
+        return self.queue.get()
+
+class SSEServer:
+    """Server-Sent Events server"""
+    def __init__(self, host='0.0.0.0', port=7654, plc_bridge=None):
+        self.host = host
+        self.port = port
+        self.app = Flask(__name__)
+        self.clients = set()
+        self.plc_bridge = plc_bridge
+        
+        # Configure CORS
+        CORS(self.app)
+        
+        # Set up routes
+        self.app.route('/events')(self.sse_stream)
+        self.app.route('/signals')(self.get_signals)
+        self.app.route('/write_signal', methods=['POST'])(self.write_signal)
+        self.app.route('/events/history')(self.get_event_history)
+        
+    def start(self):
+        """Start the SSE server in a separate thread"""
+        threading.Thread(target=self.app.run,
+                         kwargs={'host': self.host, 'port': self.port, 'threaded': True},
+                         daemon=True).start()
+        
+    def sse_stream(self):
+        """SSE stream endpoint"""
+        def event_stream():
+            client = SSEClient()
+            self.clients.add(client)
+            try:
+                # Send initial connection message
+                yield f"data: {json.dumps({'type': 'connection', 'status': 'connected'})}\n\n"
+                
+                # Keep connection alive
+                while True:
+                    if client.has_event():
+                        event = client.get_event()
+                        yield f"event: {event['type']}\n"
+                        yield f"data: {json.dumps(event['data'])}\n\n"
+                    else:
+                        # Send heartbeat every 30 seconds
+                        yield f"event: heartbeat\ndata: {time.time()}\n\n"
+                        time.sleep(30)
+            except:
+                pass
+            finally:
+                self.clients.remove(client)
+                
+        return Response(event_stream(), mimetype="text/event-stream")
+    
+    def get_signals(self):
+        """API endpoint to get all signals"""
+        if not self.plc_bridge:
+            return jsonify({"signals": [], "error": "PLC Bridge not initialized"})
+            
+        signals_data = []
+        for signal_name, signal in self.plc_bridge.signals.items():
+            signals_data.append({
+                "name": signal.name,
+                "signal_name": signal.signal_name,
+                "value": signal.value,
+                "timestamp": signal.last_update
+            })
+            
+        return jsonify({"signals": signals_data})
+    
+    def write_signal(self):
+        """API endpoint to write a signal value"""
+        if not self.plc_bridge:
+            return jsonify({"success": False, "message": "PLC Bridge not initialized"})
+            
+        try:
+            data = request.json
+            signal_id = data.get('signal_id')
+            value = data.get('value')
+            
+            if not signal_id or value is None:
+                return jsonify({"success": False, "message": "Missing signal_id or value"})
+                
+            # Find the signal
+            if signal_id not in self.plc_bridge.signals:
+                return jsonify({"success": False, "message": f"Signal {signal_id} not found"})
+                
+            signal = self.plc_bridge.signals[signal_id]
+            
+            # Find the connection for this signal
+            connection_name = self.plc_bridge._get_connection_name(signal_id)
+            if not connection_name:
+                return jsonify({"success": False, "message": f"Connection for signal {signal_id} not found"})
+                
+            # Write the value
+            success = self.plc_bridge._write_signal(connection_name, signal, value)
+            
+            return jsonify({"success": success})
+            
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)})
+    
+    def get_event_history(self):
+        """API endpoint to get event history"""
+        if not self.plc_bridge:
+            return jsonify({"events": [], "error": "PLC Bridge not initialized"})
+            
+        return jsonify({"events": self.plc_bridge.event_history})
+        
+    def publish_event(self, event_type, data):
+        """Publish an event to all connected clients"""
+        for client in self.clients:
+            client.add_event({'type': event_type, 'data': data})
 
 class ModbusSignal:
     """Representation of a Modbus signal"""
@@ -74,6 +205,52 @@ class PLCBridge:
         # Control flags
         self.running = False
         self.poll_thread = None
+        
+        # Event history
+        self.event_history = []
+        self.max_events = 100
+        
+        # Initialize SSE server
+        self.sse_server = SSEServer(
+            host=config_data.get("sse_host", "0.0.0.0"),
+            port=config_data.get("sse_port", 7654),
+            plc_bridge=self
+        )
+    
+    def _get_connection_name(self, signal_name):
+        """Get the connection name for a signal"""
+        # Try method 1: Split by hyphen
+        if "-" in signal_name:
+            return signal_name.split("-")[0]
+        
+        # Try method 2: API call to get parent
+        try:
+            response = self.session.get(
+                f"{self.frappe_url}/api/resource/Modbus Signal/{signal_name}",
+                timeout=5
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data.get('data', {}).get('parent')
+        except Exception:
+            pass
+        
+        # Try method 3: Use first Modbus client as default
+        if self.modbus_clients:
+            return list(self.modbus_clients.keys())[0]
+        
+        return None
+    
+    def _add_event_to_history(self, event):
+        """Add an event to the history"""
+        # Add unique ID if not present
+        if 'id' not in event:
+            event['id'] = f"event-{time.time()}-{random.randint(1000, 9999)}"
+            
+        # Add to beginning of array and limit size
+        self.event_history.insert(0, event)
+        if len(self.event_history) > self.max_events:
+            self.event_history = self.event_history[:self.max_events]
     
     def _create_authenticated_session(self):
         """Create an authenticated session for API calls"""
@@ -192,9 +369,18 @@ class PLCBridge:
             return False
     
     def _poll_signals(self):
-        """Continuously poll signals and update Frappe"""
+        """Continuously poll signals and update via SSE"""
+        last_status_update = 0
+        status_update_interval = 10  # Send status updates every 10 seconds
+        
         while self.running:
             try:
+                # Publish status update periodically
+                current_time = time.time()
+                if current_time - last_status_update > status_update_interval:
+                    self._publish_status_update()
+                    last_status_update = current_time
+                
                 # Group signals by connection for efficient polling
                 signals_by_connection = {}
                 for signal_name, signal in self.signals.items():
@@ -397,121 +583,178 @@ class PLCBridge:
             return False
     
     def _publish_signal_update(self, signal: ModbusSignal):
-        """Publish a signal update to Frappe"""
+        """Publish a signal update via SSE"""
         try:
-            # 1. Send the signal update to Frappe
+            # Create event data
             update_data = {
                 'name': signal.name,
+                'signal_name': signal.signal_name,
                 'value': signal.value,
-                'timestamp': signal.last_update
+                'timestamp': signal.last_update,
+                'source': 'plc_bridge'
             }
             
+            # Publish via SSE
+            self.sse_server.publish_event('signal_update', update_data)
+            
+            # Log the event
+            event_data = {
+                'event_type': 'Signal Update',
+                'status': 'Success',
+                'connection': self._get_connection_name(signal.name),
+                'signal': signal.name,
+                'new_value': str(signal.value),
+                'message': f"Signal {signal.signal_name} updated to {signal.value} via PLC Bridge",
+                'timestamp': time.time()
+            }
+            
+            # Add to event history
+            self._add_event_to_history(event_data)
+            
+            # Publish event log via SSE
+            self.sse_server.publish_event('event_log', event_data)
+            
+            # Process any actions triggered by this signal
+            self._process_signal_actions(signal.name, signal.value)
+            
+        except Exception as e:
+            self.logger.error(f"Error publishing signal update: {e}")
+            # Publish error event
+            error_data = {
+                'event_type': 'Error',
+                'status': 'Failed',
+                'message': f"Error publishing signal update: {str(e)}",
+                'timestamp': time.time()
+            }
+            self.sse_server.publish_event('error', error_data)
+            self._add_event_to_history(error_data)
+    
+    def _log_event_to_frappe(self, event_data):
+        """Log an event to Frappe for persistence"""
+        try:
             response = self.session.post(
-                f"{self.frappe_url}/api/method/epibus.api.plc.signal_update",
-                json=update_data,
+                f"{self.frappe_url}/api/method/epibus.api.plc.log_event",
+                json=event_data,
                 timeout=10
             )
             response.raise_for_status()
-            
-            # 2. Find any Modbus Action documents with this signal linked
-            self.logger.info(f"Looking for Modbus Actions linked to signal: {signal.name}")
-            try:
-                # First, get the signal document to find its ID
-                signal_response = self.session.get(
-                    f"{self.frappe_url}/api/resource/Modbus Signal/{signal.name}",
-                    timeout=10
-                )
-                signal_response.raise_for_status()
-                signal_data = signal_response.json().get('data', {})
-                
-                # Log the signal data for debugging
-                try:
-                    self.logger.debug(f"Signal data: {json.dumps(signal_data, indent=2)}")
-                except TypeError:
-                    # Handle case where signal_data contains non-serializable objects (like in tests)
-                    self.logger.debug(f"Signal data: {signal_data} (not JSON serializable)")
-                
-                # The signal ID might be in the 'name' field of the signal document
-                signal_id = signal_data.get('name')
-                if not signal_id:
-                    self.logger.error(f"Could not determine signal ID for {signal.name}")
-                    return
-                
-                self.logger.info(f"Using signal ID: {signal_id} to find Modbus Actions")
-                
-                # Query for Modbus Actions using the signal ID
-                try:
-                    filter_json = json.dumps([["modbus_signal", "=", signal_id]])
-                except TypeError:
-                    # Handle case where signal_id is a MagicMock (during tests)
-                    self.logger.debug("Using mock filter for tests")
-                    filter_json = json.dumps([["modbus_signal", "=", "mock_id"]])
-                
-                action_response = self.session.get(
-                    f"{self.frappe_url}/api/resource/Modbus Action",
-                    params={"filters": filter_json},
-                    timeout=10
-                )
-                action_response.raise_for_status()
-                actions_data = action_response.json()
-                
-                # Log the actions data for debugging
-                try:
-                    self.logger.debug(f"Actions data: {json.dumps(actions_data, indent=2)}")
-                except TypeError:
-                    # Handle case where actions_data contains non-serializable objects (like in tests)
-                    self.logger.debug(f"Actions data: {actions_data} (not JSON serializable)")
-                
-                if 'data' in actions_data:
-                    actions = actions_data['data']
-                    self.logger.info(f"Found {len(actions)} Modbus Actions for signal {signal.name}")
-                    
-                    # 3. For each Modbus Action, execute the linked Server Script
-                    for action in actions:
-                        action_name = action.get('name')
-                        
-                        # Get the full Modbus Action document to find the linked Server Script
-                        action_detail_response = self.session.get(
-                            f"{self.frappe_url}/api/resource/Modbus Action/{action_name}",
-                            timeout=10
-                        )
-                        action_detail_response.raise_for_status()
-                        action_detail = action_detail_response.json().get('data', {})
-                        
-                        server_script = action_detail.get('server_script')
-                        if server_script:
-                            self.logger.info(f"Executing Server Script '{server_script}' for Modbus Action '{action_name}'")
-                            
-                            # Execute the Server Script
-                            script_data = {
-                                'signal_name': signal.name,
-                                'signal_value': signal.value,
-                                'action_name': action_name
-                            }
-                            
-                            # Use our new endpoint to execute the script
-                            script_response = self.session.post(
-                                f"{self.frappe_url}/api/method/epibus.epibus.doctype.modbus_action.modbus_action.test_action_script",
-                                json={
-                                    "action_name": action_name
-                                },
-                                timeout=30
-                            )
-                            
-                            if script_response.status_code == 200:
-                                self.logger.info(f"Successfully executed Server Script '{server_script}'")
-                            else:
-                                self.logger.error(f"Error executing Server Script '{server_script}': {script_response.text}")
-                        else:
-                            self.logger.warning(f"No Server Script linked to Modbus Action '{action_name}'")
-                else:
-                    self.logger.info(f"No Modbus Actions found for signal {signal.name}")
-                    
-            except Exception as action_error:
-                self.logger.error(f"Error processing Modbus Actions for signal {signal.name}: {action_error}")
-        
         except Exception as e:
-            self.logger.error(f"Error publishing signal update: {e}")
+            self.logger.error(f"Error logging event to Frappe: {e}")
+    
+    def _process_signal_actions(self, signal_name, signal_value):
+        """Process any actions triggered by this signal"""
+        try:
+            # Find any Modbus Action documents with this signal linked
+            self.logger.info(f"Looking for Modbus Actions linked to signal: {signal_name}")
+            
+            # First, get the signal document to find its ID
+            signal_response = self.session.get(
+                f"{self.frappe_url}/api/resource/Modbus Signal/{signal_name}",
+                timeout=10
+            )
+            signal_response.raise_for_status()
+            signal_data = signal_response.json().get('data', {})
+            
+            # The signal ID might be in the 'name' field of the signal document
+            signal_id = signal_data.get('name')
+            if not signal_id:
+                self.logger.error(f"Could not determine signal ID for {signal_name}")
+                return
+            
+            # Query for Modbus Actions using the signal ID
+            filter_json = json.dumps([["modbus_signal", "=", signal_id]])
+            action_response = self.session.get(
+                f"{self.frappe_url}/api/resource/Modbus Action",
+                params={"filters": filter_json},
+                timeout=10
+            )
+            action_response.raise_for_status()
+            actions_data = action_response.json()
+            
+            if 'data' in actions_data:
+                actions = actions_data['data']
+                self.logger.info(f"Found {len(actions)} Modbus Actions for signal {signal_name}")
+                
+                # For each Modbus Action, execute the linked Server Script
+                for action in actions:
+                    action_name = action.get('name')
+                    
+                    # Get the full Modbus Action document to find the linked Server Script
+                    action_detail_response = self.session.get(
+                        f"{self.frappe_url}/api/resource/Modbus Action/{action_name}",
+                        timeout=10
+                    )
+                    action_detail_response.raise_for_status()
+                    action_detail = action_detail_response.json().get('data', {})
+                    
+                    server_script = action_detail.get('server_script')
+                    if server_script:
+                        self.logger.info(f"Executing Server Script '{server_script}' for Modbus Action '{action_name}'")
+                        
+                        # Execute the Server Script
+                        script_response = self.session.post(
+                            f"{self.frappe_url}/api/method/epibus.epibus.doctype.modbus_action.modbus_action.test_action_script",
+                            json={
+                                "action_name": action_name
+                            },
+                            timeout=30
+                        )
+                        
+                        if script_response.status_code == 200:
+                            self.logger.info(f"Successfully executed Server Script '{server_script}'")
+                            
+                            # Log action execution event
+                            action_event = {
+                                'event_type': 'Action Execution',
+                                'status': 'Success',
+                                'signal': signal_name,
+                                'action': action_name,
+                                'message': f"Executed action {action_name} for signal {signal_name}",
+                                'timestamp': time.time()
+                            }
+                            self._add_event_to_history(action_event)
+                            self.sse_server.publish_event('event_log', action_event)
+                        else:
+                            error_msg = f"Error executing Server Script '{server_script}': {script_response.text}"
+                            self.logger.error(error_msg)
+                            
+                            # Log action error event
+                            error_event = {
+                                'event_type': 'Action Execution',
+                                'status': 'Failed',
+                                'signal': signal_name,
+                                'action': action_name,
+                                'message': f"Failed to execute action {action_name} for signal {signal_name}",
+                                'error_message': error_msg,
+                                'timestamp': time.time()
+                            }
+                            self._add_event_to_history(error_event)
+                            self.sse_server.publish_event('event_log', error_event)
+                    else:
+                        self.logger.warning(f"No Server Script linked to Modbus Action '{action_name}'")
+            else:
+                self.logger.info(f"No Modbus Actions found for signal {signal_name}")
+                
+        except Exception as e:
+            self.logger.error(f"Error processing actions for signal {signal_name}: {e}")
+    
+    def _publish_status_update(self):
+        """Publish PLC Bridge status update"""
+        status_data = {
+            'connected': self.running,
+            'connections': [
+                {
+                    'name': conn_name,
+                    'connected': conn_info['connected'],
+                    'last_error': conn_info.get('last_error', None)
+                }
+                for conn_name, conn_info in self.modbus_clients.items()
+            ],
+            'timestamp': time.time()
+        }
+        
+        # Publish via SSE
+        self.sse_server.publish_event('status_update', status_data)
     
     def start(self):
         """Start the PLC bridge"""
@@ -572,16 +815,30 @@ class PLCBridge:
             self.logger.info(f"  Address: {signal.address}")
             self.logger.info(f"  Initial Value: {initial_value}")
         
+        # Start SSE server
+        self.logger.info("Starting SSE server...")
+        self.sse_server.start()
+        self.logger.info(f"SSE server started on http://{self.sse_server.host}:{self.sse_server.port}")
+        
         # Start polling
         self.running = True
         self.poll_thread = threading.Thread(target=self._poll_signals)
         self.poll_thread.daemon = True
         self.poll_thread.start()
         
+        # Publish initial status
+        self._publish_status_update()
+        
         self.logger.info("PLC Bridge started successfully")
     
     def stop(self):
         """Stop the PLC bridge"""
+        # Publish final status update
+        try:
+            self._publish_status_update()
+        except Exception as e:
+            self.logger.error(f"Error publishing final status update: {e}")
+            
         self.running = False
         
         if self.poll_thread:
@@ -597,6 +854,7 @@ class PLCBridge:
                 except Exception as e:
                     self.logger.error(f"Error disconnecting from {connection_name}: {e}")
         
+        # Log final shutdown message
         self.logger.info("PLC Bridge stopped")
 
 def main():

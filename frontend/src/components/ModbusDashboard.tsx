@@ -112,13 +112,10 @@ const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
         </div>
       </div>
       
-      {/* Status and Event Log Row */}
+      {/* PLC Status Row */}
       <div className="row mb-4">
         <div className="col-md-4">
           <PLCStatus className="h-100" />
-        </div>
-        <div className="col-md-8">
-          <EventLog className="h-100" maxHeight="250px" />
         </div>
       </div>
       
@@ -156,6 +153,13 @@ const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
             activeFilters={activeFilters}
           />
         ))}
+      </div>
+      
+      {/* Event Log Row - Full Width at Bottom */}
+      <div className="row mt-4">
+        <div className="col-12">
+          <EventLog className="h-100" maxHeight="300px" />
+        </div>
       </div>
     </div>
   );
