@@ -841,6 +841,13 @@ export const EventLog: React.FC<EventLogProps> = ({
 - Added retry logic to handle temporary connection issues
 - Fixed issues with "Cancelled" EventSource events
 - Improved cleanup of EventSource connections to prevent memory leaks
+
+### 2025-03-28: SSE Server Stability Fix
+- Fixed "Set changed size during iteration" error in SSE server's publish_event method
+- Modified the method to make a copy of the clients set before iterating
+- Added error handling to prevent one client error from affecting others
+- Improved the reliability of status updates and signal updates
+- Fixed the connection status indicator not showing the correct connection state
 - Added filtering in the useEventSource hook to ignore heartbeat events and reduce console noise
 - Improved the layout of the dashboard for better usability
 - Successfully built and deployed the updated frontend
