@@ -968,12 +968,18 @@ class PLCBridge:
                             self.logger.info(f"Successfully executed Server Script '{server_script}'")
                             
                             # Log action execution event
+                            # Extract signal_name and action_name from the API responses
+                            signal_name_display = signal_data.get('signal_name', signal_name)
+                            action_name_display = action_detail.get('action_name', action_name)
+                            
                             action_event = {
                                 'event_type': 'Action Execution',
                                 'status': 'Success',
                                 'signal': signal_name,
+                                'signal_name': signal_name_display,
                                 'action': action_name,
-                                'message': f"Executed action {action_name} for signal {signal_name}",
+                                'action_name': action_name_display,
+                                'message': f"Executed action {action_name_display} for signal {signal_name_display}",
                                 'timestamp': time.time()
                             }
                             self._add_event_to_history(action_event)
@@ -983,12 +989,18 @@ class PLCBridge:
                             self.logger.error(error_msg)
                             
                             # Log action error event
+                            # Extract signal_name and action_name from the API responses
+                            signal_name_display = signal_data.get('signal_name', signal_name)
+                            action_name_display = action_detail.get('action_name', action_name)
+                            
                             error_event = {
                                 'event_type': 'Action Execution',
                                 'status': 'Failed',
                                 'signal': signal_name,
+                                'signal_name': signal_name_display,
                                 'action': action_name,
-                                'message': f"Failed to execute action {action_name} for signal {signal_name}",
+                                'action_name': action_name_display,
+                                'message': f"Failed to execute action {action_name_display} for signal {signal_name_display}",
                                 'error_message': error_msg,
                                 'timestamp': time.time()
                             }

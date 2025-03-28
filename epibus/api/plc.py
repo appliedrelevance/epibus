@@ -4,6 +4,7 @@ import time
 from frappe.realtime import publish_realtime
 from epibus.epibus.utils.truthy import truthy, parse_value
 from epibus.epibus.utils.epinomy_logger import get_logger
+from epibus.epibus.doctype.modbus_event.modbus_event import ModbusEvent
 
 logger = get_logger(__name__)
 
@@ -461,6 +462,55 @@ def execute_action(action_name, signal_name, value, condition_desc=None):
             }).insert(ignore_permissions=True)
         except Exception as log_error:
             logger.error(f"❌ Error logging action failure: {str(log_error)}")
-        
         frappe.log_error(f"Error executing Modbus Action {action_name}: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+@frappe.whitelist(allow_guest=True)
+def log_event():
+    """Log an event from the PLC Bridge
+    
+    This endpoint is called by the PLC Bridge to log events to Frappe.
+    It maps the event_data fields to the ModbusEvent.log_event parameters.
+    """
+    try:
+        # Get the event data from the request
+        event_data = frappe.local.form_dict
+        if isinstance(event_data, str):
+            event_data = json.loads(event_data)
+            
+        # Extract fields from event_data
+        event_type = event_data.get('event_type')
+        status = event_data.get('status', 'Success')
+        signal = event_data.get('signal')
+        action = event_data.get('action')
+        message = event_data.get('message')
+        
+        # Get the signal document to find its parent connection (device)
+        device = None
+        if signal:
+            try:
+                signal_doc = frappe.get_doc("Modbus Signal", signal)
+                device = signal_doc.parent
+            except Exception as e:
+                logger.warning(f"Could not get device for signal {signal}: {str(e)}")
+        
+        # If we couldn't get the device from the signal, use a default
+        if not device:
+            device = "Unknown Device"
+        
+        # Log the event using the ModbusEvent.log_event method
+        ModbusEvent.log_event(
+            event_type=event_type,
+            device=device,
+            status=status,
+            signal=signal,
+            action=action,
+            message=message
+        )
+        
+        return {"success": True}
+        
+    except Exception as e:
+        logger.error(f"Error logging event: {str(e)}")
+        return {"success": False, "message": str(e)}
         return {"success": False, "error": str(e)}
