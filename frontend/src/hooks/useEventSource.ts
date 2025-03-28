@@ -18,18 +18,39 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
   
   // Connect to event source
   useEffect(() => {
-    const eventSource = new EventSource(url);
-    eventSourceRef.current = eventSource;
+    let retryCount = 0;
+    const maxRetries = 5;
+    const retryDelay = 1000; // 1 second
     
-    eventSource.onopen = () => {
-      setConnected(true);
-      options.onOpen?.();
+    const createEventSource = () => {
+      const eventSource = new EventSource(url);
+      eventSourceRef.current = eventSource;
+      
+      eventSource.onopen = () => {
+        setConnected(true);
+        retryCount = 0; // Reset retry count on successful connection
+        options.onOpen?.();
+      };
+      
+      eventSource.onerror = (error) => {
+        // Only set disconnected if we're not going to retry
+        if (retryCount >= maxRetries) {
+          setConnected(false);
+          options.onError?.(error);
+        } else {
+          // Try to reconnect
+          retryCount++;
+          setTimeout(() => {
+            eventSource.close();
+            createEventSource();
+          }, retryDelay);
+        }
+      };
+      
+      return eventSource;
     };
     
-    eventSource.onerror = (error) => {
-      setConnected(false);
-      options.onError?.(error);
-    };
+    const eventSource = createEventSource();
     
     // Set up event listeners
     const setupEventListeners = () => {
@@ -67,7 +88,10 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
     
     // Cleanup
     return () => {
-      eventSource.close();
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
       setConnected(false);
     };
   }, [url, options.onOpen, options.onError]);
@@ -76,6 +100,7 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
   const close = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
+      eventSourceRef.current = null;
       setConnected(false);
     }
   }, []);

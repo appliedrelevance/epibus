@@ -112,12 +112,7 @@ const ModbusDashboard: React.FC<ModbusDashboardProps> = ({
         </div>
       </div>
       
-      {/* PLC Status Row */}
-      <div className="row mb-4">
-        <div className="col-md-4">
-          <PLCStatus className="h-100" />
-        </div>
-      </div>
+      {/* Connection Status Indicator will be shown below */}
       
       {/* Connection Status Indicator */}
       <ConnectionStatusIndicator
