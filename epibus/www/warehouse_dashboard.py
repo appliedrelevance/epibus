@@ -12,8 +12,6 @@ import json
 from typing import Dict, List, Any, Optional, cast, TypedDict
 
 from epibus.epibus.utils.epinomy_logger import get_logger
-# Import the PLC Bridge adapter
-from epibus.epibus.utils.plc_bridge_adapter import get_signals_from_plc_bridge, write_signal_via_plc_bridge
 
 logger = get_logger(__name__)
 
@@ -86,9 +84,6 @@ def get_modbus_data() -> List[ModbusConnectionDict]:
     Get all Modbus connections and their signals.
     Uses the current user's permissions to access the data.
 
-    This function now uses the PLC Bridge adapter to get signals when possible,
-    with a fallback to direct Modbus communication if needed.
-
     Returns:
         List[ModbusConnectionDict]: A list of Modbus connections with their signals.
     """
@@ -96,51 +91,6 @@ def get_modbus_data() -> List[ModbusConnectionDict]:
         # Log the current user for debugging
         current_user = frappe.session.user
         logger.debug(f"Fetching Modbus data as user: {current_user}")
-
-        # First, try to get signals from the PLC Bridge
-        try:
-            logger.info("Attempting to get signals from PLC Bridge...")
-            plc_signals = get_signals_from_plc_bridge()
-
-            if plc_signals and len(plc_signals) > 0:
-                logger.info(
-                    f"✅ Successfully retrieved {len(plc_signals)} signals from PLC Bridge")
-
-                # Create a dictionary to organize signals by connection
-                signals_by_connection = {}
-                for signal in plc_signals:
-                    # Get the parent connection from the signal
-                    parent = frappe.db.get_value(
-                        "Modbus Signal", signal["name"], "parent")
-                    if parent:
-                        if parent not in signals_by_connection:
-                            signals_by_connection[parent] = []
-                        signals_by_connection[parent].append(signal)
-
-                # Get all enabled Modbus connections
-                connections: List[ModbusConnectionDict] = frappe.get_all(
-                    "Modbus Connection",
-                    fields=["name", "device_name", "device_type",
-                            "host", "port", "enabled"],
-                    filters={"enabled": 1},
-                    order_by="device_name asc"
-                )
-
-                # Attach signals to their respective connections
-                for connection in connections:
-                    connection["signals"] = signals_by_connection.get(
-                        connection["name"], [])
-                    logger.debug(
-                        f"Connection {connection['name']} has {len(connection['signals'])} signals from PLC Bridge")
-
-                return connections
-        except Exception as plc_error:
-            logger.warning(
-                f"⚠️ Failed to get signals from PLC Bridge: {str(plc_error)}")
-            logger.warning("Falling back to direct Modbus communication...")
-
-        # Fallback to the original direct Modbus communication method
-        logger.info("Using direct Modbus communication as fallback...")
 
         # Get all enabled Modbus connections
         connections: List[ModbusConnectionDict] = frappe.get_all(
@@ -256,18 +206,19 @@ def get_modbus_data() -> List[ModbusConnectionDict]:
 @frappe.whitelist()
 def set_signal_value(signal_id: str, value: Any) -> Dict[str, Any]:
     """
-    Set the value of a Modbus signal.
+    Set the value of a Modbus signal using direct Modbus API calls.
     Uses the current user's permissions to update the signal.
-
-    This function now uses the PLC Bridge adapter to write signals when possible,
-    with a fallback to direct Modbus communication if needed.
+    
+    This function handles type conversion based on the signal type and
+    provides proper error handling for Modbus API communication.
 
     Args:
         signal_id (str): The ID of the signal to update.
         value (Any): The new value for the signal.
 
     Returns:
-        Dict[str, Any]: A dictionary with the status of the operation.
+        Dict[str, Any]: A dictionary with the status of the operation,
+                        including the actual value read back from the device.
     """
     try:
         # Log the current user for debugging
@@ -302,63 +253,49 @@ def set_signal_value(signal_id: str, value: Any) -> Dict[str, Any]:
             elif hasattr(signal, "digital_value") and getattr(signal, "digital_value", None) is not None:
                 previous_value = getattr(signal, "digital_value")
 
-        # First, try to write the signal via the PLC Bridge
+        # Use the write_signal method directly to update the value via Modbus API
+        logger.info(f"Writing signal {signal_name} ({signal_id}) via Modbus API...")
+        
         try:
+            # Execute the write operation
+            result_value = signal.write_signal(value)
+            
+            # Update our cache with the new value
+            signal_value_cache[signal_id] = result_value
+            
+            # Log the value change at INFO level
             logger.info(
-                f"Attempting to write signal {signal_id} via PLC Bridge...")
-            success = write_signal_via_plc_bridge(signal_id, value)
-
-            if success:
-                logger.info(
-                    f"✅ Successfully wrote signal {signal_name} ({signal_id}) via PLC Bridge")
-
-                # Update our cache with the new value
-                signal_value_cache[signal_id] = value
-
-                # Log the value change at INFO level
-                logger.info(
-                    f"Signal value changed: {signal_name} ({signal_id}) from {previous_value} to {value}")
-
-                # Return success response
-                return {
-                    "status": "success",
-                    "message": _("Signal value updated successfully via PLC Bridge"),
-                    "signal_id": signal_id,
-                    "value": value
-                }
-        except Exception as plc_error:
-            logger.warning(
-                f"⚠️ Failed to write signal via PLC Bridge: {str(plc_error)}")
-            logger.warning("Falling back to direct Modbus communication...")
-
-        # Fallback to direct Modbus communication
-        logger.info(
-            f"Using direct Modbus communication to write signal {signal_id}...")
-
-        # Use the write_signal method directly to update the value
-        result_value = signal.write_signal(value)
-
-        # Update our cache with the new value
-        signal_value_cache[signal_id] = result_value
-
-        # Log the value change at INFO level
-        logger.info(
-            f"Signal value changed: {signal_name} ({signal_id}) from {previous_value} to {result_value}")
-
-        # Return success response with the actual value read back from the device
-        return {
-            "status": "success",
-            "message": _("Signal value updated successfully via direct Modbus"),
-            "signal_id": signal_id,
-            "value": result_value
-        }
+                f"Signal value changed: {signal_name} ({signal_id}) from {previous_value} to {result_value}")
+            
+            # Return success response with the actual value read back from the device
+            return {
+                "status": "success",
+                "message": _("Signal value updated successfully via Modbus API"),
+                "signal_id": signal_id,
+                "value": result_value
+            }
+        except Exception as api_error:
+            # Log the specific API error
+            logger.error(f"Modbus API error for signal {signal_name} ({signal_id}): {str(api_error)}")
+            # Re-raise the exception to be caught by the outer try-except block
+            raise
 
     except Exception as e:
-        logger.error(f"Error in set_signal_value: {str(e)}")
-        frappe.log_error(f"Error in set_signal_value: {str(e)}")
-        frappe.throw(_("Error setting signal value: {0}").format(str(e)))
+        # Log the error with more context
+        error_msg = f"Error in set_signal_value for signal {signal_id}: {str(e)}"
+        logger.error(error_msg)
+        frappe.log_error(error_msg, "Modbus API Error")
+        
+        # Provide a more user-friendly error message
+        frappe.throw(_("Error setting signal value via Modbus API: {0}").format(str(e)))
+        
         # This will never be reached due to frappe.throw, but satisfies the type checker
-        return {"status": "error", "message": str(e), "signal_id": signal_id, "value": None}
+        return {
+            "status": "error",
+            "message": str(e),
+            "signal_id": signal_id,
+            "value": None
+        }
 
 
 @frappe.whitelist()

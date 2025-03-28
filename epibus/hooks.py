@@ -15,8 +15,7 @@ app_license = "MIT"
 
 # Include additional assets for the Modbus Dashboard page
 app_include_css = [
-    "/assets/epibus/vendor/font-awesome/css/font-awesome.min.css",
-    "/assets/epibus/css/modbus_dashboard.css"
+    "/assets/epibus/vendor/font-awesome/css/font-awesome.min.css"
 ]
 
 fixtures = [
