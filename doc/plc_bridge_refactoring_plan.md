@@ -71,7 +71,7 @@ This refactoring will be implemented as a clean slate approach without maintaini
 | 1 | Implement SSE Server | ✅ Completed | 2025-03-28 | 2025-03-28 |
 | 2 | Create Frontend Hooks | ✅ Completed | 2025-03-28 | 2025-03-28 |
 | 3 | Update ModbusDashboard | ✅ Completed | 2025-03-28 | 2025-03-28 |
-| 4 | Remove Legacy Code | 🔄 In Progress | 2025-03-28 | |
+| 4 | Remove Legacy Code | ✅ Completed | 2025-03-28 | 2025-03-28 |
 
 ### 4. Code to be Replaced/Removed
 
@@ -757,8 +757,8 @@ export const EventLog: React.FC<EventLogProps> = ({
 | Phase 1: SSE Server | 100% | ✅ Completed | Implemented with port 7654, added event history tracking |
 | Phase 2: Frontend Hooks | 100% | ✅ Completed | Created useEventSource, useSignalMonitor, and useEventLog hooks |
 | Phase 3: Dashboard Updates | 100% | ✅ Completed | Added EventLog component and updated PLCStatus and ModbusDashboard |
-| Phase 4: Legacy Code Removal | 95% | 🔄 In Progress | Removed SocketIO from App.tsx and index.html, fixed remote connection issues |
-| Overall Project | 98% | 🔄 In Progress | Successfully tested in production environment with remote machines |
+| Phase 4: Legacy Code Removal | 100% | ✅ Completed | Removed SocketIO from App.tsx and index.html, fixed PLC Bridge connection issues |
+| Overall Project | 100% | ✅ Completed | Successfully tested in production environment with remote machines |
 
 ## Meeting Notes
 
@@ -815,13 +815,20 @@ export const EventLog: React.FC<EventLogProps> = ({
 - Observed that the Event Log component is displaying signal updates correctly
 - Verified that the PLC Status component is showing connection status correctly
 - The dashboard is fully functional with the new SSE-based implementation
-
 ### 2025-03-28: Remote Connection Issue Fix
 - Identified an issue where remote machines couldn't connect to the SSE server
 - The problem was caused by hardcoded 'localhost' URLs in the frontend hooks
 - Created a configuration file (config.ts) to define the SSE server URL based on the current hostname
 - Updated useSignalMonitor and useEventLog hooks to use the configuration
 - Fixed all API endpoint URLs to work with both local and remote machines
+- Successfully built and deployed the updated frontend
+
+### 2025-03-28: PLC Bridge Connection and UI Layout Fixes
+- Fixed issue with PLC Bridge showing "Disconnected" status
+- Identified that the PLC Bridge was still trying to log events to Frappe API, causing errors
+- Removed the call to _log_event_to_frappe in the _publish_signal_update method
+- Moved the EventLog component to the bottom of the page and made it full width
+- Improved the layout of the dashboard for better usability
 - Successfully built and deployed the updated frontend
 - The dashboard is fully functional with the new SSE-based implementation
 
