@@ -21,14 +21,22 @@ const SignalRow: React.FC<SignalRowProps> = ({ signal }) => {
   // Get the update source if available
   const source = realtimeSignals[signal.name]?.source || '';
   
-  // No debug logging needed in production
+  // Use signal_name for display, fallback to name if not available
+  const displayName = signal.signal_name || signal.name;
   
   const previousValue = useRef<any>(displayValue);
   
   // Listen for real-time updates
   useEffect(() => {
     const handleRealTimeUpdate = (event: Event) => {
-      const customEvent = event as CustomEvent<{signal: string, value: any, source?: string}>;
+      const customEvent = event as CustomEvent<{
+        signal: string,
+        value: any,
+        source?: string,
+        signalName?: string
+      }>;
+      
+      // Only process events for this signal
       if (customEvent.detail.signal === signal.name) {
         // Set the update source for visual feedback
         setUpdateSource(customEvent.detail.source || 'realtime');

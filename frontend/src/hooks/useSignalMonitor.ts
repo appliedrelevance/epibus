@@ -38,6 +38,11 @@ export function useSignalMonitor() {
   
   // Simplified signal update function with cleaner priority handling
   const updateSignal = useCallback((signal: string, value: any, source = 'sse', timestamp = Date.now()) => {
+    // Only log when an event is sent or received
+    if (source === 'plc_bridge') {
+      console.log(`🔄 Signal update from PLC Bridge: ${signal} - value:`, value);
+    }
+    
     setSignals(prev => {
       const current = prev[signal];
       
@@ -46,10 +51,12 @@ export function useSignalMonitor() {
       const currentPriority = current?.source ? (priorities[current.source as keyof typeof priorities] ?? -1) : -1;
       const newPriority = priorities[source as keyof typeof priorities] ?? -1;
       
-      // Skip update if current value has higher priority and is recent (within 3 seconds)
+      // Only skip updates from lower priority sources if the current value is recent
+      // IMPORTANT: Always accept updates from plc_bridge regardless of priority
       if (current &&
           currentPriority > newPriority &&
-          current.timestamp > timestamp - 3000) {
+          current.timestamp > timestamp - 3000 &&
+          source !== 'plc_bridge') { // Never skip plc_bridge updates
         return prev;
       }
       
@@ -58,9 +65,13 @@ export function useSignalMonitor() {
       
       // Only dispatch event if value actually changed
       if (!current || current.value !== value) {
+        console.log(`🔍 DEBUG: Dispatching event for ${signal} - value changed from`,
+                    current?.value, 'to', value);
         window.dispatchEvent(new CustomEvent('local-signal-update', {
           detail: { signal, value, timestamp, source }
         }));
+      } else {
+        console.log(`🔍 DEBUG: Not dispatching event for ${signal} - value unchanged`);
       }
       
       return { ...prev, [signal]: newValue };
@@ -72,33 +83,65 @@ export function useSignalMonitor() {
     // Convert single update to array for unified processing
     const updatesArray = Array.isArray(updates) ? updates : [updates];
     
+    // Only log when events are received
+    console.log(`🔄 Received ${updatesArray.length} signal updates`);
+    
     // Process all updates in a single state update for better performance
     setSignals(prev => {
       const newSignals = { ...prev };
       
       updatesArray.forEach(update => {
-        if (!update?.name) return;
+        // Use signal_name if available, otherwise fall back to name
+        const signalId = update?.name;
+        const signalName = update?.signal_name || signalId;
+        
+        if (!signalId) {
+          console.warn('⚠️ Skipping update with no ID:', update);
+          return;
+        }
         
         // Use the source from the event or default to 'plc_bridge'
         const source = update.source || 'plc_bridge';
         const timestamp = update.timestamp * 1000;
         
-        // Create new value object
-        const newValue = {
-          value: update.value,
-          timestamp,
-          source
-        };
+        const current = prev[signalId];
         
-        // Store in the new signals object
-        newSignals[update.name] = newValue;
-        
-        // Dispatch local event only if value changed
-        const current = prev[update.name];
-        if (!current || current.value !== update.value) {
+        // For plc_bridge updates, always update the value
+        if (source === 'plc_bridge') {
+          // Create new value object
+          const newValue = {
+            value: update.value,
+            timestamp,
+            source
+          };
+          
+          // Store in the new signals object
+          newSignals[signalId] = newValue;
+          
+          // Dispatch local event for UI updates
+          console.log(`🔄 PLC Bridge update: ${signalName} = ${update.value}`);
           window.dispatchEvent(new CustomEvent('local-signal-update', {
-            detail: { signal: update.name, value: update.value, timestamp, source }
+            detail: { signal: signalId, value: update.value, timestamp, source, signalName }
           }));
+        } else {
+          // For other sources, use the priority system via updateSignal
+          // Create new value object
+          const newValue = {
+            value: update.value,
+            timestamp,
+            source
+          };
+          
+          // Store in the new signals object
+          newSignals[signalId] = newValue;
+          
+          // Dispatch local event only if value changed
+          if (!current || current.value !== update.value) {
+            console.log(`🔄 Value changed: ${signalName} from ${current?.value} to ${update.value}`);
+            window.dispatchEvent(new CustomEvent('local-signal-update', {
+              detail: { signal: signalId, value: update.value, timestamp, source, signalName }
+            }));
+          }
         }
       });
       
@@ -109,30 +152,52 @@ export function useSignalMonitor() {
   // Simplified event handlers with unified signal update handling
   const eventHandlers = {
     signal_update: (data: SignalUpdate) => {
+      const signalName = data?.signal_name || data?.name || 'unknown';
+      console.log(`🔄 Received signal update: ${signalName}`);
+      
       if (data?.name) {
+        // Ensure source is set to plc_bridge for direct signal updates
+        if (!data.source) {
+          data.source = 'plc_bridge';
+        }
         handleSignalUpdates(data);
+      } else {
+        console.warn('⚠️ Ignoring signal update with no ID');
       }
     },
     signal_updates_batch: (data: { updates: SignalUpdate[] }) => {
+      const updateCount = data?.updates?.length || 0;
+      console.log(`🔄 Received batch update with ${updateCount} signals`);
+      
       if (data?.updates && Array.isArray(data.updates)) {
+        // Ensure source is set to plc_bridge for all updates in the batch
+        data.updates.forEach(update => {
+          if (!update.source) {
+            update.source = 'plc_bridge';
+          }
+        });
         handleSignalUpdates(data.updates);
+      } else {
+        console.warn('⚠️ Ignoring batch update with invalid data');
       }
     },
     status_update: (data: StatusUpdate) => {
+      console.log(`🔄 PLC connection status: ${data.connected ? 'Connected' : 'Disconnected'}`);
       setConnected(data.connected);
       setConnectionStatus(data);
     },
     event_log: (data: any) => {
+      console.log(`🔄 Event log: ${data.event_type || 'Unknown event'}`);
       // Dispatch event_log events to be captured by useEventLog
       window.dispatchEvent(new CustomEvent('event-log-update', {
         detail: data
       }));
     },
     heartbeat: () => {
-      // Keep connection alive
+      // Keep connection alive - no logging needed for heartbeats
     },
     error: (data: any) => {
-      console.error('PLC Bridge error:', data);
+      console.error('❌ PLC Bridge error:', data.message || 'Unknown error');
       
       window.dispatchEvent(new CustomEvent('event-log-update', {
         detail: {

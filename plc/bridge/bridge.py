@@ -468,25 +468,46 @@ class PLCBridge:
     
     def _get_connection_name(self, signal_name):
         """Get the connection name for a signal"""
-        # Try method 1: Split by hyphen
+        # Try method 1: Check the cache
+        if hasattr(self, 'signal_connections') and signal_name in self.signal_connections:
+            return self.signal_connections[signal_name]
+            
+        # Try method 2: Split by hyphen
         if "-" in signal_name:
-            return signal_name.split("-")[0]
+            connection_name = signal_name.split("-")[0]
+            # Cache the result for future use
+            if hasattr(self, 'signal_connections'):
+                self.signal_connections[signal_name] = connection_name
+            return connection_name
         
-        # Try method 2: API call to get parent
+        # Try method 3: API call to get parent (only if cache miss)
         try:
+            self.logger.warning(f"Cache miss for signal {signal_name}, making API call")
             response = self.session.get(
                 f"{self.frappe_url}/api/resource/Modbus Signal/{signal_name}",
                 timeout=5
             )
             response.raise_for_status()
             data = response.json()
-            return data.get('data', {}).get('parent')
-        except Exception:
-            pass
+            connection_name = data.get('data', {}).get('parent')
+            
+            # Cache the result for future use
+            if connection_name and hasattr(self, 'signal_connections'):
+                self.signal_connections[signal_name] = connection_name
+                self.logger.info(f"Cached connection {connection_name} for signal {signal_name} from API")
+                
+            return connection_name
+        except Exception as e:
+            self.logger.warning(f"API call failed for signal {signal_name}: {e}")
         
-        # Try method 3: Use first Modbus client as default
+        # Try method 4: Use first Modbus client as default
         if self.modbus_clients:
-            return list(self.modbus_clients.keys())[0]
+            default_connection = list(self.modbus_clients.keys())[0]
+            # Cache the result for future use
+            if hasattr(self, 'signal_connections'):
+                self.signal_connections[signal_name] = default_connection
+                self.logger.warning(f"Using default connection {default_connection} for signal {signal_name}")
+            return default_connection
         
         return None
     
@@ -539,6 +560,7 @@ class PLCBridge:
             # Initialize modbus clients and signals
             self.modbus_clients = {}
             self.signals = {}
+            self.signal_connections = {}  # Cache for signal to connection mapping
             
             connections = data.get('data', [])
             if not connections:
@@ -578,6 +600,10 @@ class PLCBridge:
                             signal_name=signal_data.get('signal_name')
                         )
                         self.signals[signal.name] = signal
+                        
+                        # Store the connection information for this signal
+                        self.signal_connections[signal.name] = conn_name
+                        self.logger.debug(f"Cached connection {conn_name} for signal {signal.name}")
                     except KeyError as ke:
                         self.logger.warning(f"Skipping signal with missing required field: {ke} in {signal_data}")
                     except Exception as se:
@@ -658,8 +684,16 @@ class PLCBridge:
         last_status_update = 0
         status_update_interval = 10  # Send status updates every 10 seconds (increased from 2)
         
+        # Add counters for API calls
+        api_call_count = 0
+        poll_cycle_count = 0
+        
         while self.running:
             try:
+                # Reset API call counter for this cycle
+                api_call_count = 0
+                poll_cycle_count += 1
+                
                 # Publish status update periodically (only if there are clients)
                 current_time = time.time()
                 if current_time - last_status_update > status_update_interval:
@@ -670,27 +704,10 @@ class PLCBridge:
                 # Group signals by connection for efficient polling
                 signals_by_connection = {}
                 for signal_name, signal in self.signals.items():
-                    # Robust connection name extraction
-                    connection_name = None
+                    # Use the _get_connection_name method which now uses caching
+                    connection_name = self._get_connection_name(signal_name)
                     
-                    # Try method 1: Split by hyphen
-                    if "-" in signal_name:
-                        connection_name = signal_name.split("-")[0]
-                    
-                    # Try method 2: API call to get parent
-                    if not connection_name:
-                        try:
-                            response = self.session.get(
-                                f"{self.frappe_url}/api/resource/Modbus Signal/{signal_name}",
-                                timeout=5
-                            )
-                            response.raise_for_status()
-                            data = response.json()
-                            connection_name = data.get('data', {}).get('parent')
-                        except Exception as e:
-                            self.logger.warning(f"Could not retrieve parent for signal {signal_name}: {e}")
-                    
-                    # Try method 3: Use first Modbus client as default
+                    # If no connection, log error and skip
                     if not connection_name and self.modbus_clients:
                         connection_name = list(self.modbus_clients.keys())[0]
                         self.logger.warning(f"Using default connection {connection_name} for signal {signal_name}")
@@ -728,6 +745,10 @@ class PLCBridge:
                             
                             # Send update to Frappe
                             self._publish_signal_update(signal)
+                
+                # Log API call statistics every 10 cycles
+                if poll_cycle_count % 10 == 0:
+                    self.logger.warning(f"API Call Stats: Made {api_call_count} API calls to Modbus Signal in polling cycle {poll_cycle_count}")
                 
                 # Sleep for configured poll interval
                 time.sleep(self.poll_interval)
@@ -978,19 +999,11 @@ class PLCBridge:
             # Find any Modbus Action documents with this signal linked
             self.logger.info(f"Looking for Modbus Actions linked to signal: {signal_name}")
             
-            # First, get the signal document to find its ID
-            signal_response = self.session.get(
-                f"{self.frappe_url}/api/resource/Modbus Signal/{signal_name}",
-                timeout=10
-            )
-            signal_response.raise_for_status()
-            signal_data = signal_response.json().get('data', {})
+            # Use the signal name as the ID (they should be the same)
+            signal_id = signal_name
             
-            # The signal ID might be in the 'name' field of the signal document
-            signal_id = signal_data.get('name')
-            if not signal_id:
-                self.logger.error(f"Could not determine signal ID for {signal_name}")
-                return
+            # Create a placeholder for signal data that we'll populate if needed
+            signal_data = {'name': signal_name, 'signal_name': signal_name}
             
             # Query for Modbus Actions using the signal ID
             filter_json = json.dumps([["modbus_signal", "=", signal_id]])
@@ -1158,30 +1171,8 @@ class PLCBridge:
         
         self.logger.info("\nInitial Signal States:")
         for signal_name, signal in self.signals.items():
-            # Robust connection name extraction
-            connection_name = None
-            
-            # Try method 1: Split by hyphen
-            if "-" in signal_name:
-                connection_name = signal_name.split("-")[0]
-            
-            # Try method 2: API call to get parent
-            if not connection_name:
-                try:
-                    response = self.session.get(
-                        f"{self.frappe_url}/api/resource/Modbus Signal/{signal_name}",
-                        timeout=5
-                    )
-                    response.raise_for_status()
-                    data = response.json()
-                    connection_name = data.get('data', {}).get('parent')
-                except Exception as e:
-                    self.logger.warning(f"Could not retrieve parent for signal {signal_name}: {e}")
-            
-            # Try method 3: Use first Modbus client as default
-            if not connection_name and self.modbus_clients:
-                connection_name = list(self.modbus_clients.keys())[0]
-                self.logger.warning(f"Using default connection {connection_name} for signal {signal_name}")
+            # Use the _get_connection_name method which now uses caching
+            connection_name = self._get_connection_name(signal_name)
             
             # If still no connection, log error
             if not connection_name:

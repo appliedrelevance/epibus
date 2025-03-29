@@ -7,8 +7,10 @@ from frappe.core.doctype.server_script.server_script import ServerScript
 from frappe import _
 from typing import cast
 
+import logging
 from epibus.epibus.utils.epinomy_logger import get_logger
 logger = get_logger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class ModbusAction(Document):
@@ -69,18 +71,6 @@ class ModbusAction(Document):
             # Log parameters for debugging
             logger.debug(f"Script parameters: {params}")
 
-            # Store context in flags for access during execution
-            connection_doc = frappe.get_doc(
-                "Modbus Connection", str(self.connection))
-            frappe.flags.modbus_context = {
-                "action": self,
-                "connection": connection_doc,
-                "params": params
-            }
-
-            logger.debug(
-                f"Modbus context set with connection {connection_doc.name}")
-
             if script.script_type == "API":
                 logger.debug(f"Executing API script {script.name}")
                 result = script.execute_method()
@@ -95,31 +85,12 @@ class ModbusAction(Document):
 
                 logger.debug(f"Script execution result: {result}")
 
-                # Ensure we have a proper dictionary with expected keys
-                if not isinstance(result, dict):
-                    logger.warning(
-                        f"Script {script.name} returned non-dict result: {result}")
-                    # Convert non-dict result to a standard format
-                    return {
-                        "status": "success",
-                        "value": result,
-                        "error": None
-                    }
-
-                return {
-                    "status": result.get("status", "success"),
-                    "value": result.get("value"),
-                    "error": result.get("error")
-                }
+                return result
             else:
                 logger.debug(
                     f"Executing non-API script {script.name} with event_doc: {event_doc is not None}")
                 result = script.execute_doc(event_doc) if event_doc else None
-                return {
-                    "status": "success" if result is not None else "error",
-                    "value": result,
-                    "error": "No event document provided" if not event_doc else None
-                }
+                return result
         except Exception as e:
             logger.exception(
                 f"Error executing script for Modbus Action {self.name}: {str(e)}")
@@ -149,30 +120,14 @@ def test_action_script(action_name):
     try:
         # Get the Modbus Action document
         action_doc = frappe.get_doc("Modbus Action", action_name)
-        
-        # Check if the action has a signal and if it's read-only
-        if action_doc.modbus_signal:
-            # Get the connection document
-            connection_doc = frappe.get_doc("Modbus Connection", action_doc.connection)
-            
-            # Find the signal in the connection's signals table
-            signal = None
-            for s in connection_doc.signals:
-                if s.name == action_doc.modbus_signal:
-                    signal = s
-                    break
-            
-            if signal:
-                # Check if the signal type is read-only
-                read_only_types = ['Digital Input Contact', 'Analog Input Register']
-                if signal.signal_type in read_only_types:
-                    return {
-                        "status": "error",
-                        "error": f"Cannot write to read-only signal type: {signal.signal_type}"
-                    }
+
+        # Skip all signal checks and directly execute the script
+        logger.info(f"Directly executing server script: {action_doc.server_script}")
         
         # Execute the script
-        return action_doc.execute_script()
+        result = action_doc.execute_script()
+        logger.info(f"Script execution result: {result}")
+        return result
     
     except Exception as e:
         logger.exception(f"Error testing script for Modbus Action {action_name}: {str(e)}")
@@ -242,10 +197,10 @@ def check_recent_events(action_name, signal_name):
             filters={
                 "creation": [">=", add_to_date(now_datetime(), seconds=-15)],
                 "event_type": "Script Execution",
-                "reference_name": action_name
+                "action": action_name
             },
             fields=["name", "creation", "event_type",
-                    "signal", "value", "reference_name"],
+                    "signal", "action"],
             order_by="creation desc"
         )
 
@@ -372,6 +327,57 @@ def test_doctype_event(self):
             "status": "error",
             "error": f"Test setup failed: {str(e)}"
         }
+
+
+@frappe.whitelist()
+def direct_test_script(action_name):
+    """
+    Directly execute the server script for a Modbus Action without any signal checks
+    
+    Args:
+        action_name (str): The name of the Modbus Action document
+        
+    Returns:
+        dict: Result of script execution
+    """
+    logger.info(f"Direct test of script for Modbus Action: {action_name}")
+    
+    try:
+        # Get the Modbus Action document
+        action_doc = frappe.get_doc("Modbus Action", action_name)
+        
+        # Get the connection document
+        connection_doc = frappe.get_doc("Modbus Connection", action_doc.connection)
+        
+        # Set up the context for script execution
+        frappe.flags.modbus_context = {
+            "action": action_doc,
+            "connection": connection_doc,
+            "params": {p.parameter: p.value for p in action_doc.parameters},
+            "test_mode": True
+        }
+        
+        # Get the server script
+        script_doc = frappe.get_doc("Server Script", action_doc.server_script)
+        
+        # Execute the script
+        logger.info(f"Executing server script: {script_doc.name}")
+        result = script_doc.execute_method()
+        logger.info(f"Script execution result: {result}")
+        
+        return {
+            "status": "success",
+            "result": result
+        }
+    except Exception as e:
+        logger.exception(f"Error in direct test of script: {str(e)}")
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+    finally:
+        # Clear the context
+        frappe.flags.modbus_context = None
 
 
 @frappe.whitelist()

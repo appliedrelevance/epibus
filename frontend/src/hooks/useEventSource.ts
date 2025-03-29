@@ -170,12 +170,10 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
     
     // Set up event listeners with throttling
     const setupEventListeners = () => {
-      // Process event with throttling and detailed debugging
+      // Process event with throttling and minimal logging
       const processEvent = (eventName: string, event: MessageEvent) => {
         // Update last event time on any activity
         lastEventTime = Date.now();
-        
-        // Skip detailed logging for production
         
         // Skip empty events
         if (!event.data || event.data.length === 0) {
@@ -206,6 +204,11 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
         
         // Process the event
         try {
+          // Only log non-heartbeat events
+          if (eventName !== 'heartbeat') {
+            console.log(`🔄 SSE: Received ${eventName} event`);
+          }
+          
           const data = JSON.parse(event.data);
           
           if (handlersRef.current[eventName]) {

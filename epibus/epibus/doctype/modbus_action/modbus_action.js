@@ -195,28 +195,18 @@ function testSignalChangeScript(frm) {
         indicator: 'blue'
     });
     
-    // Call our new endpoint to test the script
-    frappe.call({
-        method: 'epibus.epibus.doctype.modbus_action.modbus_action.test_action_script',
-        args: {
-            action_name: frm.doc.name
-        },
-        freeze: true,
-        freeze_message: __('Testing Script...'),
-        callback: function(r) {
-            if (r.exc) {
-                // Handle error from the server
-                console.error(`❌ Error testing script: ${r.exc}`);
-                frappe.msgprint({
-                    title: __('Script Test Failed'),
-                    message: __(`Failed to test script: ${r.exc}`),
-                    indicator: 'red'
-                });
-                return;
-            }
-            
+    // Call our new endpoint to test the script using promises
+    frappe
+        .call({
+            method: 'epibus.epibus.doctype.modbus_action.modbus_action.test_action_script',
+            args: {
+                action_name: frm.doc.name
+            },
+            freeze: true,
+            freeze_message: __('Testing Script...')
+        })
+        .then((r) => {
             const result = r.message;
-            
             if (result.status === 'error') {
                 // Handle error from the script execution
                 console.error(`❌ Script execution error: ${result.error}`);
@@ -227,26 +217,25 @@ function testSignalChangeScript(frm) {
                 });
                 return;
             }
-            
+
             // Success case
             console.log(`✅ Script executed successfully: ${JSON.stringify(result)}`);
             frappe.msgprint({
                 title: __('Script Execution Successful'),
-                message: __(`Result: ${JSON.stringify(result.value || {})}`),
+                message: __(`Result: ${JSON.stringify(result)}`),
                 indicator: 'green'
             });
-            
-            // Check for events if this is a Signal Change script
-            if (frm.doc.script_type === 'Signal Change' && frm.doc.modbus_signal) {
-                setTimeout(() => {
-                    checkEventLog(frm, frm.doc.modbus_signal);
-                }, 2000); // Wait 2 seconds for event processing
-            }
-        }
-    });
-}
 
-// Function removed - functionality integrated directly into testSignalChangeScript
+        })
+        .catch((err) => {
+            console.error(`❌ Error during frappe call: ${err}`);
+            frappe.msgprint({
+                title: __('Script Test Failed'),
+                message: __(`An error occurred during the frappe call: ${err}`),
+                indicator: 'red'
+            });
+        });
+}
 
 // Test DocType Event script by simulating the event
 function testDocTypeEventScript(frm) {
@@ -262,13 +251,21 @@ function testDocTypeEventScript(frm) {
     frappe.confirm(
         __(`This will simulate a <strong>${frm.doc.doctype_event}</strong> event on <strong>${frm.doc.reference_doctype}</strong>. No actual document will be modified. Continue?`),
         () => {
-            // Execute with simulation parameters
+            // Execute with simulation parameters using promises
             frm.call({
                 method: 'test_doctype_event',
                 doc: frm.doc,
                 freeze: true,
-                freeze_message: __('Simulating DocType Event...'),
-                callback: handleTestResponse
+                freeze_message: __('Simulating DocType Event...')
+            })
+            .then(handleTestResponse)
+            .catch(err => {
+                console.error(`❌ Error during DocType Event simulation: ${err}`);
+                frappe.msgprint({
+                    title: __('DocType Event Test Failed'),
+                    message: __(`An error occurred: ${err}`),
+                    indicator: 'red'
+                });
             });
         }
     );
@@ -288,13 +285,21 @@ function testSchedulerEventScript(frm) {
     frappe.confirm(
         __(`This will simulate a <strong>${frm.doc.event_frequency}</strong> scheduler event. Continue?`),
         () => {
-            // Execute with simulation parameters
+            // Execute with simulation parameters using promises
             frm.call({
                 method: 'test_scheduler_event',
                 doc: frm.doc,
                 freeze: true,
-                freeze_message: __('Simulating Scheduler Event...'),
-                callback: handleTestResponse
+                freeze_message: __('Simulating Scheduler Event...')
+            })
+            .then(handleTestResponse)
+            .catch(err => {
+                console.error(`❌ Error during Scheduler Event simulation: ${err}`);
+                frappe.msgprint({
+                    title: __('Scheduler Event Test Failed'),
+                    message: __(`An error occurred: ${err}`),
+                    indicator: 'red'
+                });
             });
         }
     );
@@ -306,8 +311,16 @@ function executeScriptDirectly(frm) {
         method: 'execute_script',
         doc: frm.doc,
         freeze: true, 
-        freeze_message: __('Executing Script...'),
-        callback: handleTestResponse
+        freeze_message: __('Executing Script...')
+    })
+    .then(handleTestResponse)
+    .catch(err => {
+        console.error(`❌ Error during script execution: ${err}`);
+        frappe.msgprint({
+            title: __('Script Execution Failed'),
+            message: __(`An error occurred: ${err}`),
+            indicator: 'red'
+        });
     });
 }
 
@@ -318,35 +331,39 @@ function checkEventLog(frm, signalName) {
         args: {
             action_name: frm.doc.name,
             signal_name: signalName
-        },
-        callback: function(r) {
-            if (r.message) {
-                if (r.message.found) {
-                    frappe.msgprint({
-                        title: __('Signal Change Test Result'),
-                        message: __(`✅ Success! The script was executed when the signal changed.
+        }
+    })
+    .then((r) => {
+        if (r.message) {
+            if (r.message.found) {
+                frappe.msgprint({
+                    title: __('Signal Change Test Result'),
+                    message: __(`✅ Success! The script was executed when the signal changed.
                             <br><br>Event Log: ${r.message.event_info}`),
-                        indicator: 'green'
-                    });
-                } else {
-                    frappe.msgprint({
-                        title: __('Signal Change Test Result'),
-                        message: __(`⚠️ The signal was changed successfully, but no script execution was detected.
-                            <br><br>This could mean:<br>
-                            1. The Redis message queue is not processing events<br>
-                            2. The signal condition doesn't match the new value<br>
-                            3. The action is not properly configured`),
-                        indicator: 'orange'
-                    });
-                }
+                    indicator: 'green'
+                });
             } else {
                 frappe.msgprint({
                     title: __('Signal Change Test Result'),
-                    message: __('⚠️ Could not verify script execution. Please check server logs.'),
+                    message: __(`⚠️ The signal was changed successfully, but no script execution was detected.`),
                     indicator: 'orange'
                 });
             }
+        } else {
+            frappe.msgprint({
+                title: __('Signal Change Test Result'),
+                message: __('⚠️ Could not verify script execution. Please check server logs.'),
+                indicator: 'orange'
+            });
         }
+    })
+    .catch(err => {
+        console.error(`❌ Error during checkEventLog: ${err}`);
+        frappe.msgprint({
+            title: __('Error'),
+            message: __(`An error occurred: ${err}`),
+            indicator: 'red'
+        });
     });
 }
 
