@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEventLog } from '../hooks/useEventLog';
 import './EventLog.css';
 
@@ -7,12 +7,50 @@ interface EventLogProps {
   maxHeight?: string;
 }
 
-export const EventLog: React.FC<EventLogProps> = ({ 
-  className = '', 
-  maxHeight = '300px' 
+// Interface for signal mapping
+interface SignalMapping {
+  [key: string]: string; // Maps signal ID to signal_name
+}
+
+export const EventLog: React.FC<EventLogProps> = ({
+  className = '',
+  maxHeight = '300px'
 }) => {
   const { events, clearEvents } = useEventLog(100);
   const [filter, setFilter] = useState('');
+  const [signalMapping, setSignalMapping] = useState<SignalMapping>({});
+  
+  // Load signal mapping on component mount
+  useEffect(() => {
+    const fetchSignalMapping = async () => {
+      try {
+        // Fetch from the warehouse dashboard API
+        const response = await fetch('/api/method/epibus.www.warehouse_dashboard.get_modbus_data');
+        const data = await response.json();
+        
+        if (data && data.message && Array.isArray(data.message)) {
+          const mapping: SignalMapping = {};
+          
+          // Create mapping from signal ID to signal_name
+          data.message.forEach((connection: any) => {
+            if (connection.signals && Array.isArray(connection.signals)) {
+              connection.signals.forEach((signal: any) => {
+                if (signal.name && signal.signal_name) {
+                  mapping[signal.name] = signal.signal_name;
+                }
+              });
+            }
+          });
+          
+          setSignalMapping(mapping);
+        }
+      } catch (error) {
+        console.error('Error fetching signal mapping:', error);
+      }
+    };
+    
+    fetchSignalMapping();
+  }, []);
   
   // Filter events
   const filteredEvents = events.filter(event => {
@@ -27,9 +65,29 @@ export const EventLog: React.FC<EventLogProps> = ({
     );
   });
   
-  // Format timestamp
+  // Format timestamp as relative time
   const formatTime = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleTimeString();
+    const now = Date.now() / 1000; // Current time in seconds
+    const diff = now - timestamp; // Difference in seconds
+    
+    // Format as relative time
+    if (diff < 60) {
+      return 'just now';
+    } else if (diff < 3600) {
+      const minutes = Math.floor(diff / 60);
+      return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+    } else if (diff < 86400) {
+      const hours = Math.floor(diff / 3600);
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+    } else {
+      const days = Math.floor(diff / 86400);
+      return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+    }
+  };
+  
+  // Get signal name from ID
+  const getSignalName = (signalId: string) => {
+    return signalMapping[signalId] || signalId;
   };
   
   // Get status color
@@ -103,7 +161,7 @@ export const EventLog: React.FC<EventLogProps> = ({
                       <div className="text-sm">
                         {event.signal && (
                           <span className="mr-2">
-                            <span className="text-gray-500">Signal:</span> {event.signal}
+                            <span className="text-gray-500">Signal:</span> {getSignalName(event.signal)}
                           </span>
                         )}
                         

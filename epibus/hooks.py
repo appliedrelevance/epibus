@@ -19,12 +19,16 @@ app_include_css = [
 ]
 
 fixtures = [
-    {
-        "dt": "Role",
-        "filters": [["name", "in", ["Modbus Administrator", "Modbus User"]]],
-    },
+    {"dt": "Role", "filters": [["name", "in", ["Modbus Administrator", "Modbus User"]]]},
     {"dt": "Workspace", "filters": [["name", "in", ["EpiBus"]]]},
     {"dt": "Server Script", "filters": [["module", "in", ["EpiBus"]]]},
+    {"dt": "Custom Field", "filters": [["module", "in", ["EpiBus"]]]},
+]
+
+# epi_bus/hooks.py
+
+fixtures = [
+ 
 ]
 
 export_python_type_annotations = True

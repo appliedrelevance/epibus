@@ -1,0 +1,32 @@
+# epibus/fixtures/Custom Field.json
+[
+  {
+    "doctype": "Custom Field",
+    "dt": "Warehouse",
+    "fieldname": "modbus_connection",
+    "fieldtype": "Link",
+    "label": "Modbus Connection",
+    "options": "Modbus Connection",
+    "insert_after": "warehouse_detail",
+    "owner": "Administrator"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Warehouse",
+    "fieldname": "modbus_signal",
+    "fieldtype": "Link",
+    "label": "Modbus Signal",
+    "options": "Modbus Signal",
+    "insert_after": "modbus_connection",
+    "owner": "Administrator"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Warehouse",
+    "fieldname": "set_value",
+    "fieldtype": "Float",
+    "label": "Set Value",
+    "insert_after": "modbus_signal",
+    "owner": "Administrator"
+  }
+]
