@@ -27,7 +27,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Event Type",
-   "options": "Read\nWrite\nSignal Update\nConnection Test\nAction Execution\nError",
+   "options": "Informational\nRead\nWrite\nSignal Update\nConnection Test\nAction Execution\nError",
    "reqd": 1
   },
   {
