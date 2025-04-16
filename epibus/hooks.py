@@ -19,7 +19,8 @@ app_include_css = [
 ]
 
 fixtures = [
-    {"dt": "Role", "filters": [["name", "in", ["Modbus Administrator", "Modbus User"]]]},
+    {"dt": "Role", "filters": [
+        ["name", "in", ["Modbus Administrator", "Modbus User"]]]},
     {"dt": "Workspace", "filters": [["name", "in", ["EpiBus"]]]},
     {"dt": "Server Script", "filters": [["module", "in", ["EpiBus"]]]},
     {"dt": "Custom Field", "filters": [["module", "in", ["EpiBus"]]]},
@@ -28,7 +29,7 @@ fixtures = [
 # epi_bus/hooks.py
 
 fixtures = [
- 
+
 ]
 
 export_python_type_annotations = True
@@ -50,7 +51,7 @@ web_include_css = [
 # Scheduler configuration for signal monitoring
 
 # Setup signal monitor on app install/update
-after_install = "epibus.epibus.install.after_install"
+# after_install = "epibus.epibus.install.after_install"
 
 # Whitelisted methods
 api_methods = {
