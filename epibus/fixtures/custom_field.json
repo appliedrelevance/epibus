@@ -1,6 +1,7 @@
 [
   {
     "doctype": "Custom Field",
+    "name": "Warehouse-modbus_connection",
     "dt": "Warehouse",
     "fieldname": "modbus_connection",
     "fieldtype": "Link",
@@ -11,6 +12,7 @@
   },
   {
     "doctype": "Custom Field",
+    "name": "Warehouse-modbus_signal",
     "dt": "Warehouse",
     "fieldname": "modbus_signal",
     "fieldtype": "Link",
@@ -21,6 +23,7 @@
   },
   {
     "doctype": "Custom Field",
+    "name": "Warehouse-set_value",
     "dt": "Warehouse",
     "fieldname": "set_value",
     "fieldtype": "Float",
