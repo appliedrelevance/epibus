@@ -33,7 +33,7 @@ The PLC Bridge is designed to run as part of the frappe_docker composition. Use 
 
 ```bash
 # From the frappe_docker root directory
-docker-compose -f compose.yaml -f overrides/compose.plc-bridge.yaml up -d
+docker-compose -f compose.yaml -f overrides/compose.mac-m4.yaml -f overrides/compose.redis.yaml -f overrides/compose.mariadb.yaml -f overrides/compose.openplc.yaml -f overrides/compose.plc-bridge.yaml up -d
 ```
 
 ### Environment Variables
@@ -120,8 +120,8 @@ Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
 To run with debug logging:
 
 ```bash
-docker-compose -f compose.yaml -f overrides/compose.plc-bridge.yaml up -d
-docker-compose exec plc-bridge bash
+docker-compose -f compose.yaml -f overrides/compose.mac-m4.yaml -f overrides/compose.redis.yaml -f overrides/compose.mariadb.yaml -f overrides/compose.openplc.yaml -f overrides/compose.plc-bridge.yaml up -d
+docker-compose -f compose.yaml -f overrides/compose.mac-m4.yaml -f overrides/compose.redis.yaml -f overrides/compose.mariadb.yaml -f overrides/compose.openplc.yaml -f overrides/compose.plc-bridge.yaml exec plc-bridge bash
 # Inside container:
 PLC_LOG_LEVEL=DEBUG python bridge.py --frappe-url "$FRAPPE_URL" --api-key "$FRAPPE_API_KEY" --api-secret "$FRAPPE_API_SECRET"
 ```
@@ -131,7 +131,7 @@ PLC_LOG_LEVEL=DEBUG python bridge.py --frappe-url "$FRAPPE_URL" --api-key "$FRAP
 Run unit tests:
 
 ```bash
-docker-compose exec plc-bridge python -m pytest test_bridge.py -v
+docker-compose -f compose.yaml -f overrides/compose.mac-m4.yaml -f overrides/compose.redis.yaml -f overrides/compose.mariadb.yaml -f overrides/compose.openplc.yaml -f overrides/compose.plc-bridge.yaml exec plc-bridge python -m pytest test_bridge.py -v
 ```
 
 ## Development

@@ -320,14 +320,15 @@ class TestPLCBridge(unittest.TestCase):
         signal.last_update = time.time()
         
         # Mock API response
-        mock_response = MockResponse({'success': True})
-        self.mock_session.post.return_value = mock_response
-        
+        # Mock the SSE server's publish_event method and clients
+        self.bridge.sse_server.publish_event = MagicMock()
+        self.bridge.sse_server.clients = {MagicMock()}
+
         # Test publishing update
         self.bridge._publish_signal_update(signal)
-        
+
         # Verify results
-        self.mock_session.post.assert_called_once()
+        self.bridge.sse_server.publish_event.assert_called()
         
     def test_poll_signals(self):
         """Test polling signals"""
